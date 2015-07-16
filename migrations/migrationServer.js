@@ -17,7 +17,7 @@ var Knex = require('knex');
 var pg = require('pg');
 var Promise = require('bluebird');
 var crypto = require("crypto");
-var CONSTANTS = require('../constants/constants');
+/*var CONSTANTS = require('../constants/constants');*/
 
 Knex.knex = Knex.initialize({
     debug: true,
