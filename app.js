@@ -39,12 +39,12 @@ module.exports = function () {
 //app.set('views', __dirname + '/public/templates/static');
 //app.set('view engine', 'html');
 
-    if (process.env.NODE_ENV) {
+    /*if (process.env.NODE_ENV) {
         require('./config/' + process.env.NODE_ENV.toLowerCase());
     } else {
         process.env.NODE_ENV = 'production';
         require('./config/production');
-    }
+    }*/
 
     config = {
         db: parseInt(process.env.SESSION_DB) || 3,
@@ -68,8 +68,8 @@ module.exports = function () {
         client: 'pg',
         connection: {
             host: process.env.DB_HOST,
-            /*user: process.env.DB_USER,
-             password: process.env.DB_PASS,*/
+            user: process.env.DB_USER,
+            password: process.env.DB_PASS,
             port: process.env.DB_PORT,
             database: process.env.DB_NAME
             //charset: 'utf8'
