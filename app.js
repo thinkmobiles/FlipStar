@@ -78,8 +78,8 @@ module.exports = function () {
 
     PostGre = require('bookshelf')(knex);
 
-    /*Models = require('./models/index');
-     Collections = require('./collections/index');*/
+    Models = require('./models/index');
+     //Collections = require('./collections/index');
 
     /*var uploaderConfig = {
      type: process.env.UPLOADING_TYPE,
@@ -94,8 +94,8 @@ module.exports = function () {
 
      PostGre.imagesUploader = imagesUploader;*/
 
-    /*PostGre.Models = new Models(PostGre);
-    PostGre.Collections = new Collections(PostGre);*/
+    PostGre.Models = new Models(PostGre);
+    //PostGre.Collections = new Collections(PostGre);
     app.set('PostGre', PostGre);
 
     /*require('./routes/index')(app, PostGre);*/

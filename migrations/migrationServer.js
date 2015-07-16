@@ -17,7 +17,7 @@ var Knex = require('knex');
 var pg = require('pg');
 var Promise = require('bluebird');
 var crypto = require("crypto");
-/*var CONSTANTS = require('../constants/constants');*/
+//var CONSTANTS = require('../constants/constants');
 
 Knex.knex = Knex.initialize({
     debug: true,
@@ -38,7 +38,7 @@ var bookshelf = require('bookshelf')(knex);
 var app = express();
 var server = http.createServer(app);
 
-app.configure(function () {
+/*app.configure(function () {
     app.set('port', 8081);
     app.use(express.favicon());
     app.use(express.logger('dev'));
@@ -51,7 +51,7 @@ app.configure(function () {
 
 app.configure('development', function () {
     app.use(express.errorHandler());
-});
+});*/
 
 String.prototype.getBytes = function () {
     var bytes = [];
@@ -78,8 +78,8 @@ app.get('/', function (req, res) {
 
     html += '<a href="/databases/create">Create Tables</a><br/>';
     html += '<a href="/databases/drop">Drop Tables</a><br/>';
-    html += '<a href="/databases/default">Set Defult Date</a><br/>';
-    html += '<a href="/add_admin">Add admin</a><br/>';
+    //html += '<a href="/databases/default">Set Defult Date</a><br/>';
+    //html += '<a href="/add_admin">Add admin</a><br/>';
     //html+='<a href="/seed/default">Seed Default</a><br/>';
     //html+='<a href="/seed/fake">Seed Fake</a><br/>';
 
@@ -97,11 +97,11 @@ app.get('/databases/drop', function (req, res) {
     res.send('<b>Drop Take Success</b>');
 });
 
-app.get('/databases/default', function (req, res) {
+/*app.get('/databases/default', function (req, res) {
     schema.setDefaultData(req, res);
-});
+});*/
 
-app.get('/add_admin', function (req, res) {
+/*app.get('/add_admin', function (req, res) {
     var admin = bookshelf.Model.extend({
         tableName: 'users',
         hasTimestamps: true
@@ -125,7 +125,7 @@ app.get('/add_admin', function (req, res) {
             res.status(500).send(error);
     });
 
-});
+});*/
 
 
 server.listen(3000, function () {
