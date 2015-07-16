@@ -1,6 +1,5 @@
 module.exports = function (knex, Promise) {
     var TABLES = require('../constants/tables');
-    var CONSTANTS = require('../constants/constants');
     var when = require('when');
     var crypto = require('crypto');
     var async = require('../node_modules/async');
@@ -8,25 +7,19 @@ module.exports = function (knex, Promise) {
     function create() {
         async.parallel([
             function (cb) {
-                createTable(TABLES.USERS, function (row) {
+                createTable(TABLES.USERS_PROFILE, function (row) {
                     row.increments('id').primary();
+                    row.string('facebook_id').unique();
                     row.string('first_name', 50);
                     row.string('last_name', 50);
-                    row.string('email', 50).unique();
-                    row.string('change_email', 50);
-                    row.string('password');
-                    row.string('gender', 10);
-                    row.string('confirm_token',75);
-                    row.string('nationality',75);
-                    row.integer('confirm_status');
+                    row.integer('country_id');
+                    row.integer('language_id');
+                    row.integer('gender');
                     row.timestamp('birthday');
-                    row.string('facebook_id').index();
-                    row.integer('role');
-
-                    row.string('lat');
-                    row.string('lon');
-
-                    row.boolean('isFirstLogin').default(false);
+                    row.string('age_range');
+                    row.string('email');
+                    row.string('timezone');
+                    row.string('phone_number');
 
                     row.timestamp('updated_at', true);
                     row.timestamp('created_at', true);
@@ -34,118 +27,165 @@ module.exports = function (knex, Promise) {
             },
 
             function (cb) {
-                createTable(TABLES.POSTS, function (row) {
-                        row.increments('id').primary();
-                        row.integer('author_id').index().notNullable();
-                        row.string('title',100).notNullable();
-                        row.string('body', 3000).notNullable();
-                        row.string('lat').notNullable();
-                        row.string('lon').notNullable();
-                        row.integer('city_id').index();
-                        row.integer('country_id').index();
-                        row.specificType('type', 'int[]');
+                createTable(TABLES.DEVICE, function (row) {
+                    row.increments('id').primary();
+                    row.integer('userId');
+                    row.integer('device_type');
+                    row.string('device_timezone');
+                    row.string('push_token').unique();
+                    row.string('push_operator');
+                    row.string('content_version');
+                    row.string('screen_width');
+                    row.string('screen_height');
+                    row.string('device_model');
+                    row.string('device_manufacturer');
+                    row.string('device_firmware');
 
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
-                    },
-                    function (err) {
-                        if (!err) {
-                            /*knex.raw('ALTER TABLE posts ADD COLUMN location GEOGRAPHY(POINT,4326)')
-                                .then(function () {
-                                     knex.raw('CREATE INDEX posts_location_index ON posts USING GIST (location)')
-                                        .exec(cb);
-                                })
-                                .catch(function (err) {
-                                    cb(err);
-                                });*/
-                        } else {
-                            cb(err);
-                        }
-                    }, cb)
-            },
-
-            function (cb) {
-                createTable(TABLES.FEEDBACKS, function (row) {
-                        row.increments('id').primary();
-                        row.integer('author_id').index().notNullable();
-                        row.string('body', 1000).notNullable();
-
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
                 }, cb)
             },
 
             function (cb) {
-                createTable(TABLES.COMPLAINTS, function (row) {
-                        row.increments('id').primary();
-                        row.integer('author_id').index().notNullable();
-                        row.integer('post_id').index().notNullable();
+                createTable(TABLES.GAME_PROFILE, function (row) {
+                    row.increments('id').primary();
+                    row.integer('user_id').index().notNullable();
+                    row.integer('device_id').index().notNullable();
+                    row.integer('friends_id');
+                    row.string('app_platform');
+                    row.timestamp('registration_date');
+                    row.string('registration_week');
+                    row.integer('sessions_number');
+                    row.string('session_max_length');
+                    row.integer('stars_number');
+                    row.integer('points_number');
+                    row.integer('pogs_number');
+                    row.integer('flips_number');
+                    row.string('app_flyer_source');
+                    row.string('app_flyer_media');
+                    row.string('app_flyer_campaign');
+                    row.string('utm_source');
+                    row.string('install_country');
+                    row.string('last_login_country');
+                    row.integer('real_spent');
+                    row.integer('soft_currency_spent');
+                    row.integer('flips_spent');
+                    row.integer('fb_friends_number');
+                    row.integer('shares');
+                    row.integer('tools_used');
+                    row.timestamp('last_seen_date');
+                    row.timestamp('last_purchase_date');
+                    row.timestamp('first_purchase_date');
+                    row.integer('offers_seen');
+                    row.integer('offers_bought');
+                    row.integer('promo_seen');
 
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
                 }, cb)
             },
 
             function (cb) {
-                createTable(TABLES.IMAGES, function (row) {
-                        row.increments('id').primary();
-                        row.integer('imageable_id').index().notNullable();
-                        row.string('imageable_type', 50).notNullable();
-                        row.string('name', 50).notNullable();
+                createTable(TABLES.SMASHES, function (row) {
+                    row.increments('id').primary();
+                    row.string('name', 50).notNullable();
+                    row.integer('set', 50).notNullable();
 
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
                 }, cb)
             },
 
             function (cb) {
-                createTable(TABLES.STATIC_INFO, function (row) {
-                        row.increments('id').primary();
-                        row.string('type', 50).notNullable();
-                        row.text('body').notNullable();
+                createTable(TABLES.USERS_SMASHES, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').notNullable();
+                    row.integer('smash_id').notNullable();
+                    row.integer('quantity').notNullable();
 
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
                 }, cb)
+            },
 
+            function (cb) {
+                createTable(TABLES.ACHIEVEMENTS, function (row) {
+                    row.increments('id').primary();
+                    row.integer('name').notNullable();
+                    row.integer('prize').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.USERS_ACHIEVEMENTS, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').notNullable();
+                    row.integer('achievements_id').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.KIOSK, function (row) {
+                    row.increments('id').primary();
+                    row.integer('type').notNullable();
+                    row.string('name').notNullable();
+                    row.integer('store').notNullable();
+                    row.string('store_item_id').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.USERS_PURCHASES, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').notNullable();
+                    row.integer('purchase_id').notNullable();
+                    row.integer('recipe_id').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.NOTIFICATIONS_QUEUE, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').notNullable();
+                    row.integer('type').notNullable();
+                    row.integer('priority').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.NOTIFICATIONS_QUEUE, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').notNullable();
+                    row.integer('type').notNullable();
+                    row.integer('priority').notNullable();
+                    row.timestamp('delivery_date');
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
             },
 
             function (cb) {
                 createTable(TABLES.COUNTRIES, function (row) {
-                        row.increments('id').primary();
-                        row.string('name', 50).notNullable();
-                        row.string('code', 50).notNullable();
-
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
-                }, cb)
-            },
-
-            function (cb) {
-                createTable(TABLES.CITIES, function (row) {
-                        row.increments('id').primary();
-                        row.string('name', 75).notNullable();
-
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
-                }, cb)
-            },
-
-            function (cb) {
-                createTable(TABLES.POST_CATEGORIES, function (row) {
-                        row.increments('id').primary();
-                        row.string('name', 50).notNullable();
-
-                        row.timestamp('updated_at', true);
-                        row.timestamp('created_at', true);
-                }, cb)
-            },
-
-            function (cb) {
-                createTable(TABLES.VISITED_COUNTRIES, function (row) {
                     row.increments('id').primary();
-                    row.string('country_code', 10);
-                    row.integer('author_id').index().notNullable();
+                    row.string('iso_code').notNullable();
+                    row.string('name').notNullable();
 
                     row.timestamp('updated_at', true);
                     row.timestamp('created_at', true);
@@ -153,11 +193,10 @@ module.exports = function (knex, Promise) {
             },
 
             function (cb) {
-                createTable(TABLES.COUNTRIES_SEARCH_COUNT, function (row) {
+                createTable(TABLES.LANGUAGE, function (row) {
                     row.increments('id').primary();
-                    row.string('country_code', 10);
-                    row.integer('author_id').index().notNullable();
-                    row.integer('count');
+                    row.string('iso_code').notNullable();
+                    row.string('name').notNullable();
 
                     row.timestamp('updated_at', true);
                     row.timestamp('created_at', true);
@@ -178,7 +217,7 @@ module.exports = function (knex, Promise) {
     function createTable(tableName, crateFieldsFunc, callback) {
         knex.schema.hasTable(tableName).then(function (exists) {
             if (!exists) {
-                 knex.schema.createTable(tableName, crateFieldsFunc)
+                knex.schema.createTable(tableName, crateFieldsFunc)
                     .exec(callback);
             } else {
                 callback()
@@ -189,15 +228,9 @@ module.exports = function (knex, Promise) {
 
     function drop() {
         return when.all([
-            knex.schema.dropTableIfExists(TABLES.USERS),
-            knex.schema.dropTableIfExists(TABLES.POSTS),
-            knex.schema.dropTableIfExists(TABLES.POST_CATEGORIES),
-            knex.schema.dropTableIfExists(TABLES.CITIES),
-            knex.schema.dropTableIfExists(TABLES.COUNTRIES),
-            knex.schema.dropTableIfExists(TABLES.FEEDBACKS),
-            knex.schema.dropTableIfExists(TABLES.IMAGES),
-            knex.schema.dropTableIfExists(TABLES.COMPLAINTS),
-            knex.schema.dropTableIfExists(TABLES.STATIC_INFO)
+            knex.schema.dropTableIfExists(TABLES.USERS_PROFILE),
+            knex.schema.dropTableIfExists(TABLES.DEVICE),
+            knex.schema.dropTableIfExists(TABLES.GAME_PROFILE)
         ]);
     }
 
