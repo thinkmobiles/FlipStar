@@ -1,6 +1,7 @@
 module.exports = {
     USERS_PROFILE: 'users_profile',
     DEVICE: 'device',
+    FRIENDS: 'friends',
     GAME_PROFILE: 'game_profile',
     SMASHES: 'smashes',
     USERS_SMASHES: 'users_smashes',

@@ -73,7 +73,6 @@ module.exports = function (knex) {
                     row.increments('id').primary();
                     row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('device_id').references('id').inTable(TABLES.DEVICE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('friends_id');
                     row.string('app_platform');
                     row.timestamp('registration_date');
                     row.string('registration_week');
@@ -109,10 +108,21 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                createTable(TABLES.FRIENDS, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('friend_game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function (cb) {
                 createTable(TABLES.SMASHES, function (row) {
                     row.increments('id').primary();
                     row.string('name', 50).notNullable();
-                    row.integer('set', 50).notNullable();
+                    row.integer('set').notNullable();
 
                     row.timestamp('updated_at', true);
                     row.timestamp('created_at', true);
@@ -297,6 +307,10 @@ module.exports = function (knex) {
 
             function (cb) {
                 dropTable(TABLES.USERS_PROFILE, cb)
+            },
+
+            function (cb) {
+                dropTable(TABLES.FRIENDS, cb)
             },
 
             function (cb) {
