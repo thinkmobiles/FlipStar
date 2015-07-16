@@ -1,7 +1,6 @@
-module.exports = function (knex, Promise) {
+module.exports = function (knex) {
     var TABLES = require('../constants/tables');
     var when = require('when');
-    var crypto = require('crypto');
     var async = require('../node_modules/async');
 
     function create() {
@@ -72,8 +71,8 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.GAME_PROFILE, function (row) {
                     row.increments('id').primary();
-                    row.integer('user_id').notNullable().references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('device_id').notNullable().references('id').inTable(TABLES.DEVICE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('device_id').references('id').inTable(TABLES.DEVICE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('friends_id');
                     row.string('app_platform');
                     row.timestamp('registration_date');
@@ -123,8 +122,8 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.USERS_SMASHES, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').notNullable().references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('smash_id').notNullable().references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('quantity').notNullable();
 
                     row.timestamp('updated_at', true);
@@ -146,8 +145,8 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.USERS_ACHIEVEMENTS, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').notNullable().references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('achievements_id').notNullable().references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('SET NULL').onUpdate('CASCADE');
 
                     row.timestamp('updated_at', true);
                     row.timestamp('created_at', true);
@@ -170,7 +169,7 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.USERS_PURCHASES, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').notNullable().references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('purchase_id').notNullable();
                     row.integer('recipe_id').notNullable();
 
@@ -182,7 +181,7 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.NOTIFICATIONS_QUEUE, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').notNullable().references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
 
@@ -194,7 +193,7 @@ module.exports = function (knex, Promise) {
             function (cb) {
                 createTable(TABLES.NOTIFICATIONS_HISTORY, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').notNullable().references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
                     row.timestamp('delivery_date');
@@ -306,7 +305,7 @@ module.exports = function (knex, Promise) {
 
             function (cb) {
                 dropTable(TABLES.COUNTRIES, cb)
-            },
+            }
         ], function (err) {
             if (err) {
                 console.log('===============================');
