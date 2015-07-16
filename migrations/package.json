@@ -1,0 +1,17 @@
+{
+    "name": "Loyalty",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "express": "3.0.5",
+        "csv": "*",
+        "crypto": "0.0.3",
+        "async": "~0.9.0",
+        "underscore": "^1.7.0",
+        "bluebird": "^2.9.13",
+        "bookshelf": "^0.7.9",
+        "knex": "^0.7.3",
+        "pg": "^4.3.0",
+        "when": "^3.7.2"
+    }
+}
