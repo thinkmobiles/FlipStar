@@ -10,7 +10,7 @@ module.exports = function () {
     var app = express();
     var http = require('http');
     var session = require('express-session');
-    var MemoryStore = require('connect-redis')(session);
+    var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
 
 //var marked = require('marked');
@@ -23,6 +23,7 @@ module.exports = function () {
     var knex;
     var PostGre;
     var Models;
+    var sessionStore;
 
 //app.engine('html', cons.swig);
 //app.set('view engine', 'html');
@@ -52,16 +53,18 @@ module.exports = function () {
         port: parseInt(process.env.SESSION_PORT) || 6379
     };
 
-    app.use(session({
+    sessionStore = session({
         name: 'FlipStar',
         secret: 'd52642fee054a026141fbd843169b9bb',
         resave: true,
         saveUninitialized: true,
         cookie: {
-            maxAge: 1000 * 60 * 60 * 24 * 7 * 31
+            maxAge: 1000 * 60 * 10
         },
-        store: new MemoryStore(config)
-    }));
+        store: new RedisStore(config)
+    });
+    app.set( 'sessionStore', sessionStore );
+    app.use( sessionStore );
 
     knex = require('knex')({
         //debug: true,
