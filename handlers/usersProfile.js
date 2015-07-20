@@ -78,6 +78,7 @@ Users = function (PostGre) {
             }
 
         }
+        result.updated_at = new Date();
         return result;
     };
 
@@ -105,7 +106,7 @@ Users = function (PostGre) {
                 case 'push_operator':
                     result[key] = value;
                     break;
-                case 'convert_version':
+                case 'content_version':
                     result[key] = value;
                     break;
                 case 'screen_width':
@@ -127,6 +128,7 @@ Users = function (PostGre) {
             }
 
         }
+        result.updated_at = new Date();
         return result;
     };
 
@@ -139,35 +141,67 @@ Users = function (PostGre) {
             value = options[key];
 
             switch (key) {
-                case 'facebook_id':
+                case 'app_platform':
                     result[key] = value;
                     break;
-                case 'first_name':
+                case 'sessions_number':
                     result[key] = value;
                     break;
-                case 'last_name':
+                case 'session_max_length':
                     result[key] = value;
                     break;
-                case 'gender':
+                case 'stars_number':
                     result[key] = value;
                     break;
-                case 'email':
+                case 'points_number':
                     result[key] = value;
                     break;
-                case 'language_id':
+                case 'pogs_number':
                     result[key] = value;
                     break;
-                case 'country_id':
+                case 'flips_number':
                     result[key] = value;
                     break;
-                case 'birthday':
-                    result[key] = value;
-                    result['age_range'] = get_current_age(value);
-                    break;
-                case 'timezone':
+                case 'app_flyer_source':
                     result[key] = value;
                     break;
-                case 'phone_number':
+                case 'app_flyer_media':
+                    result[key] = value;
+                    break;
+                case 'app_flyer_campaign':
+                    result[key] = value;
+                    break;
+                case 'utm_source':
+                    result[key] = value;
+                    break;
+                case 'last_login_country':
+                    result[key] = value;
+                    break;
+                case 'real_spent':
+                    result[key] = value;
+                    break;
+                case 'soft_currency_spent':
+                    result[key] = value;
+                    break;
+                case 'flips_spent':
+                    result[key] = value;
+                    break;
+                case 'fb_friends_number':
+                    result[key] = value;
+                    break;
+                case 'shares':
+                    result[key] = value;
+                    break;
+                case 'tools_used':
+                    result[key] = value;
+                    break;
+                case 'offers_seen':
+                    result[key] = value;
+                    break;
+                case 'offers_bought':
+                    result[key] = value;
+                    break;
+                case 'promo_seen':
                     result[key] = value;
                     break;
 
@@ -259,17 +293,18 @@ Users = function (PostGre) {
         var options = req.body;
         var err;
 
-        if (options && options.deviceId) {
+        if (options && options.device_id) {
             DeviceModel
                 .forge({
-                    id: options.deviceId
+                    device_id: options.device_id
                 })
                 .fetch()
                 .then(function (device) {
                     if (device && device.id) {
+
                         GameProfileModel
                             .forge({
-
+                                device_id: device.id
                             })
                             .fetch()
                             .then(function (profile) {
@@ -277,6 +312,7 @@ Users = function (PostGre) {
                             })
                             .otherwise(next)
                     } else {
+
                         createNewProfile(options, function (err, profile) {
                             if (err) {
                                 return next(err)
@@ -302,7 +338,7 @@ Users = function (PostGre) {
     this.signIn = function (req, res, next) {
         var options = req.body;
         var uId = options.uId;
-        var deviceId = options.deviceId;
+        var deviceId = options.device_id;
         var err;
 
         PostGre.knex
@@ -313,7 +349,7 @@ Users = function (PostGre) {
             )
             .then(function (profile) {
                 if (profile && profile.rows && profile.rows.length) {
-                    session.register(req, res, profile.rows)
+                    session.register(req, res, profile.rows[0])
                 } else {
                     err = new Error(RESPONSES.DATABASE_ERROR);
                     err.status = 500;
@@ -321,23 +357,83 @@ Users = function (PostGre) {
                 }
             })
             .otherwise(next)
+    };
 
-        /*GameProfileModel
-            .query(function (qb) {
-                qb.leftJoin('device', 'device.id', 'game_profile.device_id')
-            })
-            .fetch()
+    this.signUpViaFB = function (req, res, next) {
+        var options = req.body;
+        var FBSaveInfo = prepareUserSaveInfo(options);
+        var err;
+
+        if (options && options.uId && options.facebook_id) {
+
+            PostGre.knex(TABLES.USERS_PROFILE)
+                .where('facebook_id', options.facebookId)
+                .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                .then(function (result) {
+                    if (result[0]) {
+                        session.register(req, res, result[0])
+                    } else {
+
+                        PostGre.knex(TABLES.GAME_PROFILE)
+                            .where('id', options.uId)
+                            .then(function (result) {
+
+                                PostGre.knex(TABLES.USERS_PROFILE)
+                                    .where('id', result[0].user_id)
+                                    .update(FBSaveInfo)
+                                    .then(function () {
+                                        session.register(req, res, result[0])
+                                    })
+                                    .otherwise(next)
+                            })
+                            .otherwise(next)
+                    }
+
+                })
+                .otherwise(next)
+        } else {
+            err = new Error(RESPONSES.BAD_INCOMING_PARAMS);
+            err.status = 500;
+            next(err)
+        }
+    };
+
+    this.signOut = function (req, res, next) {
+        session.kill(req, res);
+    };
+
+    this.getProfileById = function (req, res, next) {
+        var uid = req.params.id;
+
+        PostGre.knex(TABLES.USERS_PROFILE)
+            .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+            .where(TABLES.GAME_PROFILE + '.id', uid)
             .then(function (profile) {
-                if (profile && profile.id) {
-                    res.send(profile)
-                    //session.register(req, res, profile)
-                } else {
-                    err = new Error(RESPONSES.DATABASE_ERROR);
-                    err.status = 500;
-                    next(err)
-                }
+                res.status(200).send(profile[0])
             })
-            .otherwise(next)*/
+            .otherwise(next)
+    };
+
+    this.updateProfile = function (req, res, next) {
+        var uid = req.params.id;
+        var options = req.body;
+        var updatedObj = prepareGameProfSaveInfo(options);
+
+        GameProfileModel
+            .forge({
+                id: uid
+            })
+            .save(
+                updatedObj,
+            {
+                patch: true
+            })
+            .then(function () {
+                res.status(200).send({
+                    success: RESPONSES.UPDATED
+                })
+            })
+            .otherwise(next)
     };
 
 };

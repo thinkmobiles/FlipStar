@@ -9,6 +9,12 @@ module.exports = function (PostGre, app) {
 
     router.post('/signUp', usersHandler.signUp);
     router.post('/signIn', usersHandler.signIn);
+    router.post('/signUpFB', usersHandler.signUpViaFB);
+
+    router.get('/signOut', usersHandler.signOut);
+    router.get('/:id', usersHandler.getProfileById);
+
+    router.put('/:id', usersHandler.updateProfile);
 
     return router;
 };
