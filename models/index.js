@@ -5,12 +5,11 @@ var Models = function (PostGre) {
     var _ = require('underscore');
 
     var Model = PostGre.Model.extend({
-        hasTimestamps: true,
-        getName: function () {
-            return this.tableName.replace(/s$/, '')
-        }
+        hasTimestamps: true
     });
 
     this[MODELS.USERS_PROFILE] = require('./userProfile')(PostGre, Model);
+    this[MODELS.DEVICE] = require('./device')(PostGre, Model);
+    this[MODELS.GAME_PROFILE] = require('./gameProfile')(PostGre, Model);
 };
 module.exports = Models;

@@ -51,7 +51,8 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.DEVICE, function (row) {
                     row.increments('id').primary();
-                    row.integer('userId').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('device_id');
                     row.integer('device_type');
                     row.string('device_timezone');
                     row.string('push_token').unique();
@@ -76,12 +77,12 @@ module.exports = function (knex) {
                     row.string('app_platform');
                     row.timestamp('registration_date');
                     row.string('registration_week');
-                    row.integer('sessions_number');
+                    row.integer('sessions_number').defaultTo(0);
                     row.string('session_max_length');
-                    row.integer('stars_number');
-                    row.integer('points_number');
-                    row.integer('pogs_number');
-                    row.integer('flips_number');
+                    row.integer('stars_number').defaultTo(0);
+                    row.integer('points_number').defaultTo(0);
+                    row.integer('pogs_number').defaultTo(0);
+                    row.integer('flips_number').defaultTo(0);
                     row.string('app_flyer_source');
                     row.string('app_flyer_media');
                     row.string('app_flyer_campaign');
@@ -298,6 +299,10 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                dropTable(TABLES.FRIENDS, cb)
+            },
+
+            function (cb) {
                 dropTable(TABLES.GAME_PROFILE, cb)
             },
 
@@ -307,10 +312,6 @@ module.exports = function (knex) {
 
             function (cb) {
                 dropTable(TABLES.USERS_PROFILE, cb)
-            },
-
-            function (cb) {
-                dropTable(TABLES.FRIENDS, cb)
             },
 
             function (cb) {

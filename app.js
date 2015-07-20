@@ -64,12 +64,12 @@ module.exports = function () {
     }));
 
     knex = require('knex')({
-        //debug: true,
+        debug: true,
         client: 'pg',
         connection: {
             host: process.env.DB_HOST,
-            /*user: process.env.DB_USER,
-             password: process.env.DB_PASS,*/
+            user: process.env.DB_USER,
+            password: process.env.DB_PASS,
             port: process.env.DB_PORT,
             database: process.env.DB_NAME
             //charset: 'utf8'
@@ -98,7 +98,7 @@ module.exports = function () {
     //PostGre.Collections = new Collections(PostGre);
     app.set('PostGre', PostGre);
 
-    /*require('./routes/index')(app, PostGre);*/
+    require('./routes/index')(app, PostGre);
 
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
