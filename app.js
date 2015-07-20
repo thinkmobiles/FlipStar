@@ -39,12 +39,12 @@ module.exports = function () {
 //app.set('views', __dirname + '/public/templates/static');
 //app.set('view engine', 'html');
 
-    if (process.env.NODE_ENV) {
+    /*if (process.env.NODE_ENV) {
         require('./config/' + process.env.NODE_ENV.toLowerCase());
     } else {
         process.env.NODE_ENV = 'production';
         require('./config/production');
-    }
+    }*/
 
     config = {
         db: parseInt(process.env.SESSION_DB) || 3,
