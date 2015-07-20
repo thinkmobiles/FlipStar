@@ -67,7 +67,7 @@ module.exports = function () {
     app.use( sessionStore );
 
     knex = require('knex')({
-        //debug: true,
+        debug: true,
         client: 'pg',
         connection: {
             host: process.env.DB_HOST,
@@ -101,7 +101,7 @@ module.exports = function () {
     //PostGre.Collections = new Collections(PostGre);
     app.set('PostGre', PostGre);
 
-    /*require('./routes/index')(app, PostGre);*/
+    require('./routes/index')(app, PostGre);
 
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
