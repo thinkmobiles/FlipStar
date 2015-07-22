@@ -31,7 +31,7 @@ Users = function (PostGre) {
         return weekNumber;
     };
 
-    function get_current_age(date) {
+    function getCurrentAge(date) {
         return ((new Date().getTime() - new Date(date)) / (24 * 3600 * 365.25 * 1000)) | 0;
     };
 
@@ -67,7 +67,7 @@ Users = function (PostGre) {
                     break;
                 case 'birthday':
                     result[key] = value;
-                    result['age_range'] = get_current_age(value);
+                    result['age_range'] = getCurrentAge(value);
                     break;
                 case 'timezone':
                     result[key] = value;
@@ -224,7 +224,7 @@ Users = function (PostGre) {
 
                 UserModel
                     .forge()
-                    .save()
+                    .save(userObj)
                     .then(function (user) {
                         if (user && user.id) {
                             cb(null, user)
@@ -267,8 +267,8 @@ Users = function (PostGre) {
                 };
 
                 GameProfileModel
-                    .forge(gameProf)
-                    .save()
+                    .forge()
+                    .save(gameProf)
                     .then(function (profile) {
                         if (profile && profile.id) {
                             cb(null, profile)
@@ -292,15 +292,24 @@ Users = function (PostGre) {
 
     function updateUser (uid, options, callback) {
 
-        PostGre.knex(TABLES.GAME_PROFILE)
-            .where('id', uid)
-            .then(function (result) {
+        GameProfileModel
+            .forge({
+                id: uid
+            })
+            .then(function (profile) {
 
-                PostGre.knex(TABLES.USERS_PROFILE)
-                    .where('id', result[0].user_id)
-                    .update(options)
+                UserModel
+                    .forge({
+                        id: profile.get('user_id')
+                    })
+                    .save(
+                        options,
+                    {
+                        patch: true
+                    }
+                    )
                     .then(function () {
-                        callback(null, result[0])
+                        callback(null, profile)
                     })
                     .otherwise(callback)
             })
@@ -318,8 +327,8 @@ Users = function (PostGre) {
                 })
                 .fetch()
                 .then(function (device) {
-                    if (device && device.id) {
 
+                    if (device && device.id) {
                         GameProfileModel
                             .forge({
                                 device_id: device.id
@@ -329,8 +338,8 @@ Users = function (PostGre) {
                                session.register(req, res, profile)
                             })
                             .otherwise(next)
-                    } else {
 
+                    } else {
                         createNewProfile(options, function (err, profile) {
                             if (err) {
                                 return next(err)
@@ -361,9 +370,9 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT  game_profile.id, device.device_id FROM game_profile ' +
-                'left join device  on device.id = game_profile.device_id ' +
-                'where game_profile.id =' + uId + ' and device.device_id = \'' + deviceId + '\''
+                'SELECT  g.id, d.device_id FROM ' + TABLES.GAME_PROFILE + ' g ' +
+                'left join ' + TABLES.DEVICE + ' d on d.id = g.device_id ' +
+                'where g.id =' + uId + ' and d.device_id = \'' + deviceId + '\''
             )
             .then(function (profile) {
                 if (profile && profile.rows && profile.rows.length) {
@@ -388,9 +397,10 @@ Users = function (PostGre) {
             if (options.facebook_id) {
 
                 PostGre.knex(TABLES.USERS_PROFILE)
-                    .where('facebook_id', options.facebookId)
+                    .where('facebook_id', options.facebook_id)
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .then(function (result) {
+
                         if (result[0]) {
                             session.register(req, res, result[0])
                         } else {
@@ -405,6 +415,7 @@ Users = function (PostGre) {
                     .otherwise(next)
             } else {
                 updateUser(uid, userSaveInfo, function (err, result) {
+
                     if (err) {
                         return next(err)
                     }
@@ -486,11 +497,11 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'insert into friends (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
+                'insert into ' + TABLES.FRIENDS + ' (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
                 'select ' + uid + ' as g_id, g.id, ' + '\'' + curDate + '\'' + ' as updated_at, ' + '\'' + curDate + '\'' + ' as created_at from users_profile u ' +
-                'left join game_profile g on g.user_id = u.id ' +
+                'left join ' + TABLES.GAME_PROFILE + ' g on g.user_id = u.id ' +
                 'where facebook_id in ' + queryStr +
-                'and g.id not in (select friend_game_profile_id from friends  where game_profile_id = ' + uid + ')'
+                'and g.id not in (select friend_game_profile_id from ' + TABLES.FRIENDS + '  where game_profile_id = ' + uid + ')'
             )
             .then(function () {
                 res.status(200).send({success: RESPONSES.UPDATED})
@@ -503,9 +514,9 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from game_profile g ' +
-                'left join users_profile u on g.user_id = u.id ' +
-                'where g.id in (select friend_game_profile_id from friends where game_profile_id = ' + uid +')'
+                'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from ' + TABLES.GAME_PROFILE + ' g ' +
+                'left join ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
+                'where g.id in (select friend_game_profile_id from ' + TABLES.FRIENDS + ' where game_profile_id = ' + uid +')'
             )
             .then(function (friends) {
                 res.status(200).send(friends.rows)
@@ -518,9 +529,9 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-            'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from game_profile g ' +
-            'left join users_profile u on g.user_id = u.id ' +
-            'where g.id in (select friend_game_profile_id from friends where game_profile_id = ' + uid +') ' +
+            'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from ' + TABLES.GAME_PROFILE + ' g ' +
+            'left join ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
+            'where g.id in (select friend_game_profile_id from ' + TABLES.FRIENDS+ ' where game_profile_id = ' + uid +') ' +
             'order by g.points_number desc ' +
             'limit 25'
             )
@@ -528,6 +539,7 @@ Users = function (PostGre) {
                 res.status(200).send(friends.rows)
             })
             .otherwise(next)
+
     };
 
 };
