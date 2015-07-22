@@ -12,14 +12,13 @@ module.exports = function (PostGre, app) {
     router.post('/addFriends', usersHandler.addFBFriends);
 
 
-    router.get('/topRank', usersHandler.getTopRankList);
     router.get('/signOut', usersHandler.signOut);
     router.get('/friends', usersHandler.getFriends);
+    router.get('/topRank', usersHandler.getTopRankList);
     router.get('/friends/topRank', usersHandler.getFriendsTopRankList);
-    router.get('/:id', usersHandler.getProfileById);
+
 
     router.put('/:id', usersHandler.updateUserProfile);
-    router.put('/profile/:id', usersHandler.updateProfile);
 
     return router;
 };

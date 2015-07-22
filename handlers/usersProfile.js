@@ -133,85 +133,6 @@ Users = function (PostGre) {
         return result;
     };
 
-    function prepareGameProfSaveInfo (options) {
-        var result = {};
-        var key;
-        var value;
-
-        for (key in options) {
-            value = options[key];
-
-            switch (key) {
-                case 'app_platform':
-                    result[key] = value;
-                    break;
-                case 'sessions_number':
-                    result[key] = value;
-                    break;
-                case 'session_max_length':
-                    result[key] = value;
-                    break;
-                case 'stars_number':
-                    result[key] = value;
-                    break;
-                case 'points_number':
-                    result[key] = value;
-                    break;
-                case 'pogs_number':
-                    result[key] = value;
-                    break;
-                case 'flips_number':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_source':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_media':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_campaign':
-                    result[key] = value;
-                    break;
-                case 'utm_source':
-                    result[key] = value;
-                    break;
-                case 'last_login_country':
-                    result[key] = value;
-                    break;
-                case 'real_spent':
-                    result[key] = value;
-                    break;
-                case 'soft_currency_spent':
-                    result[key] = value;
-                    break;
-                case 'flips_spent':
-                    result[key] = value;
-                    break;
-                case 'fb_friends_number':
-                    result[key] = value;
-                    break;
-                case 'shares':
-                    result[key] = value;
-                    break;
-                case 'tools_used':
-                    result[key] = value;
-                    break;
-                case 'offers_seen':
-                    result[key] = value;
-                    break;
-                case 'offers_bought':
-                    result[key] = value;
-                    break;
-                case 'promo_seen':
-                    result[key] = value;
-                    break;
-
-            }
-
-        }
-        return result;
-    };
-
     function createNewProfile (options, callback) {
         var err;
         var gameProf;
@@ -376,7 +297,9 @@ Users = function (PostGre) {
             )
             .then(function (profile) {
                 if (profile && profile.rows && profile.rows.length) {
+
                     session.register(req, res, profile.rows[0])
+
                 } else {
                     err = new Error(RESPONSES.DATABASE_ERROR);
                     err.status = 500;
@@ -434,7 +357,7 @@ Users = function (PostGre) {
         session.kill(req, res);
     };
 
-    this.getProfileById = function (req, res, next) {
+   /* this.getProfileById = function (req, res, next) {
         var uid = req.params.id;
 
         PostGre.knex(TABLES.USERS_PROFILE)
@@ -444,9 +367,9 @@ Users = function (PostGre) {
                 res.status(200).send(profile[0])
             })
             .otherwise(next)
-    };
+    };*/
 
-    this.updateProfile = function (req, res, next) {
+    /*this.updateProfile = function (req, res, next) {
         var uid = req.params.id;
         var options = req.body;
         var updatedObj = prepareGameProfSaveInfo(options);
@@ -466,7 +389,7 @@ Users = function (PostGre) {
                 })
             })
             .otherwise(next)
-    };
+    };*/
 
     this.getTopRankList = function (req, res, next) {
 
