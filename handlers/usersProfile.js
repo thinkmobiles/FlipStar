@@ -2,6 +2,7 @@ var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var MODELS = require('../constants/models');
 var async = require('async');
+var _ = require('underscore');
 var Session = require('./sessions');
 var Users;
 
@@ -289,6 +290,23 @@ Users = function (PostGre) {
         })
     };
 
+    function updateUser (uid, options, callback) {
+
+        PostGre.knex(TABLES.GAME_PROFILE)
+            .where('id', uid)
+            .then(function (result) {
+
+                PostGre.knex(TABLES.USERS_PROFILE)
+                    .where('id', result[0].user_id)
+                    .update(options)
+                    .then(function () {
+                        callback(null, result[0])
+                    })
+                    .otherwise(callback)
+            })
+            .otherwise(callback)
+    };
+
     this.signUp = function (req, res, next) {
         var options = req.body;
         var err;
@@ -359,38 +377,41 @@ Users = function (PostGre) {
             .otherwise(next)
     };
 
-    this.signUpViaFB = function (req, res, next) {
+    this.updateUserProfile = function (req, res, next) {
+        var uid = req.params.id;
         var options = req.body;
-        var FBSaveInfo = prepareUserSaveInfo(options);
+        var userSaveInfo = prepareUserSaveInfo(options);
         var err;
 
-        if (options && options.uId && options.facebook_id) {
+        if (options && uid) {
 
-            PostGre.knex(TABLES.USERS_PROFILE)
-                .where('facebook_id', options.facebookId)
-                .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
-                .then(function (result) {
-                    if (result[0]) {
-                        session.register(req, res, result[0])
-                    } else {
+            if (options.facebook_id) {
 
-                        PostGre.knex(TABLES.GAME_PROFILE)
-                            .where('id', options.uId)
-                            .then(function (result) {
-
-                                PostGre.knex(TABLES.USERS_PROFILE)
-                                    .where('id', result[0].user_id)
-                                    .update(FBSaveInfo)
-                                    .then(function () {
-                                        session.register(req, res, result[0])
-                                    })
-                                    .otherwise(next)
+                PostGre.knex(TABLES.USERS_PROFILE)
+                    .where('facebook_id', options.facebookId)
+                    .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                    .then(function (result) {
+                        if (result[0]) {
+                            session.register(req, res, result[0])
+                        } else {
+                            updateUser(uid, userSaveInfo, function (err, result) {
+                                if (err) {
+                                    return next(err)
+                                }
+                                session.register(req, res, result)
                             })
-                            .otherwise(next)
+                        }
+                    })
+                    .otherwise(next)
+            } else {
+                updateUser(uid, userSaveInfo, function (err, result) {
+                    if (err) {
+                        return next(err)
                     }
-
+                    session.register(req, res, result)
                 })
-                .otherwise(next)
+            }
+
         } else {
             err = new Error(RESPONSES.BAD_INCOMING_PARAMS);
             err.status = 500;
@@ -432,6 +453,79 @@ Users = function (PostGre) {
                 res.status(200).send({
                     success: RESPONSES.UPDATED
                 })
+            })
+            .otherwise(next)
+    };
+
+    this.getTopRankList = function (req, res, next) {
+
+        PostGre.knex(TABLES.USERS_PROFILE)
+            .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+            .select('first_name', 'last_name', 'points_number')
+            .orderBy('points_number', 'desc')
+            .limit(25)
+            .then(function (profiles) {
+                res.status(200).send(profiles)
+            })
+            .otherwise(next)
+    };
+
+    this.addFBFriends = function (req, res, next) {
+        var addFriendsList = req.body.friendsList;
+        var uid = req.session.uId;
+        var queryStr = '';
+        var curDate = new Date().toISOString();
+
+
+        for (var i = addFriendsList.length; i--;) {
+            queryStr += '\'' + addFriendsList[i] + '\'' + ','
+        }
+
+        queryStr = queryStr.slice(0, -1);
+        queryStr ='('  + queryStr + ')';
+
+        PostGre.knex
+            .raw(
+                'insert into friends (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
+                'select ' + uid + ' as g_id, g.id, ' + '\'' + curDate + '\'' + ' as updated_at, ' + '\'' + curDate + '\'' + ' as created_at from users_profile u ' +
+                'left join game_profile g on g.user_id = u.id ' +
+                'where facebook_id in ' + queryStr +
+                'and g.id not in (select friend_game_profile_id from friends  where game_profile_id = ' + uid + ')'
+            )
+            .then(function () {
+                res.status(200).send({success: RESPONSES.UPDATED})
+            })
+            .otherwise(next)
+    };
+
+    this.getFriends = function (req, res, next) {
+        var uid = req.session.uId;
+
+        PostGre.knex
+            .raw(
+                'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from game_profile g ' +
+                'left join users_profile u on g.user_id = u.id ' +
+                'where g.id in (select friend_game_profile_id from friends where game_profile_id = ' + uid +')'
+            )
+            .then(function (friends) {
+                res.status(200).send(friends.rows)
+            })
+            .otherwise(next)
+    };
+
+    this.getFriendsTopRankList = function (req, res, next) {
+        var uid = req.session.uId;
+
+        PostGre.knex
+            .raw(
+            'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from game_profile g ' +
+            'left join users_profile u on g.user_id = u.id ' +
+            'where g.id in (select friend_game_profile_id from friends where game_profile_id = ' + uid +') ' +
+            'order by g.points_number desc ' +
+            'limit 25'
+            )
+            .then(function (friends) {
+                res.status(200).send(friends.rows)
             })
             .otherwise(next)
     };
