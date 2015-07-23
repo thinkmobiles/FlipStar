@@ -312,20 +312,24 @@ Users = function (PostGre) {
     this.updateUserProfile = function (req, res, next) {
         var uid = req.params.id;
         var options = req.body;
+        var deviceId = options.device_id;
         var userSaveInfo = prepareUserSaveInfo(options);
         var err;
 
-        if (options && uid) {
+        if (options && options.device_id && uid) {
 
             if (options.facebook_id) {
 
                 PostGre.knex(TABLES.USERS_PROFILE)
+                    .select(TABLES.GAME_PROFILE + '.id', TABLES.USERS_PROFILE + '.facebook_id', TABLES.DEVICE + '.device_id')
                     .where('facebook_id', options.facebook_id)
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                    .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
                     .then(function (result) {
 
                         if (result[0]) {
-                            session.register(req, res, result[0])
+                                session.register(req, res, result[0])
+
                         } else {
                             updateUser(uid, userSaveInfo, function (err, result) {
                                 if (err) {

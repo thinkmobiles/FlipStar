@@ -2,7 +2,7 @@ var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var MODELS = require('../constants/models');
 var async = require('async');
-var _ = require('underscore');
+var _ = require('lodash');
 var Session = require('./sessions');
 var Users;
 
@@ -127,6 +127,14 @@ GameProfile = function (PostGre) {
             .otherwise(next)
     };
 
+    this.syncOfflineGame = function (req, res, next) {
+        var optins = req.body;
+        var uid = req. session.uId;
+
+        PostGre.knex(TABLES.GAME_PROFILE)
+            .where('id', uid)
+            .then()
+    };
 };
 
 module.exports = GameProfile;
