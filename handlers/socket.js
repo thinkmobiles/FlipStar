@@ -2,197 +2,97 @@
  * Created by eriy on 09.07.15.
  */
 
-var sockets = require('socket.io');
+/*var sockets = require('socket.io');
 var redisObject = require('../helpers/redisClient')();
-var RedisSocketStore = require( 'socket.io/lib/stores/redis' );
+var RedisSocketStore = require( 'socket.io/lib/stores/redis' );*/
 var logger = require('../helpers/logger');
+var sharedSession = require("express-socket.io-session");
+var redis = require( 'socket.io-redis' );
 var io;
 
 var Socket = function( server, app ) {
     if ( io ) {
         return io;
     }
+    var sessionStore = app.get('sessionStore');
 
-    io = sockets.listen(
+    io = require('socket.io')(
         server,
         {
-            store: new RedisSocketStore( redisObject )
+            transports: ['websocket']
         }
     );
 
-    io.configure( function () {
-        io.set( "transports", ["websocket"] );
-        io.set( 'log level', 0 );
-        //io.set("polling duration", 10);
-    } );
+    io.adapter( redis({
+        /*host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT*/
+    }) );
 
-    io.sockets.on('connection', function (socket) {
-        logger.info(
-            'Socket connected',
-            {
-                cluster: process.env.pm_id,
-                socketId: socket.id
+    io.use( sharedSession( sessionStore, { autoSave: true } ) );
+    io.use( function( socket, next ) {
+        var err;
+
+        if ( ! socket.handshake.session.uId ) {
+            err = new Error({ message: 'unAuthorized', socketId: socket.id });
+            err.status = 403;
+
+            if ( process.env.NODE_ENV === 'development') {
+                console.log('Socket: ', socket.id, ' unAuthorized','\n', 'session: ', socket.handshake);
             }
+            socket.emit('newMessage', { message: 'unAuthorized', socketId: 'system'});
+
+            return next( err );
+        }
+
+        if ( process.env.NODE_ENV === 'development') {
+            console.log('Socket: ', socket.id, ' isAuthorized, UserId: ', socket.handshake.session.uId);
+        }
+
+        next();
+    });
+
+    io.on('connection', function( socket ) {
+        socket.emit('newMessage', { message: 'you are connected', socketId: socket.id });
+        console.log(
+            'Socket connected: ', socket.id, '\n',
+            'session: ', socket.handshake.session
         );
 
-        socket.on('test', function(data){
-            var rabbit = app.get('rabbit');
-            rabbit.publishMessage( 'testEvent', { message: 'Hello world', socket: socket.id }, 'test.event', function( err ) {
-                if (err) {
-                    return console.log('Error: test rabbitMQ');
-                }
-
-                console.log('Success: test rabbitMQ')
-            });
-            socket.emit('test', data );
-            logger.info(
-                'Incoming test message',
-                {
-                    cluster: process.env.pm_id,
-                    socketId: socket.id,
-                    data: data
-                }
-            );
-        });
-
-        socket.on('newStack', function(data) {
-            if ( data && data.stack && data.stack instanceof Array ) {
-
-            }
-
-
-        });
-
-        socket.emit('info', { message: 'connected', socket: socket.id });
-
-        socket.on('join', function( inData ) {
-            var data = {room: 'Data'};
-            if ( data && data.room ) {
-                socket.join( data.room );
-                socket.emit( 'info', { message: 'Connected to ROOM: ', room: data.room, socket: socket.id } );
-                socket.broadcast.to( 'room1' ).emit(
-                    'info ',
-                    {
-                        message: 'New Participiant Connected',
-                        newSocket: socket.id,
-                        room: data.room
-                    }
-                )
+        socket.on('newMessage', function( data ) {
+            if ( data.room ) {
+                console.log( data.room );
+                socket.broadcast.to( data.room ).emit('newMessage', { message: data.message, socketId: socket.handshake.session.user ||socket.id } );
+                console.log( 'New message\n', 'from: ', socket.id, '\n', 'to room: ', data.room );
             } else {
-                socket.emit(
-                    'info',
-                    {
-                        message: 'Error',
-                        error: 'Bad Data'
-                    }
-                );
+                socket.emit('newMessage', { message: 'your test msg resived', data: data, socketId:socket.handshake.session.user || socket.id });
             }
 
         });
 
-        socket.on('leave', function( data ) {
-
-            if (data && data.room) {
-                socket.leave( data.room );
-                socket.emit( 'info', { message: 'Leave ROOM: ' + data.room, socket: socket.id } );
-                return socket.broadcast.to( data.room ).emit(
-                    'info ',
-                    {
-                        message: 'Participiant Disconnected',
-                        oldSocket: socket.id,
-                        room: data.room
-                    }
-                );
-            }
-
-
-        });
-
-        socket.on('getRoom', function( data ) {
-            var util = require('util');
-            if (data && data.room) {
-                socket.emit(
-                    'info',
-                    {
-                        message: 'ROOM Parcipiants',
-                        parcipiants: util.inspect(io.sockets.clients( data.room ))
-                    }
-                );
+        socket.on('user:login', function( data ) {
+            if ( data.room ) {
+                console.log( data.room );
+                socket.broadcast.to( data.room ).emit('newMessage', { message: data.message, socketId: socket.handshake.session.user ||socket.id } );
+                console.log( 'New message\n', 'from: ', socket.id, '\n', 'to room: ', data.room );
+            } else {
+                console.log('Socket IN: ', socket.id, ' Data: ', data);
+                socket.emit('newMessage', { message: 'your test msg resived', data: data, socketId:socket.handshake.session.user || socket.id });
             }
 
         });
 
-        socket.on( 'sendRoom', function( data ) {
-
-            var util = require('util');
-            if (data && data.room) {
-                socket.broadcast.to('room1').emit(
-                    'info',
-                    {
-                        message: 'ROOM message',
-                        parcipiants: socket.id
-                    }
-                );
-            }
-
-        } );
-
-        socket.on('writeRound', function () {
-            redisObject.cacheStore.writeToStorage('round', socket.id  );
-        });
-
-        socket.on('readRound', function () {
-            redisObject.cacheStore.readFromStorage('round', function(err, value ) {
-                if (err) {
-                    return logger.error('Redis error')
-                }
-
-                console.log( socket.id , ':', value )
-            })
-        });
-
-        /* connecting to room identified by game id */
-        socket.on('connectGame', function( data ) {
-            var gameId;
-
-            if ( !data || ! data.gameId || typeof data.gameId !== 'string') {
-                return logger.error(
-                    'Bad Input Data',
-                    {
-                        event: 'connectGame',
-                        direction: 'in',
-                        cluster: process.env.pm_id,
-                        socketId: socket.id
-                    }
-                );
-            }
-
-            gameId = data.gameId;
-
-            socket.join( gameId );
-
-            socket.emit( 'info', {
-                message: 'connected to Game',
-                gameId: gameId
-            } );
-
-            socket.broadcast.to( data.gameId ).emit('info', {
-                message: 'user connected',
-                socketId: socket.id,
-                game: gameId
-            })
-
+        socket.on('join', function( data ) {
+            socket.join( data.room );
+            socket.handshake.session.user = data.room;
+            socket.emit('newMessage', {message: 'You are joined', room: data.room, socketId: 'ROOM-' + data.room + ': ' });
+            io.sockets.to( data.room ).emit('newMessage', {message: 'New user connected: ' + socket.id, socketId: 'ROOM-' + data.room + ': '})
         });
 
         socket.on('disconnect', function() {
-            logger.info(
-                'Socket disConnected',
-                {
-                    cluster: process.env.pm_id,
-                    socketId: socket.id
-                }
-            );
+            socket.broadcast.emit('newMessage', { message: 'user disconnected ', socketId: socket.id } );
+            console.log('Socket disconnected: ', socket.id );
         })
+
     });
 
     return io;
