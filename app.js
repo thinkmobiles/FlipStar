@@ -84,25 +84,24 @@ module.exports = function () {
     Models = require('./models/index');
      //Collections = require('./collections/index');
 
-    /*var uploaderConfig = {
+    var uploaderConfig = {
      type: process.env.UPLOADING_TYPE,
      directory: 'public'//,
-     /!* awsConfig: {
+     /* awsConfig: {
      accessKeyId: process.env.AMAZON_ACCESS_KEY_ID,
      secretAccessKey: process.env.AMAZON_SECRET_ACCESS_KEY,
      imageUrlDurationSec: 60 * 60 * 24 * 365 * 10
-     }*!/
-     };*/
-    /*var imagesUploader = require('./helpers/imageUploader/imageUploader')(uploaderConfig);
+     }*/
+     };
+    var imagesUploader = require('./helpers/imageUploader/imageUploader')(uploaderConfig);
 
-     PostGre.imagesUploader = imagesUploader;*/
+     PostGre.imagesUploader = imagesUploader;
 
     PostGre.Models = new Models(PostGre);
     //PostGre.Collections = new Collections(PostGre);
     app.set('PostGre', PostGre);
 
     require('./routes/index')(app, PostGre);
-
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
 

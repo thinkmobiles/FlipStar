@@ -9,6 +9,16 @@ module.exports = function (PostGre, app) {
 
     router.post('/signUp', usersHandler.signUp);
     router.post('/signIn', usersHandler.signIn);
+    router.post('/addFriends', usersHandler.addFBFriends);
+
+
+    router.get('/signOut', usersHandler.signOut);
+    router.get('/friends', usersHandler.getFriends);
+    router.get('/topRank', usersHandler.getTopRankList);
+    router.get('/friends/topRank', usersHandler.getFriendsTopRankList);
+
+
+    router.put('/:id', usersHandler.updateUserProfile);
 
     return router;
 };
