@@ -92,11 +92,92 @@ GameProfile = function (PostGre) {
         return result;
     };
 
+    function addSmashes (profile, smashes, callback) {
+        var insertObj = [];
+        var queryStr = '';
+        var price = 0;
+
+        for (var i = smashes.length; i--;) {
+            queryStr += '\'' + smashes[i] + '\'' + ','
+        }
+
+        queryStr = queryStr.slice(0, -1);
+        queryStr ='('  + queryStr + ')';
+
+        async.waterfall([
+            function (cb) {
+                PostGre.knex
+                    .raw(
+                        'select s.id, sum(set*100) as price from smashes s ' +
+                        'where id in ' + queryStr + ' and id not in (select s.id from smashes s ' +
+                        'left join users_smashes us on s.id = us.smash_id ' +
+                        'where game_profile_id = ' + profile.id + ')' +
+                        'group by s.id'
+                    )
+                    .then(function (result) {
+                        cb(null, result.rows)
+                    })
+                    .otherwise(cb)
+            },
+            function (data, cb) {
+                for (var i = data.length; i--;) {
+                    insertObj.push({
+                        game_profile_id: profile.id,
+                        smash_id: data[i].id,
+                        quantity: 0,
+                        updated_at: new Date(),
+                        created_at: new Date()
+                    });
+                    price += parseInt(data[i].price);
+                }
+
+                if (price < profile.stars_number) {
+                            profile.stars_number = profile.stars_number - price;
+
+                            if (insertObj.length) {
+                                PostGre.knex(TABLES.USERS_SMASHES)
+                                    .insert(insertObj)
+                                    .exec(cb)
+                            } else {
+                                cb()
+                            }
+                } else {
+                    cb()
+                }
+            }
+        ], function (err) {
+            if (err) {
+                return callback(err)
+            }
+
+                PostGre.knex(TABLES.GAME_PROFILE)
+                    .where('id', profile.id)
+                    .update(profile)
+                    .exec(callback)
+
+
+        })
+    };
+
+    function calculatePoints (uid, callback) {
+        PostGre.knex
+            .raw(
+                'update game_profile ' +
+                'set points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) as points_number from game_profile gp ' +
+                'left join users_smashes us on us.game_profile_id = gp.id ' +
+                'left join smashes s on us.smash_id = s.id ' +
+                'where gp.id = ' + uid + ') ' +
+                'where id = ' + uid
+            )
+            .exec(callback)
+    };
+
     this.getProfileById = function (req, res, next) {
         var uid = req.params.id;
 
         PostGre.knex(TABLES.USERS_PROFILE)
             .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+            .leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .where(TABLES.GAME_PROFILE + '.id', uid)
             .select('first_name', 'last_name', 'stars_number', 'points_number', 'pogs_number', 'flips_number', 'last_seen_date')
             .then(function (profile) {
@@ -127,14 +208,87 @@ GameProfile = function (PostGre) {
             .otherwise(next)
     };
 
-    this.syncOfflineGame = function (req, res, next) {
-        var optins = req.body;
-        var uid = req. session.uId;
+    this.getMyCollection = function (req, res, next) {
+      var uid = req.session.uId;
 
-        PostGre.knex(TABLES.GAME_PROFILE)
-            .where('id', uid)
-            .then()
+        PostGre.knex(TABLES.USERS_SMASHES)
+            .where('game_profile_id', uid)
+            .select('smash_id', 'quantity')
+            .then(function (collection) {
+                res.status(200).send(collection)
+            })
+            .otherwise(next)
     };
+
+    this.syncOfflineGame = function (req, res, next) {
+        var options = req.body;
+        var uid = req. session.uId;
+        var games = options.games;
+        var openSmashes = options.smashes;
+        var gameDate = new Date(options.date);
+        var updProf = {};
+        var err;
+
+                PostGre.knex(TABLES.GAME_PROFILE)
+                    .where('id', uid)
+                    .then(function (profile) {
+
+                        if (profile[0].last_seen_date > gameDate) {
+                            err = new Error(RESPONSES.OUTDATED);
+                            err.status = 400;
+                            next(err);
+                        } else {
+                            async.waterfall([
+                                function(cb) {
+                                    if (games && games.length) {
+                                        updProf.last_seen_date = new Date();
+                                        updProf.id = profile[0].id;
+                                        updProf.stars_number = profile[0].stars_number;
+                                        updProf.flips_number = profile[0].flips_number;
+
+                                        games = games.slice(0, profile[0].flips_number);
+
+                                        for (var i = games.length; i--;) {
+                                            updProf.stars_number += games[i];
+                                            updProf.flips_number--;
+                                        }
+                                        cb(null, updProf);
+
+                                    } else {
+                                       cb()
+                                    }
+                                },
+
+                                function (profile, cb) {
+                                    if (openSmashes && openSmashes.length) {
+                                        addSmashes(profile, openSmashes, cb);
+                                    } else {
+                                        cb();
+                                    }
+                                }
+
+                            ], function (err) {
+                                if (err) {
+                                    return next(err)
+                                }
+                                calculatePoints(uid, function (err) {
+                                    if (err) {
+                                        return next(err)
+                                    }
+                                    res.status(200).send({
+                                        success: RESPONSES.SYNCRONIZED
+                                    })
+                                })
+                            })
+
+                        }
+
+                    })
+                    .otherwise(next)
+
+
+    };
+
 };
 
 module.exports = GameProfile;

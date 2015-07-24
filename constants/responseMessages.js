@@ -1,8 +1,9 @@
 module.exports = {
     CREATED: 'Was created successfully',
     UPDATED: 'Was updated successfully',
-    LOGIN: 'Login successful',
-    LOGOUT: 'Logout successful',
+    LOGIN: 'Successfully login',
+    LOGOUT: 'Successfully logout',
+    SYNCRONIZED: 'Successfully synchronized',
 
     //-------Errors-------
 
