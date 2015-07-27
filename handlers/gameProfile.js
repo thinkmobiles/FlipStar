@@ -5,14 +5,12 @@ var async = require('async');
 var _ = require('lodash');
 var Session = require('./sessions');
 var GameProfHelper = require('../helpers/gameProfile');
+var UserProfHelper = require('../helpers/userProfile');
 var Users;
 
 GameProfile = function (PostGre) {
     var gameProfHelper = new GameProfHelper(PostGre);
-    var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
-    var DeviceModel = PostGre.Models[MODELS.DEVICE];
-    var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
-    var session = new Session(PostGre);
+    var userProfHelper = new UserProfHelper(PostGre);
 
     this.getProfileById = function (req, res, next) {
         var uid = req.params.id;
@@ -56,6 +54,7 @@ GameProfile = function (PostGre) {
         var uid = req. session.uId;
         var games = options.games;
         var openSmashes = options.smashes;
+        var user = options.user;
         var gameDate = new Date(options.date);
         var updProf = {};
         var err;
@@ -70,6 +69,14 @@ GameProfile = function (PostGre) {
                             next(err);
                         } else {
                             async.waterfall([
+                                function (cb) {
+                                    if (user) {
+                                        userProfHelper.updateUser(uid, user, cb)
+                                    } else {
+                                        cb()
+                                    }
+                                },
+
                                 function(cb) {
                                     if (games && games.length) {
                                         updProf.last_seen_date = new Date();
