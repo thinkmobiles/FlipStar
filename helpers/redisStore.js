@@ -3,6 +3,7 @@
  */
 var redis = require('redis');
 var _ = require('lodash');
+var gameMaxTTL = 60 * 30;
 
 module.exports = function() {
     var self = this;
@@ -29,11 +30,14 @@ module.exports = function() {
         }*/
     });
 
-    function writeToStorage ( key, data, value ) {
+    function writeToStorage ( key, data, value, callback ) {
         "use strict";
+        var multi = client.multi();
 
         if ( data && typeof data === 'object') {
-            client.hmset( key, _.mapValues( data, function( value ) {
+            callback = value;
+            multi.
+                hmset( key, _.mapValues( data, function( value ) {
 
                 /*if (typeof value === 'object') {*/
                     return JSON.stringify( value );
@@ -41,12 +45,15 @@ module.exports = function() {
 
                 return value;*/
 
-            }) )
+                }));
 
         } else {
-            client.hset( key, data, JSON.stringify( value ) );
+            multi.hset( key, data, JSON.stringify( value ) );
         }
 
+        multi.
+            expire( key, gameMaxTTL ).
+            exec( callback )
     };
 
     /* TODO handle JSON.parse errors */
@@ -62,7 +69,7 @@ module.exports = function() {
             return client.hgetall( key, function( err, result ){
 
                 callback( err, _.mapValues( result, function( value ) {
-                    return JSON.parse( value )
+                    return JSON.parse( value );
                 }) )
 
             })
@@ -86,12 +93,27 @@ module.exports = function() {
         }
 
         /* TODO handle ass error if data type not acceptable */
-        callback( null, {} );
+        callback( null, null );
+
+    }
+
+    function findKeys( keyPattern, callback ) {
+        client.keys( keyPattern, callback );
+    }
+
+    function delFromStorage( keys, callback ) {
+        var keysArr;
+
+        if ( typeof keys === 'string' ) {
+            return client.del( keys, callback );
+        }
 
     }
 
     return {
+        findKeys: findKeys,
         readFromStorage: readFromStorage,
-        writeToStorage: writeToStorage
+        writeToStorage: writeToStorage,
+        delFromStorage: delFromStorage
     }
 };
