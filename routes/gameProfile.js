@@ -7,8 +7,10 @@ module.exports = function (PostGre, app) {
     var session = new Session(PostGre);
     var gameHandler = new GameHandler(PostGre, app);
 
-        router.get('/:id', gameHandler.getProfileById);
+        router.post('/sync', gameHandler.syncOfflineGame);
 
+        router.get('/collection', gameHandler.getMyCollection);
+        router.get('/:id', gameHandler.getProfileById);
 
         router.put('/:id', gameHandler.updateProfile);
     return router;
