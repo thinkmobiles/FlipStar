@@ -4,9 +4,11 @@ var MODELS = require('../constants/models');
 var async = require('async');
 var _ = require('underscore');
 var Session = require('./sessions');
+var GameProfHelper = require('../helpers/gameProfile');
 var Users;
 
 Users = function (PostGre) {
+    var gameProfHelper = new GameProfHelper(PostGre);
     var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
     var DeviceModel = PostGre.Models[MODELS.DEVICE];
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
@@ -287,18 +289,33 @@ Users = function (PostGre) {
         var options = req.body;
         var uId = options.uId;
         var deviceId = options.device_id;
+        var sessionLength = options.session_length;
+        var curDate = new Date().toISOString();
         var err;
 
         PostGre.knex
             .raw(
-                'SELECT  g.id, d.device_id FROM ' + TABLES.GAME_PROFILE + ' g ' +
-                'left join ' + TABLES.DEVICE + ' d on d.id = g.device_id ' +
-                'where g.id =' + uId + ' and d.device_id = \'' + deviceId + '\''
+                'UPDATE  ' + TABLES.GAME_PROFILE + ' g SET sessions_number = sessions_number + 1 , last_seen_date = ' + '\'' + curDate + '\' , ' +
+                'session_max_length = ( ' +
+                'case when session_max_length < \'' + sessionLength + '\' ' +
+                'then \'' + sessionLength + '\' ' +
+                'else session_max_length ' +
+                'end ) ' +
+                'from ' + TABLES.DEVICE + ' d ' +
+                'where  d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
+                'RETURNING g.id'
             )
             .then(function (profile) {
                 if (profile && profile.rows && profile.rows.length) {
+                    req.session.loggedIn = true;
+                    req.session.uId =  profile.rows[0].id;
 
-                    session.register(req, res, profile.rows[0])
+                    gameProfHelper.getProfileById(uId, function (err, result) {
+                        if (err) {
+                            return next(err)
+                        }
+                        res.status(200).send(result[0])
+                    })
 
                 } else {
                     err = new Error(RESPONSES.DATABASE_ERROR);
