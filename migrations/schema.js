@@ -133,6 +133,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.USERS_SMASHES, function (row) {
                     row.increments('id').primary();
+                    row.boolean('isOpen').default('false');
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('quantity').notNullable();

@@ -99,7 +99,7 @@ GameProfile = function (PostGre) {
 
                                 function (profile, cb) {
                                     if (openSmashes && openSmashes.length) {
-                                        gameProfHelper.addSmashes(profile, openSmashes, cb);
+                                        gameProfHelper.openSmashes(profile, openSmashes, cb);
                                     } else {
                                         cb();
                                     }
@@ -125,6 +125,21 @@ GameProfile = function (PostGre) {
                     .otherwise(next)
 
 
+    };
+
+    this.addSmashes = function (req, res, next) {
+        var options = req.body;
+        var uid = options.uid;
+        var smashesId = _.pluck(options.smashes, 'id');
+        var quantities = _.pluck(options.smashes, 'quantity');
+
+        PostGre.knex(TABLES.USERS_SMASHES)
+            .where('game_profile_id', uid)
+            .andWhere('smash_id', 'in', smashesId)
+            .then(function (result) {
+                res.send(result)
+            })
+            .otherwise(next)
     };
 
 };

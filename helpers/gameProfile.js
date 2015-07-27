@@ -117,7 +117,7 @@ GameProfile = function (PostGre) {
             .exec(callback)
     };
 
-    this.addSmashes = function (profile, smashes, callback) {
+    this.openSmashes = function (profile, smashes, callback) {
         var insertObj = [];
         var queryStr = '';
         var price = 0;
@@ -150,6 +150,7 @@ GameProfile = function (PostGre) {
                         game_profile_id: profile.id,
                         smash_id: data[i].id,
                         quantity: 0,
+                        isOpen: true,
                         updated_at: new Date(),
                         created_at: new Date()
                     });
@@ -182,6 +183,10 @@ GameProfile = function (PostGre) {
 
 
         })
+    };
+
+    this.addSmashes = function (data, callback) {
+
     };
 
     this.calculatePoints = function (uid, callback) {
