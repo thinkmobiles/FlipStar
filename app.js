@@ -142,7 +142,7 @@ module.exports = function () {
         });
 
         app.post('/sesStat', function (req, res, next) {
-
+            console.log(req.headers);
             if (req.session.uId) {
                 return res.status(200).send({message: 'authorized', uId: req.session.uId, body: req.body});
             }

@@ -55,7 +55,6 @@ module.exports = function (app, PostGre) {;
          }*/
         console.error(err.message || err);
         res.status(status).send({error: err.message || err, stack: err.stack});
-        next();
     }
 
     app.use(notFound);
