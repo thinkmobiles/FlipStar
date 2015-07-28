@@ -132,14 +132,41 @@ GameProfile = function (PostGre) {
         var uid = options.uid;
         var smashesId = _.pluck(options.smashes, 'id');
         var quantities = _.pluck(options.smashes, 'quantity');
+        var curDate = new Date();
+        var obj;
 
-        PostGre.knex(TABLES.USERS_SMASHES)
-            .where('game_profile_id', uid)
-            .andWhere('smash_id', 'in', smashesId)
-            .then(function (result) {
-                res.send(result)
-            })
-            .otherwise(next)
+        async.eachSeries(smashesId, function (smash, callback){
+            obj = {
+                game_profile_id: uid,
+                smash_id: smash,
+                quantity: quantities[smashesId.indexOf(smash)],
+                updated_at: curDate,
+                created_at: curDate
+            };
+
+
+            PostGre.knex
+                .raw(
+                    'update users_smashes set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
+                    'where game_profile_id = ' + uid + ' and smash_id = ' + smash +
+                    'returning users_smashes.id'
+                )
+                .then(function (result) {
+                    if (result.rows.length) {
+                        callback()
+                    } else {
+                        PostGre.knex(TABLES.USERS_SMASHES)
+                            .insert(obj)
+                            .exec(callback)
+                    }
+                })
+                .otherwise(callback)
+        }, function (err) {
+            if (err) {
+                return next(err)
+            }
+            res.status(200).send({success: RESPONSES.UPDATED})
+        })
     };
 
 };
