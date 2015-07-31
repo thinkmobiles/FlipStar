@@ -149,7 +149,6 @@ GameProfile = function (PostGre) {
                     insertObj.push({
                         game_profile_id: profile.id,
                         smash_id: data[i].id,
-                        quantity: 0,
                         isOpen: true,
                         updated_at: new Date(),
                         created_at: new Date()
@@ -185,8 +184,45 @@ GameProfile = function (PostGre) {
         })
     };
 
-    this.addSmashes = function (data, callback) {
+    this.addSmashes = function (options, callback) {
+        var uid = options.uid;
+        var smashesId = _.pluck(options.smashes, 'id');
+        var quantities = _.pluck(options.smashes, 'quantity');
+        var curDate = new Date();
+        var insertObj;
 
+        async.eachSeries(smashesId, function (smash, cb){
+            insertObj = {
+                game_profile_id: uid,
+                smash_id: smash,
+                quantity: quantities[smashesId.indexOf(smash)],
+                updated_at: curDate,
+                created_at: curDate
+            };
+
+
+            PostGre.knex
+                .raw(
+                    'update users_smashes set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
+                    'where game_profile_id = ' + uid + ' and smash_id = ' + smash +
+                    'returning users_smashes.id'
+                )
+                .then(function (result) {
+                    if (result.rows.length) {
+                        cb()
+                    } else {
+                        PostGre.knex(TABLES.USERS_SMASHES)
+                            .insert(insertObj)
+                            .exec(cb)
+                    }
+                })
+                .otherwise(cb)
+        }, function (err) {
+            if (err) {
+                return callback(err)
+            }
+            callback()
+        })
     };
 
     this.calculatePoints = function (uid, callback) {

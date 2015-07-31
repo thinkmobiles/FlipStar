@@ -64,43 +64,56 @@ Users = function (PostGre) {
 
     this.signIn = function (req, res, next) {
         var options = req.body;
-        var uId = options.uId;
-        var deviceId = options.device_id;
-        var sessionLength = options.session_length;
-        var curDate = new Date().toISOString();
         var err;
 
-        PostGre.knex
-            .raw(
-                'UPDATE  ' + TABLES.GAME_PROFILE + ' g SET sessions_number = sessions_number + 1 , last_seen_date = ' + '\'' + curDate + '\' , ' +
-                'session_max_length = ( ' +
-                'case when session_max_length < \'' + sessionLength + '\' ' +
-                'then \'' + sessionLength + '\' ' +
-                'else session_max_length ' +
-                'end ) ' +
-                'from ' + TABLES.DEVICE + ' d ' +
-                'where  d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
-                'RETURNING g.id'
-            )
-            .then(function (profile) {
-                if (profile && profile.rows && profile.rows.length) {
+        if (options && options.device_id) {
+            if (options.uId && !options.facebook_id) {
+                userProfHelper.enterGuest(options, function (err, profile) {
+                    if (err) {
+                        return next(err)
+                    }
                     req.session.loggedIn = true;
-                    req.session.uId =  profile.rows[0].id;
+                    req.session.uId = profile.id;
 
-                    gameProfHelper.getProfileById(uId, function (err, result) {
-                        if (err) {
-                            return next(err)
+                    res.status(200).send(profile/*{
+                        success: RESPONSES.CREATED,
+                        uId: profile.id
+                    }*/);
+                })
+            } else if (options.facebook_id) {
+
+            } else {
+                PostGre.knex(TABLES.GAME_PROFILE)
+                    .select('*',TABLES.GAME_PROFILE + '.id' + ' as id')
+                    .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                    .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
+                    .where(TABLES.DEVICE + '.device_id', options.device_id)
+                    .then(function (profile) {
+                        if (profile[0] && profile[0].id) {
+                            res.status(200).send(profile[0])
+                        } else {
+                            userProfHelper.createNewProfile(options, function (err, profile) {
+                                if (err) {
+                                    return next(err)
+                                }
+                                req.session.loggedIn = true;
+                                req.session.uId = profile.id;
+
+                                res.status(201).send(profile/*{
+                                 success: RESPONSES.CREATED,
+                                 uId: profile.id
+                                 }*/);
+                            })
                         }
-                        res.status(200).send(result[0])
                     })
+                    .otherwise(next)
 
-                } else {
-                    err = new Error(RESPONSES.DATABASE_ERROR);
-                    err.status = 500;
-                    next(err)
-                }
-            })
-            .otherwise(next)
+            }
+        } else {
+            err = new Error(RESPONSES.BAD_INCOMING_PARAMS);
+            err.status = 404;
+            next(err);
+        }
     };
 
     this.updateUserProfile = function (req, res, next) {

@@ -12,8 +12,8 @@ module.exports = function (knex) {
                     row.string('iso_code').notNullable();
                     row.string('name').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -23,8 +23,8 @@ module.exports = function (knex) {
                     row.string('iso_code').notNullable();
                     row.string('name').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -43,8 +43,8 @@ module.exports = function (knex) {
                     row.string('timezone');
                     row.string('phone_number');
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -64,8 +64,8 @@ module.exports = function (knex) {
                     row.string('device_manufacturer');
                     row.string('device_firmware');
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -77,7 +77,7 @@ module.exports = function (knex) {
                     row.string('app_platform');
                     row.timestamp('registration_date');
                     row.string('registration_week');
-                    row.integer('sessions_number').defaultTo(0);
+                    row.integer('sessions_number').defaultTo(1);
                     row.string('session_max_length');
                     row.integer('stars_number').defaultTo(0);
                     row.integer('points_number').defaultTo(0);
@@ -103,8 +103,8 @@ module.exports = function (knex) {
                     row.integer('promo_seen');
 
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -114,8 +114,8 @@ module.exports = function (knex) {
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('friend_game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -125,21 +125,23 @@ module.exports = function (knex) {
                     row.string('name', 50).notNullable();
                     row.integer('set').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
             function (cb) {
                 createTable(TABLES.USERS_SMASHES, function (row) {
                     row.increments('id').primary();
-                    row.boolean('isOpen').default('false');
+                    row.boolean('isOpen').defaultTo('false');
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('quantity').notNullable();
+                    row.integer('quantity').defaultTo(0);
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.unique(['game_profile_id', 'smash_id']); //todo test this && defaultTo date rows
+
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -149,8 +151,8 @@ module.exports = function (knex) {
                     row.integer('name').notNullable();
                     row.integer('prize').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -160,8 +162,8 @@ module.exports = function (knex) {
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('SET NULL').onUpdate('CASCADE');
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -173,8 +175,8 @@ module.exports = function (knex) {
                     row.integer('store').notNullable();
                     row.string('store_item_id').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -185,8 +187,8 @@ module.exports = function (knex) {
                     row.integer('purchase_id').notNullable();
                     row.integer('recipe_id').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -197,8 +199,8 @@ module.exports = function (knex) {
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             },
 
@@ -210,8 +212,8 @@ module.exports = function (knex) {
                     row.integer('priority').notNullable();
                     row.timestamp('delivery_date');
 
-                    row.timestamp('updated_at', true);
-                    row.timestamp('created_at', true);
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
             }
 
@@ -245,25 +247,6 @@ module.exports = function (knex) {
             .dropTableIfExists(tableName)
             .exec(callback)
     }
-
-
-    /*function drop() {
-        return when.all([
-            knex.schema.dropTableIfExists(TABLES.USERS_SMASHES),
-            knex.schema.dropTableIfExists(TABLES.SMASHES),
-            knex.schema.dropTableIfExists(TABLES.USERS_ACHIEVEMENTS),
-            knex.schema.dropTableIfExists(TABLES.ACHIEVEMENTS),
-            knex.schema.dropTableIfExists(TABLES.USERS_PURCHASES),
-            knex.schema.dropTableIfExists(TABLES.KIOSK),
-            knex.schema.dropTableIfExists(TABLES.NOTIFICATIONS_QUEUE),
-            knex.schema.dropTableIfExists(TABLES.NOTIFICATIONS_HISTORY),
-            knex.schema.dropTableIfExists(TABLES.GAME_PROFILE),
-            knex.schema.dropTableIfExists(TABLES.DEVICE),
-            knex.schema.dropTableIfExists(TABLES.USERS_PROFILE),
-            knex.schema.dropTableIfExists(TABLES.LANGUAGE),
-            knex.schema.dropTableIfExists(TABLES.COUNTRIES)
-        ]);
-    }*/
 
     function drop() {
         async.series([

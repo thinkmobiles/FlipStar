@@ -1,11 +1,14 @@
 var TABLES = require('../constants/tables');
 var MODELS = require('../constants/models');
+var RESPONSES = require('../constants/responseMessages');
 var async = require('async');
 var _ = require('lodash');
 var Session = require('../handlers/sessions');
+var GameProfHelper = require('../helpers/gameProfile');
 var Users;
 
 UserProfile = function (PostGre) {
+    var gameProfHelper = new GameProfHelper(PostGre);
     var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
     var DeviceModel = PostGre.Models[MODELS.DEVICE];
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
@@ -205,7 +208,15 @@ UserProfile = function (PostGre) {
             if (err) {
                 return callback(err)
             } else {
-                callback(null, profile)
+                PostGre.knex(TABLES.USERS_PROFILE)
+                    //.select(TABLES.GAME_PROFILE + '.id', TABLES.USERS_PROFILE + '.facebook_id', TABLES.DEVICE + '.device_id')
+                    .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                    .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
+                    .where(TABLES.GAME_PROFILE + '.id', profile.id)
+                    .then(function (profile) {
+                        callback(null, profile)
+                    })
+                    .otherwise(callback)
             }
         })
     };
@@ -233,6 +244,85 @@ UserProfile = function (PostGre) {
                         callback(null, profile)
                     })
                     .otherwise(callback)
+            })
+            .otherwise(callback)
+    };
+
+    this.enterGuest = function (options, callback) {
+        var uId = options.uId;
+        var deviceId = options.device_id;
+        var sessionLength = options.session_length;
+        var curDate = new Date().toISOString();
+        var err;
+
+        PostGre.knex
+            .raw(
+                'UPDATE  ' + TABLES.GAME_PROFILE + ' g SET sessions_number = sessions_number + 1 , last_seen_date = ' + '\'' + curDate + '\' , ' +
+                'session_max_length = ( ' +
+                    'case when session_max_length < \'' + sessionLength + '\' ' +
+                    'then \'' + sessionLength + '\' ' +
+                    'else session_max_length ' +
+                    'end ) ' +
+                'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
+                'where   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
+                'RETURNING  *, g.id as id'/*g.id, g.stars_number, u.first_name, u.last_name'*/
+            )
+            .then(function (profile) {
+                if (profile && profile.rows && profile.rows.length) {
+                    callback(null, profile.rows[0])
+                } else {
+                    err = new Error(RESPONSES.DATABASE_ERROR);
+                    err.status = 500;
+                    callback(err)
+                }
+            })
+            .otherwise(callback)
+    };
+
+    this.enterFBUser = function (profile, callback) {
+        var uId = options.uId;
+        var deviceId = options.device_id;
+        var sessionLength = options.session_length;
+        var curDate = new Date().toISOString();
+        var err;
+
+        async.series([
+            function (cb) {
+                PostGre.knex
+                    .raw(
+                        'UPDATE  device d SET device_id =' +
+                        'from game_profile g, users_profile u ' +
+                        'where   u.id = g.user_id and d.id = g.device_id  and g.id = 8  and u.facebook_id = ' +
+                        'RETURNING  *'
+                    )
+                    .exec(cb)
+            }
+        ], function (err, result){
+            if (err) {
+                return callback(err)
+            }
+            callback(null, result)
+        })
+        PostGre.knex
+            .raw(
+            'UPDATE  ' + TABLES.GAME_PROFILE + ' g SET sessions_number = sessions_number + 1 , last_seen_date = ' + '\'' + curDate + '\' , ' +
+            'session_max_length = ( ' +
+            'case when session_max_length < \'' + sessionLength + '\' ' +
+            'then \'' + sessionLength + '\' ' +
+            'else session_max_length ' +
+            'end ) ' +
+            'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
+            'where   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
+            'RETURNING  *, g.id as id'/*g.id, g.stars_number, u.first_name, u.last_name'*/
+            )
+            .then(function (profile) {
+                if (profile && profile.rows && profile.rows.length) {
+                    callback(null, profile.rows[0])
+                } else {
+                    err = new Error(RESPONSES.DATABASE_ERROR);
+                    err.status = 500;
+                    callback(err)
+                }
             })
             .otherwise(callback)
     };
