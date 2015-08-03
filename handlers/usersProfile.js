@@ -75,19 +75,63 @@ Users = function (PostGre) {
                     req.session.loggedIn = true;
                     req.session.uId = profile.id;
 
-                    res.status(200).send(profile/*{
-                        success: RESPONSES.CREATED,
-                        uId: profile.id
-                    }*/);
+                    res.status(200).send(profile);
                 })
-            } else if (options.facebook_id) {
+            } else if (options.facebook_id && !options.uId) {
+                userProfHelper.isExistingFBUser(options.facebook_id, function (err, result) {
+                    if (err) {
+                        return next(err)
+                    }
+                    if (result) {
+                        userProfHelper.enterFBUser(options, function (err, profile) {
+                            if (err) {
+                                return next(err)
+                            }
+                            req.session.loggedIn = true;
+                            req.session.uId = profile.id;
 
+                            res.status(200).send(profile);
+                        })
+                    } else {
+                        userProfHelper.createNewProfile(options, function (err, profile) {
+                            if (err) {
+                                return next(err)
+                            }
+                            req.session.loggedIn = true;
+                            req.session.uId = profile[0].id;
+
+                            res.status(201).send(profile[0]);
+                        })
+                    }
+                })
+
+            } else if (options.uId && options.facebook_id) {
+                userProfHelper.updateUser(options.uId, options, function (err, profile) {
+                    if (err) {
+                        return next(err)
+                    }
+                    req.session.loggedIn = true;
+                    req.session.uId = profile.id;
+
+                    PostGre.knex(TABLES.GAME_PROFILE)
+                        .select('*',TABLES.GAME_PROFILE + '.id' + ' as id')
+                        .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                        .where(TABLES.GAME_PROFILE + '.id', options.uId)
+                        .then(function (profile) {
+                            res.status(200).send(profile[0]);
+                        })
+                        .otherwise(next)
+
+                })
             } else {
                 PostGre.knex(TABLES.GAME_PROFILE)
                     .select('*',TABLES.GAME_PROFILE + '.id' + ' as id')
                     .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
-                    .where(TABLES.DEVICE + '.device_id', options.device_id)
+                    .where(function () {
+                        this.where(TABLES.DEVICE + '.device_id', options.device_id)
+                            .andWhere(TABLES.USERS_PROFILE + '.facebook_id', '=', null)
+                    })
                     .then(function (profile) {
                         if (profile[0] && profile[0].id) {
                             res.status(200).send(profile[0])
@@ -99,10 +143,7 @@ Users = function (PostGre) {
                                 req.session.loggedIn = true;
                                 req.session.uId = profile.id;
 
-                                res.status(201).send(profile/*{
-                                 success: RESPONSES.CREATED,
-                                 uId: profile.id
-                                 }*/);
+                                res.status(201).send(profile[0]);
                             })
                         }
                     })
