@@ -15,7 +15,6 @@ module.exports = function (PostGre, app) {
     router.get('/signOut', usersHandler.signOut);
     router.get('/friends', usersHandler.getFriends);
     router.get('/topRank', usersHandler.getTopRankList);
-    router.get('/friends/topRank', usersHandler.getFriendsTopRankList);
 
 
     router.put('/:id', usersHandler.updateUserProfile);
