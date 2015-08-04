@@ -6,10 +6,7 @@ var Session = require('../handlers/sessions');
 var Users;
 
 GameProfile = function (PostGre) {
-    var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
-    var DeviceModel = PostGre.Models[MODELS.DEVICE];
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
-    var session = new Session(PostGre)
 
     function prepareGameProfSaveInfo (options) {
         var result = {};
