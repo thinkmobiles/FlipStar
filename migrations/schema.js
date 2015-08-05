@@ -49,6 +49,20 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                createTable(TABLES.FB_NOTIFICATIONS, function (row) {
+                    row.increments('id').primary();
+                    row.string('facebook_id').unique().references('facebook_id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('unresponsive_notification');
+                    row.boolean('is_newbie').defaultTo(true);
+                    row.timestamp('notification_date');
+
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
+                }, cb)
+
+            },
+
+            function (cb) {
                 createTable(TABLES.DEVICE, function (row) {
                     row.increments('id').primary();
                     row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
@@ -292,6 +306,10 @@ module.exports = function (knex) {
 
             function (cb) {
                 dropTable(TABLES.DEVICE, cb)
+            },
+
+            function (cb) {
+                dropTable(TABLES.FB_NOTIFICATIONS, cb)
             },
 
             function (cb) {

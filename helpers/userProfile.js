@@ -135,30 +135,46 @@ UserProfile = function (PostGre) {
     };
 
     this.createNewProfile = function (options, callback) {
-        var err;
         var gameProf;
         var userObj;
         var deviceObj;
 
         async.waterfall([
+
             function (cb) {
                 userObj = prepareUserSaveInfo(options);
 
                 UserModel
                     .forge()
                     .save(userObj)
-                    .then(function (user) {
-                        if (user && user.id) {
-                            cb(null, user)
-                        } else {
-                            err = new Error(RESPONSES.DATABASE_ERROR);
-                            err.status = 500;
+                    .exec(function (err, user) {
+                        if (err) {
                             cb(err)
+                        } else {
+                            cb(null, user)
                         }
                     })
-                    .otherwise(cb)
             },
 
+            function (user, cb) {
+
+                if (options.facebook_id) {
+                    PostGre.knex(TABLES.FB_NOTIFICATIONS)
+                        .insert({
+                            facebook_id: options.facebook_id
+                        })
+                        .exec(function (err, result) {
+                            if (err) {
+                                cb(err)
+                            } else {
+                                cb(null, user)
+                            }
+
+                        })
+                } else {
+                    cb()
+                }
+            },
             function (user, cb) {
                 deviceObj = prepareDeviceSaveInfo(options);
                 deviceObj.user_id = user.id;
@@ -174,20 +190,26 @@ UserProfile = function (PostGre) {
                                 .save(deviceObj, {
                                     patch: true
                                 })
-                                .then(function () {
-                                    cb(null, device)
+                                .exec(function (err, device) {
+                                    if (err) {
+                                        cb(err)
+                                    } else {
+                                        cb(null, device)
+                                    }
                                 })
-                                .otherwise(cb)
                         } else {
                             DeviceModel
                                 .forge({
                                     device_id: options.device_id
                                 })
                                 .save(deviceObj)
-                                .then(function (device) {
-                                    cb(null, device)
+                                .exec(function (err, device) {
+                                    if (err) {
+                                        cb(err)
+                                    } else {
+                                        cb(null, device)
+                                    }
                                 })
-                                .otherwise(cb)
                         }
                     })
                     .otherwise(cb)
@@ -198,22 +220,20 @@ UserProfile = function (PostGre) {
                     device_id: device.id,
                     user_id: device.get('user_id'),
                     registration_date: new Date(),
+                    last_seen_date: new Date(),
                     registration_week: getWeekNumber()
                 };
 
                 GameProfileModel
                     .forge()
                     .save(gameProf)
-                    .then(function (profile) {
-                        if (profile && profile.id) {
-                            cb(null, profile)
-                        } else {
-                            err = new Error(RESPONSES.DATABASE_ERROR);
-                            err.status = 500;
+                    .exec(function (err, profile) {
+                        if (err) {
                             cb(err)
+                        } else {
+                            cb(null, profile)
                         }
                     })
-                    .otherwise(cb)
             }
 
         ], function (err, profile) {
@@ -225,10 +245,13 @@ UserProfile = function (PostGre) {
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
                     .where(TABLES.GAME_PROFILE + '.id', profile.id)
-                    .then(function (profile) {
-                        callback(null, profile)
+                    .exec(function (err, profile) {
+                        if (err) {
+                            callback(err)
+                        } else {
+                            callback(null, profile)
+                        }
                     })
-                    .otherwise(callback)
             }
         })
     };
@@ -334,13 +357,13 @@ UserProfile = function (PostGre) {
                             deviceInfo = prepareDeviceSaveInfo(options);
                             PostGre.knex(TABLES.DEVICE)
                                 .insert(deviceInfo, 'id')
-                                .then(function (device) {
+                                .then(function () {
                                     PostGre.knex
                                         .raw(
-                                        'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id, updated_at =  ' + '\'' + curDate + '\' ' +
-                                        'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                                        'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
-                                        'RETURNING d.id'
+                                            'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id, updated_at =  ' + '\'' + curDate + '\' ' +
+                                            'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
+                                            'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
+                                            'RETURNING d.id'
                                     )
                                     .then(function (result) {
                                             cb(null, result.rows[0].id)
@@ -354,6 +377,28 @@ UserProfile = function (PostGre) {
                     .otherwise(cb)
 
             },
+
+            function (dId, cb) {
+                PostGre.knex
+                    .raw(
+                        'update ' + TABLES.FB_NOTIFICATIONS + ' fb set ' +
+                        'is_newbie = ( ' +
+                            'case when extract(days from (current_timestamp - gp.last_seen_date)) >= 28 ' +
+                            'then true ' +
+                            'else is_newbie ' +
+                            'end) ' +
+                        'from ' + TABLES.USERS_PROFILE + ' up, ' + TABLES.GAME_PROFILE + ' gp ' +
+                        'where fb.facebook_id = \'' + fbId + '\'  and up.facebook_id = \'' + fbId + '\'  and up.id = gp.user_id '
+                    )
+                    .exec(function (err, result) {
+                        if (err) {
+                            cb(err)
+                        } else {
+                            cb(null, dId)
+                        }
+                    });
+            },
+
             function (id, cb) {
                 PostGre.knex
                     .raw(
