@@ -28,7 +28,7 @@ FBnotif = function (PostGre) {
                         if (err) {
                             callback(err)
                         } else {
-                            callback(null, users.rows)
+                            callback(null, _.pluck(users.rows, 'facebook_id'))
                         }
                     });
                 break;
@@ -43,7 +43,7 @@ FBnotif = function (PostGre) {
                         if (err) {
                             callback(err)
                         } else {
-                            callback(null, users.rows)
+                            callback(null, _.pluck(users.rows, 'facebook_id'))
                         }
                     });
                 break;
@@ -58,7 +58,7 @@ FBnotif = function (PostGre) {
                         if (err) {
                             callback(err)
                         } else {
-                            callback(null, users.rows)
+                            callback(null, _.pluck(users.rows, 'facebook_id'))
                         }
                     });
                 break;
@@ -73,7 +73,7 @@ FBnotif = function (PostGre) {
                         if (err) {
                             callback(err)
                         } else {
-                            callback(null, users.rows)
+                            callback(null, _.pluck(users.rows, 'facebook_id'))
                         }
                     });
                 break;
@@ -89,7 +89,7 @@ FBnotif = function (PostGre) {
                         if (err) {
                             callback(err)
                         } else {
-                            callback(null, users.rows)
+                            callback(null, _.pluck(users.rows, 'facebook_id'))
                         }
                     });
                 break;
@@ -104,4 +104,3 @@ FBnotif = function (PostGre) {
 };
 
 module.exports = FBnotif;
-

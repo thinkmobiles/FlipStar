@@ -7,13 +7,13 @@ var _ = require('underscore');
 var Session = require('./sessions');
 var GameProfHelper = require('../helpers/gameProfile');
 var UserProfHelper = require('../helpers/userProfile');
-var FBHelper = require('../helpers/FBnotifications');
+//var FBHelper = require('../helpers/FBnotifications');
 var Users;
 
 Users = function (PostGre) {
     var gameProfHelper = new GameProfHelper(PostGre);
     var userProfHelper = new UserProfHelper(PostGre);
-    var fbHelper = new FBHelper(PostGre);
+    //var fbHelper = new FBHelper(PostGre);
     var session = new Session(PostGre);
 
     this.signIn = function (req, res, next) {
@@ -235,15 +235,6 @@ Users = function (PostGre) {
             })
             .otherwise(next)
     };
-
-    this.getGroups = function (req, res, next) {
-        fbHelper.getUsersGroup(GROUPS.GROUP_C, function (err, result) {
-            if (err) {
-                return next(err)
-            }
-            res.status(200).send(result)
-        })
-    }
 
 };
 
