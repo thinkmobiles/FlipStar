@@ -259,27 +259,21 @@ UserProfile = function (PostGre) {
     this.updateUser = function (uid, options, callback) {
         var userSaveInfo = prepareUserSaveInfo(options);
 
-        GameProfileModel
-            .forge({
-                id: uid
-            })
-            .fetch()
-            .then(function (profile) {
+        PostGre.knex(TABLES.GAME_PROFILE)
+            .select('user_id')
+            .where('id', uid)
+            .then(function (id) {
 
-                UserModel
-                    .forge({
-                        id: profile.get('user_id')
-                    })
-                    .save(
-                        userSaveInfo,
-                        {
-                            patch: true
+                PostGre.knex(TABLES.USERS_PROFILE)
+                    .where('id', id[0].user_id)
+                    .returning('*')
+                    .update(userSaveInfo)
+                    .exec(function (err, user) {
+                        if (err) {
+                            return callback(err)
                         }
-                    )
-                    .then(function () {
-                        callback(null, profile)
+                        callback(null, user[0])
                     })
-                    .otherwise(callback)
             })
             .otherwise(callback)
     };
@@ -426,13 +420,32 @@ UserProfile = function (PostGre) {
         PostGre.knex(TABLES.USERS_PROFILE)
             .where('facebook_id', FBid)
             .then(function (result) {
+
                 if (result[0] && result[0].id) {
                     callback(null, true)
+
                 } else {
                     callback(null, false)
                 }
             })
             .otherwise(callback)
+    };
+
+    this.getExistingUser = function (options, callback) {
+        PostGre.knex(TABLES.GAME_PROFILE)
+            .select('*',TABLES.GAME_PROFILE + '.id' + ' as id')
+            .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+            .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
+            .where(function () {
+                this.where(TABLES.DEVICE + '.device_id', options.device_id)
+                    .whereNull(TABLES.USERS_PROFILE + '.facebook_id')
+            })
+            .exec(function (err, profile) {
+                if (err) {
+                    return callback(err)
+                }
+                callback(null, profile)
+            })
     };
 
 };

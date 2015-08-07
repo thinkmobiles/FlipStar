@@ -8,7 +8,7 @@ module.exports = function (PostGre, app) {
     var usersHandler = new UsersHandler(PostGre, app);
 
     router.post('/signIn', usersHandler.signIn);
-    router.post('/addFriends', usersHandler.addFBFriends);
+    //router.post('/addFriends', usersHandler.addFBFriends);
 
 
     router.get('/signOut', usersHandler.signOut);
