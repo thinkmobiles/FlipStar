@@ -11,6 +11,7 @@ module.exports = function () {
     var session = require('express-session');
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
+    var eventQueue;
 
 //var marked = require('marked');
 
@@ -174,6 +175,7 @@ module.exports = function () {
     }
 
     require('./routes/index')(app, PostGre);
+    eventQueue = require('./helpers/eventQueue/kafkaServer');
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
 
