@@ -37,3 +37,6 @@ process.env.RABBITMQ_PASSWORD = 'user';
 
 process.env.KAFKA_HOST = 'localhost';
 process.env.KAFKA_PORT = 2181;
+
+/*facebook notifications*/
+process.env.ACCESS_TOKEN = '1614729755469346|c462fed603a417b2874885c5977a7c0b';

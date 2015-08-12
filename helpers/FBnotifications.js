@@ -1,8 +1,10 @@
 var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var GROUPS = require('../constants/FbNotificationGroup');
+var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('underscore');
+var graph = require('fbgraph');
 var GameProfHelper = require('../helpers/gameProfile');
 var UserProfHelper = require('../helpers/userProfile');
 var Users;
@@ -11,94 +13,146 @@ FBnotif = function (PostGre) {
     var gameProfHelper = new GameProfHelper(PostGre);
     var userProfHelper = new UserProfHelper(PostGre);
 
-    this.getUsersGroup = function (groupType, callback) {
-       var err;
 
-        switch (groupType) {
+    function createView(callback) {
+        PostGre.knex
+            .raw('CREATE OR REPLACE VIEW ' + TABLES.FB_NOTIFICATIONS_VIEW + ' ' +
+            'AS ( ' +
+                    'SELECT facebook_id, group_name ' +
+                    'FROM ' +
+                    '(SELECT facebook_id , text  \'' + GROUPS.GROUP_B + '\'  as group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 0) as TABLE1 ' +
+                'UNION ' +
+                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_C + '\' as group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 1 and  extract(days from (current_timestamp - notification_date)) >= 2) ' +
+                'UNION ' +
+                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_D + '\' as group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 2 and  extract(days from (current_timestamp - notification_date)) > 7) ' +
+                'UNION ' +
+                    '(SELECT u.facebook_id, text \'' + GROUPS.GROUP_E + '\' as group_name ' +
+                    'FROM  ' + TABLES.GAME_PROFILE + ' g LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
+                    'WHERE extract(days from (current_timestamp - g.last_seen_date)) > 28) ' +
+                'UNION ' +
+                    '(SELECT fb.facebook_id, text \'' + GROUPS.GROUP_A + '\' as group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + ' fb LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on fb.facebook_id = u.facebook_id ' +
+                    'LEFT JOIN ' + TABLES.GAME_PROFILE + ' g on g.user_id = u.id ' +
+                    'where fb.is_newbie = true and extract(days from (current_timestamp - g.last_seen_date)) <= 28) ' +
+            ')'
+        )
+            .exec(function (err) {
+                if (err) {
+                    return callback(err)
+                }
+                callback()
+            })
+    };
 
-            case GROUPS.GROUP_A :
+    function getLimit(callback) {
+        var count;
+        var limit;
+        var conditionList;
+        var valuesList;
+
+        PostGre.knex(TABLES.FB_NOTIFICATIONS_VIEW)
+            .count()
+            .where('group_name', GROUPS.GROUP_B)
+            .exec(function (err, result) {
+                if (err) {
+                    return callback(err)
+                }
+                count = result[0].count;
+
+                conditionList = [
+                    count <= CONSTANTS.FB_LIMITS.LEVEL_1,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_1 && count < CONSTANTS.FB_LIMITS.LEVEL_2,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_2 && count < CONSTANTS.FB_LIMITS.LEVEL_3,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_3 && count < CONSTANTS.FB_LIMITS.LEVEL_4,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_4 && count < CONSTANTS.FB_LIMITS.LEVEL_5,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_5 && count < CONSTANTS.FB_LIMITS.LEVEL_6,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_6 && count < CONSTANTS.FB_LIMITS.LEVEL_7,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_7 && count < CONSTANTS.FB_LIMITS.LEVEL_8,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_8 && count < CONSTANTS.FB_LIMITS.LEVEL_9,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_9 && count < CONSTANTS.FB_LIMITS.LEVEL_10,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_10 && count < CONSTANTS.FB_LIMITS.LEVEL_11,
+                    count >= CONSTANTS.FB_LIMITS.LEVEL_11
+                ];
+                valuesList = [
+                    CONSTANTS.FB_LIMITS.DEFAULT,
+                    CONSTANTS.FB_LIMITS.GROWTH_1,
+                    CONSTANTS.FB_LIMITS.GROWTH_2,
+                    CONSTANTS.FB_LIMITS.GROWTH_3,
+                    CONSTANTS.FB_LIMITS.GROWTH_4,
+                    CONSTANTS.FB_LIMITS.GROWTH_5,
+                    CONSTANTS.FB_LIMITS.GROWTH_6,
+                    CONSTANTS.FB_LIMITS.GROWTH_7,
+                    CONSTANTS.FB_LIMITS.GROWTH_8,
+                    CONSTANTS.FB_LIMITS.GROWTH_9,
+                    CONSTANTS.FB_LIMITS.GROWTH_10,
+                    CONSTANTS.FB_LIMITS.GROWTH_11
+                ];
+                limit = valuesList[conditionList.indexOf(true)];
+                callback(null, limit);
+            })
+    };
+
+    this.getUsersGroup = function (callback) {
+
+        createView(function (err) {
+            if (err) {
+                return callback(err)
+            }
+            getLimit(function (err, limit) {
+                if (err) {
+                    return callback(err)
+                }
+                PostGre.knex(TABLES.FB_NOTIFICATIONS_VIEW)
+                    .select()
+                    .orderBy('group_name')
+                    .limit(limit)
+                    .exec(function (err, result) {
+                        if(err) {
+                            return callback(err)
+                        }
+                        callback(null, result)
+                    })
+            })
+
+        })
+    };
+
+    this.sendNotification = function (dispatchList, callback) {
+        graph.setAccessToken(process.env.ACCESS_TOKEN);
+        var data = {};
+        var fuid;
+
+        async.each(dispatchList, function (addressee, cb) {
+            fuid = addressee.facebook_id;
+            data.href = 'user/fb/' + fuid;
+            data.template = CONSTANTS.FB_NOTIFICATION_MESSAGES[addressee.group_name];
+
+            graph.post('/' + fuid + '/notifications', data, function(err, response) {
+                console.log(response);
+                
                 PostGre.knex
                     .raw(
-                        'select fb.facebook_id from ' + TABLES.FB_NOTIFICATIONS + ' fb ' +
-                        'left join ' + TABLES.USERS_PROFILE + ' u on fb.facebook_id = u.facebook_id ' +
-                        'left join ' + TABLES.GAME_PROFILE + ' g on g.user_id = u.id ' +
-                        'where fb.is_newbie = true and extract(days from (current_timestamp - g.last_seen_date)) <= 28'
-                    )
-                    .exec(function (err, users) {
+                    'UPDATE  fb_notifications f SET unresponsive_notification = unresponsive_notification + 1, ' +
+                    'is_newbie = false, notification_date = current_timestamp, updated_at = current_timestamp ' +
+                    'where facebook_id = \'' + fuid + '\''
+                )
+                    .exec(function (err) {
                         if (err) {
-                            callback(err)
+                            cb(err)
                         } else {
-                            callback(null, _.pluck(users.rows, 'facebook_id'))
+                            cb()
                         }
-                    });
-                break;
-
-            case GROUPS.GROUP_B :
-                PostGre.knex
-                    .raw(
-                        'select facebook_id from ' + TABLES.FB_NOTIFICATIONS + ' ' +
-                        'where unresponsive_notification is null and is_newbie = false'
-                    )
-                    .exec(function (err, users) {
-                        if (err) {
-                            callback(err)
-                        } else {
-                            callback(null, _.pluck(users.rows, 'facebook_id'))
-                        }
-                    });
-                break;
-
-            case GROUPS.GROUP_C :
-                PostGre.knex
-                    .raw(
-                        'select facebook_id from ' + TABLES.FB_NOTIFICATIONS + ' ' +
-                        'where unresponsive_notification = 1'
-                    )
-                    .exec(function (err, users) {
-                        if (err) {
-                            callback(err)
-                        } else {
-                            callback(null, _.pluck(users.rows, 'facebook_id'))
-                        }
-                    });
-                break;
-
-            case GROUPS.GROUP_D :
-                PostGre.knex
-                    .raw(
-                        'select facebook_id from ' + TABLES.FB_NOTIFICATIONS + ' ' +
-                        'where unresponsive_notification = 2'
-                    )
-                    .exec(function (err, users) {
-                        if (err) {
-                            callback(err)
-                        } else {
-                            callback(null, _.pluck(users.rows, 'facebook_id'))
-                        }
-                    });
-                break;
-
-            case GROUPS.GROUP_E :
-                PostGre.knex
-                    .raw(
-                        'select u.facebook_id from ' + TABLES.GAME_PROFILE + ' g ' +
-                        'left join ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
-                        'where extract(days from (current_timestamp - g.last_seen_date)) > 28'
-                    )
-                    .exec(function (err, users) {
-                        if (err) {
-                            callback(err)
-                        } else {
-                            callback(null, _.pluck(users.rows, 'facebook_id'))
-                        }
-                    });
-                break;
-
-            default:
-                err = new Error(RESPONSES.INVALID_PARAMETERS);
-                err.status = 400;
-                callback(err)
-        }
+                    })
+        }, function (err) {
+            if (err) {
+                return callback(err)
+            }
+            callback()
+        })
+        });
     };
 
 };

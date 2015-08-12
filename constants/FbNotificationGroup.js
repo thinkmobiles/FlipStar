@@ -1,7 +1,7 @@
 module.exports = {
-    GROUP_A: 1,
-    GROUP_B: 2,
-    GROUP_C: 3,
-    GROUP_D: 4,
-    GROUP_E: 5
+    GROUP_A: 4,
+    GROUP_B: 0,
+    GROUP_C: 1,
+    GROUP_D: 2,
+    GROUP_E: 3
 };

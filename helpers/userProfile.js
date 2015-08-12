@@ -165,14 +165,14 @@ UserProfile = function (PostGre) {
                         })
                         .exec(function (err, result) {
                             if (err) {
-                                cb(err)
+                                cb(err);
                             } else {
-                                cb(null, user)
+                                cb(null, user);
                             }
 
                         })
                 } else {
-                    cb()
+                    cb(null, user);
                 }
             },
             function (user, cb) {

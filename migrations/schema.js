@@ -52,7 +52,7 @@ module.exports = function (knex) {
                 createTable(TABLES.FB_NOTIFICATIONS, function (row) {
                     row.increments('id').primary();
                     row.string('facebook_id').unique().references('facebook_id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('unresponsive_notification');
+                    row.integer('unresponsive_notification').defaultTo(0);
                     row.boolean('is_newbie').defaultTo(true);
                     row.timestamp('notification_date');
 
