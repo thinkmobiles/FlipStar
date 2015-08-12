@@ -132,7 +132,7 @@ FBnotif = function (PostGre) {
 
             graph.post('/' + fuid + '/notifications', data, function(err, response) {
                 console.log(response);
-                
+
                 PostGre.knex
                     .raw(
                     'UPDATE  fb_notifications f SET unresponsive_notification = unresponsive_notification + 1, ' +
