@@ -9,7 +9,7 @@ module.exports = function (PostGre, app) {
 
         router.post('/sync', gameHandler.syncOfflineGame);
 
-        //router.post('/smash', gameHandler.addSmashes);
+       // router.post('/smash', gameHandler.addSmashes);
 
         router.get('/collection', gameHandler.getMyCollection);
         router.get('/:id', gameHandler.getProfileById);

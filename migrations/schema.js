@@ -184,9 +184,10 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.KIOSK, function (row) {
                     row.increments('id').primary();
-                    row.integer('type').notNullable();
+                    row.string('type').notNullable();
                     row.string('name').notNullable();
-                    row.integer('store').notNullable();
+                    row.string('store').notNullable();
+                    row.integer('value').notNullable();
                     row.string('store_item_id').notNullable();
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
@@ -228,6 +229,40 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
+                }, cb)
+            },
+
+            function (cb){
+                createTable(TABLES.PURCHASE_HISTORY, function(row){
+                    row.increments('id').primary();
+                    row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('receipt_id').notNullable();
+                    row.string('receipt').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function(cb){
+                createTable(TABLES.BOOSTERS, function(row){
+                    row.increments('id').primary();
+                    row.string('name').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
+                }, cb)
+            },
+
+            function(cb){
+                createTable(TABLES.USERS_BOOSTERS, function(row){
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('quantity').notNullable();
+
+                    row.timestamp('updated_at', true);
+                    row.timestamp('created_at', true);
                 }, cb)
             }
 
@@ -284,6 +319,10 @@ module.exports = function (knex) {
                 dropTable(TABLES.USERS_PURCHASES, cb)
             },
 
+            function(cb) {
+                dropTable(TABLES.PURCHASE_HISTORY, cb)
+            },
+
             function (cb) {
                 dropTable(TABLES.KIOSK, cb)
             },
@@ -298,6 +337,14 @@ module.exports = function (knex) {
 
             function (cb) {
                 dropTable(TABLES.FRIENDS, cb)
+            },
+
+            function(cb){
+                dropTable(TABLES.USERS_BOOSTERS, cb)
+            },
+
+            function(cb){
+                dropTable(TABLES.BOOSTERS, cb)
             },
 
             function (cb) {
