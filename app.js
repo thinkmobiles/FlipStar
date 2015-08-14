@@ -1,3 +1,4 @@
+
 module.exports = function () {
     "use strict";
 
@@ -11,6 +12,10 @@ module.exports = function () {
     var session = require('express-session');
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
+    var kafka = require('kafka-node');
+    var client = new kafka.Client();
+    var producer = new kafka.HighLevelProducer(client);
+    var eventQueueHandler = require('./helpers/eventQueue/kafkaServer');
     var eventQueue;
 
 //var marked = require('marked');
@@ -23,6 +28,7 @@ module.exports = function () {
     var knex;
     var PostGre;
     var Models;
+    var rabbitConfig;
     var sessionStore;
 
 //app.engine('html', cons.swig);
@@ -30,12 +36,8 @@ module.exports = function () {
 //app.set('views', __dirname + '/views');
 
 
-    app.use(morgan('dev'));
-    app.use(bodyParser.json({
-        strict: false,
-        inflate: false,
-        limit: 1024 * 1024 * 200/*, type: 'application/x-www-form-urlencoded'*/
-    }));
+    app.use( morgan('dev'));
+    app.use(bodyParser.json({strict: false, inflate: false, limit: 1024 * 1024 * 200}));
     app.use(bodyParser.urlencoded({extended: false}));
     app.use(cookieParser());
     app.use(express.static(path.join(__dirname, 'public')));
@@ -106,6 +108,14 @@ module.exports = function () {
     app.set('PostGre', PostGre);
 
 
+    rabbitConfig = {
+        host: process.env.RABBITMQ_HOST,
+        port: process.env.RABBITMQ_PORT,
+        login: process.env.RABBITMQ_USER,
+        password: process.env.RABBITMQ_PASSWORD
+    };
+
+
     if (process.env.NODE_ENV === 'development') {
         console.log('Test Route');
         app.post('/authorize', function (req, res, next) {
@@ -174,8 +184,15 @@ module.exports = function () {
          })*/
     }
 
-    require('./routes/index')(app, PostGre);
-    eventQueue = require('./helpers/eventQueue/kafkaServer');
+    producer.on('ready', function(){
+        eventQueue = new eventQueueHandler(app, producer);
+      //  console.log('Kafka serv:', eventQueue);
+        app.set('eventQueue', eventQueue);
+        
+        require('./routes/index')(app, PostGre);
+    });
+
+
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
 
