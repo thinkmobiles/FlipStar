@@ -12,7 +12,6 @@ module.exports = function(app, producer){
 
 //    var Producer = kafka.HighLevelProducer;
     var Consumer = kafka.HighLevelConsumer;
-    var client = new kafka.Client();
 
     var Broker = {
         consumers: {},
@@ -34,7 +33,7 @@ module.exports = function(app, producer){
     };
 
     _.forEach(Consumers, function (value, key) {
-        var clientC = new kafka.Client();
+        var clientC = new kafka.Client('192.168.88.99:2181');
         var consumer = new Consumer(
             clientC,
             [

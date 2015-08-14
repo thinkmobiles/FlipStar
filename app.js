@@ -13,7 +13,7 @@ module.exports = function () {
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
     var kafka = require('kafka-node');
-    var client = new kafka.Client();
+    var client = new kafka.Client('192.168.88.99:2181');
     var producer = new kafka.HighLevelProducer(client);
     var eventQueueHandler = require('./helpers/eventQueue/kafkaServer');
     var eventQueue;
