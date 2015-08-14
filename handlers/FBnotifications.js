@@ -30,7 +30,6 @@ FBnotif = function (PostGre) {
     };
 
     this.sendNotification = function (req, res, next) {
-        var fuid = 100008582854316;
         graph.setAccessToken(process.env.ACCESS_TOKEN);
 
         var data = {

@@ -229,6 +229,19 @@ module.exports = function (knex) {
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.BOOSTERS, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('name');
+                    row.boolean('is_active').defaultTo(false);
+                    row.integer('flips_left');
+
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
+                }, cb)
             }
 
         ], function(errors) {

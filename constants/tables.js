@@ -14,5 +14,6 @@ module.exports = {
     NOTIFICATIONS_QUEUE: 'notifications',
     NOTIFICATIONS_HISTORY: 'notifications_history',
     FB_NOTIFICATIONS: 'fb_notifications',
-    FB_NOTIFICATIONS_VIEW: 'list_fb_notif'
+    FB_NOTIFICATIONS_VIEW: 'list_fb_notif',
+    BOOSTERS: 'boosters'
 };

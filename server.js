@@ -15,15 +15,15 @@ var credentials = {key: privateKey, cert: certificate};
 var httpsServer = https.createServer(credentials, app);
 
 
-//var server = httpsServer.listen(process.env.PORT, function () {
-//    console.log('=================================================================================');
-//    console.log( "Express server listening on port " + server.address().port, 'enviroment: ', process.env.NODE_ENV );
-//    console.log('=================================================================================');
-//} );
-
-var server = httpServer.listen(process.env.PORT, function () {
+var server = httpsServer.listen(process.env.PORT, function () {
     console.log('=================================================================================');
     console.log( "Express server listening on port " + server.address().port, 'enviroment: ', process.env.NODE_ENV );
     console.log('=================================================================================');
 } );
+
+//var server = httpServer.listen(process.env.PORT, function () {
+//    console.log('=================================================================================');
+//    console.log( "Express server listening on port " + server.address().port, 'enviroment: ', process.env.NODE_ENV );
+//    console.log('=================================================================================');
+//} );
 
