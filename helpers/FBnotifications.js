@@ -125,13 +125,14 @@ FBnotif = function (PostGre) {
         var data = {};
         var fuid;
 
-        async.each(dispatchList, function (addressee, cb) {
+        async.eachSeries(dispatchList, function (addressee, cb) {
             fuid = addressee.facebook_id;
             data.href = 'user/fb/' + fuid;
             data.template = CONSTANTS.FB_NOTIFICATION_MESSAGES[addressee.group_name];
 
             graph.post('/' + fuid + '/notifications', data, function(err, response) {
                 console.log(response);
+                console.log(fuid);
 
                 PostGre.knex
                     .raw(
@@ -146,13 +147,15 @@ FBnotif = function (PostGre) {
                             cb()
                         }
                     })
+            })
+
+
         }, function (err) {
             if (err) {
                 return callback(err)
             }
             callback()
         })
-        });
     };
 
 };
