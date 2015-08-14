@@ -27,7 +27,7 @@ Knex.knex = Knex.initialize({
         user: process.env.DB_USER,
         password: process.env.DB_PASS,
         port: process.env.DB_PORT,
-        database: "TestGame"
+        database: 'FlipStar'
     }
 });
 

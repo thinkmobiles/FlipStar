@@ -230,6 +230,29 @@ module.exports = function (knex) {
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
+            },
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION update_modified_column() ' +
+                    'RETURNS TRIGGER AS $$ ' +
+                    'BEGIN ' +
+                    'NEW.updated_at = now(); ' +
+                    'RETURN NEW; ' +
+                    'END; ' +
+                    '$$ language \'plpgsql\';'
+                )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
             }
 
         ], function(errors) {
@@ -302,15 +325,15 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                dropTable(TABLES.FB_NOTIFICATIONS, cb)
+            },
+
+            function (cb) {
                 dropTable(TABLES.GAME_PROFILE, cb)
             },
 
             function (cb) {
                 dropTable(TABLES.DEVICE, cb)
-            },
-
-            function (cb) {
-                dropTable(TABLES.FB_NOTIFICATIONS, cb)
             },
 
             function (cb) {
