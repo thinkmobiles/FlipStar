@@ -11,5 +11,8 @@ module.exports = {
     KIOSK: 'purchases',
     USERS_PURCHASES: 'users_purchases',
     NOTIFICATIONS_QUEUE: 'notifications',
-    NOTIFICATIONS_HISTORY: 'notifications_history'
+    NOTIFICATIONS_HISTORY: 'notifications_history',
+    PURCHASE_HISTORY: 'purchase_history',
+    BOOSTERS: 'boosters',
+    USERS_BOOSTERS: 'users_boosters',
 };

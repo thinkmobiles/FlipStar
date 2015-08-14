@@ -1,0 +1,63 @@
+{
+  "name": "in-app-purchase",
+  "description": "In-App-Purchase validation for iOS, Android, and Windows",
+  "version": "0.4.11",
+  "author": {
+    "name": "Nobuyori Takahashi",
+    "email": "voltrue2@yahoo.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voltrue2/in-app-purchase.git"
+  },
+  "dependencies": {
+    "async": "0.8.0",
+    "request": "2.33.0",
+    "xmldom": "0.1.19",
+    "xml-crypto": "0.1.25"
+  },
+  "devDependencies": {
+    "mocha": "1.18.2"
+  },
+  "engine": "node >= 0.10.20",
+  "contributors": [],
+  "keywords": [
+    "Apple",
+    "iOS",
+    "Android",
+    "Windows",
+    "Purchase",
+    "App",
+    "in-app-purchase",
+    "in-app-billing",
+    "Validation"
+  ],
+  "license": "MIT",
+  "gitHead": "2599a9f44ccf1745dcb3b5063a37d85b155bd473",
+  "bugs": {
+    "url": "https://github.com/voltrue2/in-app-purchase/issues"
+  },
+  "homepage": "https://github.com/voltrue2/in-app-purchase",
+  "_id": "in-app-purchase@0.4.11",
+  "scripts": {},
+  "_shasum": "16c2b729efeab72553fcebd3c6b79dc1c57f2381",
+  "_from": "in-app-purchase@",
+  "_npmVersion": "2.7.3",
+  "_nodeVersion": "0.10.20",
+  "_npmUser": {
+    "name": "voltrue2",
+    "email": "voltrue2@yahoo.com"
+  },
+  "maintainers": [
+    {
+      "name": "voltrue2",
+      "email": "voltrue2@yahoo.com"
+    }
+  ],
+  "dist": {
+    "shasum": "16c2b729efeab72553fcebd3c6b79dc1c57f2381",
+    "tarball": "http://registry.npmjs.org/in-app-purchase/-/in-app-purchase-0.4.11.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/in-app-purchase/-/in-app-purchase-0.4.11.tgz"
+}

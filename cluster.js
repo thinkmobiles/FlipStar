@@ -14,7 +14,7 @@ if (process.env.NODE_ENV) {
     require('./config/production');
 }
 
-/*if( cluster.isMaster ) {
+if( cluster.isMaster ) {
 
     var cpuCount = require( 'os' ).cpus().length;
 
@@ -35,6 +35,6 @@ if (process.env.NODE_ENV) {
         console.log( "A worker " + worker.id + " is now connected to " + address.address + ":" + address.port );
     } );
 
-} else {*/
+} else {
     require('./server');
-/*}*/
+}

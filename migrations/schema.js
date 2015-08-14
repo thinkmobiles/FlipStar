@@ -184,9 +184,10 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.KIOSK, function (row) {
                     row.increments('id').primary();
-                    row.integer('type').notNullable();
+                    row.string('type').notNullable();
                     row.string('name').notNullable();
-                    row.integer('store').notNullable();
+                    row.string('store').notNullable();
+                    row.integer('value').notNullable();
                     row.string('store_item_id').notNullable();
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
@@ -225,19 +226,6 @@ module.exports = function (knex) {
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
                     row.timestamp('delivery_date');
-
-                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
-                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
-            },
-
-            function (cb) {
-                createTable(TABLES.BOOSTERS, function (row) {
-                    row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.string('name');
-                    row.boolean('is_active').defaultTo(false);
-                    row.integer('flips_left');
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));

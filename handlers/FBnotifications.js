@@ -9,7 +9,9 @@ var GameProfHelper = require('../helpers/gameProfile');
 var FBnotifHelper = require('../helpers/FBnotifications');
 var Users;
 
-FBnotif = function (PostGre) {
+FBnotif = function (app) {
+    var PostGre = app.get('PostGre');
+
     var fbHelper = new FBnotifHelper(PostGre);
 
     this.requestFBNotification = function (req, res, next) {
@@ -29,7 +31,8 @@ FBnotif = function (PostGre) {
             })
     };
 
-    this.sendNotification = function (req, res, next) {
+    this.sendNotification = function (req, res, next) {/*
+        var fuid = 100008582854316;
         graph.setAccessToken(process.env.ACCESS_TOKEN);
 
         var data = {
@@ -51,21 +54,38 @@ FBnotif = function (PostGre) {
                     }
                     res.status(200).send('SEND')
                 })
-        });
+        });*/
+
+
     };
 
     this.getbygroup = function (req, res, next) {
+
+        var queue = app.get('eventQueue');
+
         fbHelper.getUsersGroup(function (err, dispatchList) {
             if (err) {
                 return next(err)
             }
-            fbHelper.sendNotification(dispatchList, function (err) {
+
+            queue.sendMessage('fbPush', {msg: dispatchList}, function(err){
+                if (err){
+                    return next(err);
+                }
+
+                res.status(200).send('SEND');
+            });
+            /*fbHelper.sendNotification(dispatchList, function (err) {
                 if (err) {
                     return next(err)
                 }
                 res.status(200).send('SEND')
-            })
+            })*/
         })
+
+
+
+
     };
 };
 

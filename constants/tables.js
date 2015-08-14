@@ -13,6 +13,10 @@ module.exports = {
     USERS_PURCHASES: 'users_purchases',
     NOTIFICATIONS_QUEUE: 'notifications',
     NOTIFICATIONS_HISTORY: 'notifications_history',
+    GAMES_QUEUE:'game_queue',
+    PURCHASE_HISTORY: 'purchase_history',
+    BOOSTERS: 'boosters',
+    USERS_BOOSTERS: 'users_boosters',
     FB_NOTIFICATIONS: 'fb_notifications',
     FB_NOTIFICATIONS_VIEW: 'list_fb_notif',
     BOOSTERS: 'boosters'

@@ -4,12 +4,17 @@ module.exports = {
     LOGIN: 'Successfully login',
     LOGOUT: 'Successfully logout',
     SYNCRONIZED: 'Successfully synchronized',
+    SAVED: 'Successfully saved',
+    BOUGHT: 'Successfully bought',
 
     //-------Errors-------
 
     BAD_INCOMING_PARAMS: 'Not enough incoming parameters',
-    FORBIDDEN: 'No permission ti view this page',
+    FORBIDDEN: 'No permission to view this page',
     OUTDATED: 'Outdated information for saving',
     DATABASE_ERROR: 'Database error',
+    NOT_VALID_RECEIPT: 'Receipt not valid',
+    RECEIPT_USED: 'Receipt is already used',
+    NOT_IMPLEMENTED: 'not implemented',
     INVALID_PARAMETERS: 'Invalid incoming parameters'
 };
