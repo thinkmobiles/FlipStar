@@ -31,34 +31,6 @@ FBnotif = function (app) {
             })
     };
 
-    this.sendNotification = function (req, res, next) {/*
-        var fuid = 100008582854316;
-        graph.setAccessToken(process.env.ACCESS_TOKEN);
-
-        var data = {
-            href: 'user/fb/' + fuid,
-            template: 'Hello world'
-        };
-
-        graph.post('/' + fuid + '/notifications', data, function(err, response) {
-            console.log(response);
-            PostGre.knex
-                .raw(
-                    'UPDATE  fb_notifications f SET unresponsive_notification = unresponsive_notification + 1, ' +
-                    'is_newbie = false, notification_date = current_timestamp, updated_at = current_timestamp ' +
-                    'where facebook_id = \'' + fuid + '\''
-                )
-                .exec(function (err) {
-                    if (err) {
-                        return next(err)
-                    }
-                    res.status(200).send('SEND')
-                })
-        });*/
-
-
-    };
-
     this.getbygroup = function (req, res, next) {
 
         var queue = app.get('eventQueue');
@@ -75,7 +47,8 @@ FBnotif = function (app) {
 
                 res.status(200).send('SEND');
             });
-            /*fbHelper.sendNotification(dispatchList, function (err) {
+
+          /*  fbHelper.sendNotification(dispatchList, function (err) {
                 if (err) {
                     return next(err)
                 }

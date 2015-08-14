@@ -7,7 +7,7 @@ module.exports = function (app, PostGre) {;
     //Routers
     var usersRouter = require('./userProfile')(PostGre, app);
     var gameRouter = require('./gameProfile')(PostGre, app);
-    var purchaseRouter = require('./purchase')(PostGre, app);
+    //var purchaseRouter = require('./purchase')(PostGre, app);
     var session = new Session(PostGre);
 
     app.get('/test', function (req, res, next) {
@@ -16,7 +16,7 @@ module.exports = function (app, PostGre) {;
 
     app.use('/user', usersRouter);
     app.use('/gameProfile', gameRouter);
-    app.use('/purchase', purchaseRouter);
+    //app.use('/purchase', purchaseRouter);
 
 
     function notFound(req, res, next) {

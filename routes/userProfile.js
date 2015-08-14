@@ -7,7 +7,7 @@ var Session = require('../handlers/sessions');
 module.exports = function (PostGre, app) {
     var session = new Session(PostGre);
     var usersHandler = new UsersHandler(PostGre, app);
-    var fbHandler = new FBNotificationsHandler(PostGre, app);
+    var fbHandler = new FBNotificationsHandler(app);
 
     router.post('/signIn', usersHandler.signIn);
     //router.post('/addFriends', usersHandler.addFBFriends);
@@ -18,7 +18,6 @@ module.exports = function (PostGre, app) {
     router.get('/topRank', usersHandler.getTopRankList);
 
     router.post('/fb/:id', fbHandler.requestFBNotification);
-    router.get('/fb', fbHandler.sendNotification);
     router.get('/fb/group', fbHandler.getbygroup);
 
 
