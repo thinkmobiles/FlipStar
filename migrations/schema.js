@@ -7,6 +7,30 @@ module.exports = function (knex) {
         async.series([
 
             function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION update_updated_at_column() ' +
+                    'RETURNS TRIGGER AS $$ ' +
+                    'BEGIN ' +
+                    'NEW.updated_at = now(); ' +
+                    'RETURN NEW; ' +
+                    'END; ' +
+                    '$$ language \'plpgsql\';'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
                 createTable(TABLES.COUNTRIES, function (row) {
                     row.increments('id').primary();
                     row.string('iso_code').notNullable();
@@ -43,9 +67,26 @@ module.exports = function (knex) {
                     row.string('timezone');
                     row.string('phone_number');
 
+
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_user_profile_updtime BEFORE UPDATE ON ' + TABLES.USERS_PROFILE + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                        )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER USERS');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -58,7 +99,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_fb_notif_updtime BEFORE UPDATE ON ' + TABLES.FB_NOTIFICATIONS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER FB');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
 
             },
 
@@ -80,7 +137,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_device_updtime BEFORE UPDATE ON ' + TABLES.DEVICE + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER DEVICE');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -119,7 +192,57 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_fb_game_updtime BEFORE UPDATE ON ' + TABLES.GAME_PROFILE + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER GAME');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
+            },
+
+            function (cb) {
+                createTable(TABLES.BOOSTERS, function (row) {
+                    row.increments('id').primary();
+                    row.string('name');
                 }, cb)
+            },
+
+            function (cb) {
+                createTable(TABLES.USERS_BOOSTERS, function (row) {
+                    row.increments('id').primary();
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.boolean('is_active').defaultTo(false);
+                    row.integer('flips_left');
+
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_u_boosters_updtime BEFORE UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER U_BOOSTERS');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -130,7 +253,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_fb_friends_updtime BEFORE UPDATE ON ' + TABLES.FRIENDS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER FRIENDS');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -152,11 +291,27 @@ module.exports = function (knex) {
                     row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('quantity').defaultTo(0);
 
-                    row.unique(['game_profile_id', 'smash_id']); //todo test this && defaultTo date rows
+                    row.unique(['game_profile_id', 'smash_id']);
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_u_smashes_updtime BEFORE UPDATE ON ' + TABLES.USERS_SMASHES + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER U_SMASHES');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -167,7 +322,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_achiev_updtime BEFORE UPDATE ON ' + TABLES.ACHIEVEMENTS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER ACHIEV');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -178,7 +349,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_u_achiev_updtime BEFORE UPDATE ON ' + TABLES.USERS_ACHIEVEMENTS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER U_ACHIEV');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -192,7 +379,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_kiosk_updtime BEFORE UPDATE ON ' + TABLES.KIOSK + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER KIOSK');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -204,7 +407,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_u_purchases_updtime BEFORE UPDATE ON ' + TABLES.USERS_PURCHASES + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER U_PURCHASES');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -216,7 +435,23 @@ module.exports = function (knex) {
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
-                }, cb)
+                }, function () {
+                    knex.raw(
+                        'CREATE TRIGGER update_notif_queue_updtime BEFORE UPDATE ON ' + TABLES.NOTIFICATIONS_QUEUE + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                    )
+                        .exec(function (err) {
+                            if (err) {
+                                console.log('!!!!!!!!!');
+                                console.log(err);
+                                console.log('!!!!!!!!!');
+                            } else {
+                                console.log('##########');
+                                console.log('Create TRIGGER N_QUEUE');
+                                console.log('###########');
+                            }
+                            cb()
+                        })
+                })
             },
 
             function (cb) {
@@ -230,29 +465,6 @@ module.exports = function (knex) {
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, cb)
-            },
-            function (cb) {
-                knex.raw(
-                    'CREATE OR REPLACE FUNCTION update_modified_column() ' +
-                    'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                    'NEW.updated_at = now(); ' +
-                    'RETURN NEW; ' +
-                    'END; ' +
-                    '$$ language \'plpgsql\';'
-                )
-                    .exec(function (err) {
-                        if (err) {
-                            console.log('!!!!!!!!!');
-                            console.log(err);
-                            console.log('!!!!!!!!!');
-                        } else {
-                            console.log('##########');
-                            console.log('Create function');
-                            console.log('###########');
-                        }
-                        cb()
-                    })
             }
 
         ], function(errors) {
@@ -326,6 +538,14 @@ module.exports = function (knex) {
 
             function (cb) {
                 dropTable(TABLES.FB_NOTIFICATIONS, cb)
+            },
+
+            function (cb) {
+                dropTable(TABLES.USERS_BOOSTERS, cb)
+            },
+
+            function (cb) {
+                dropTable(TABLES.BOOSTERS, cb)
             },
 
             function (cb) {
