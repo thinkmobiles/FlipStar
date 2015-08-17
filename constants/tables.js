@@ -18,6 +18,5 @@ module.exports = {
     BOOSTERS: 'boosters',
     USERS_BOOSTERS: 'users_boosters',
     FB_NOTIFICATIONS: 'fb_notifications',
-    FB_NOTIFICATIONS_VIEW: 'list_fb_notif',
-    BOOSTERS: 'boosters'
+    FB_NOTIFICATIONS_VIEW: 'list_fb_notif'
 };
