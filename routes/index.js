@@ -8,6 +8,7 @@ module.exports = function (app, PostGre) {;
     var usersRouter = require('./userProfile')(PostGre, app);
     var gameRouter = require('./gameProfile')(PostGre, app);
     //var purchaseRouter = require('./purchase')(PostGre, app);
+    var queueRouter = require('./eventQueue')(PostGre, app);
     var session = new Session(PostGre);
 
     app.get('/test', function (req, res, next) {
@@ -17,7 +18,7 @@ module.exports = function (app, PostGre) {;
     app.use('/user', usersRouter);
     app.use('/gameProfile', gameRouter);
     //app.use('/purchase', purchaseRouter);
-
+    app.use('/queue', queueRouter);
 
     function notFound(req, res, next) {
         res.status(404);
