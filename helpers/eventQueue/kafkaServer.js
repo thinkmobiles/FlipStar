@@ -42,7 +42,6 @@ module.exports = function(app, producer){
                 }
             ],
             {
-                groupId: 'kafka-'+ value
             }
         );
 
@@ -54,17 +53,18 @@ module.exports = function(app, producer){
                 console.log('Bad formed JSON message: ', message.value);
                 message.value = '';
             }
+            message['consumerId'] = consumer.id;
 
             value.callback(message);
 
         });
 
-        consumer.on('error', function(err){
+        /*consumer.on('error', function(err){
            console.error(err);
            consumer.close(true, function(){
-        
+                
            });
-        });
+        });*/
 
         Broker.consumers[key] = consumer;
 
