@@ -107,7 +107,7 @@ Users = function (PostGre) {
                                 return next(err)
                             }
                             req.session.loggedIn = true;
-                            req.session.uId = profile.id;
+                            req.session.uId = profile[0].id;
 
                             res.status(201).send(profile[0]);
                         })

@@ -127,6 +127,30 @@ GameProfile = function (PostGre) {
 
     };
 
+    this.singleGame = function (req, res, next) {
+        var options = req.body;
+        var uid = req.session.uId;
+    };
+
+    this.activateBooster = function (req, res, next) {
+        var uid = req.session.uId;
+        var boosterIds = req.query.boosters;
+        boosterIds = boosterIds.split(',');
+
+        PostGre.knex(TABLES.USERS_BOOSTERS)
+            .where('game_profile_id', uid)
+            .andWhere('booster_id', 'in', boosterIds)
+            .update({
+                'is_active': true
+            })
+            .then(function () {
+                res.status(200).send(RESPONSES.ACTIVATED)
+            })
+            .catch(function (err) {
+                next(err)
+            })
+    };
+
    /* this.addSmashes = function (req, res, next) {
         var options = req.body;
         var uid = options.uid;

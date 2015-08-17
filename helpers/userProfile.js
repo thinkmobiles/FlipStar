@@ -219,6 +219,8 @@ UserProfile = function (PostGre) {
                 gameProf = {
                     device_id: device.id,
                     user_id: device.get('user_id'),
+                    flips_number: 50,
+                    sessions_number: 1,
                     registration_date: new Date(),
                     last_seen_date: new Date(),
                     registration_week: getWeekNumber()

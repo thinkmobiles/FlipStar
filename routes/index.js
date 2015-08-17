@@ -1,4 +1,4 @@
-module.exports = function (app, PostGre) {;
+module.exports = function (app, PostGre) {
     var Session = require('../handlers/sessions');
 
     //Constants

@@ -184,15 +184,15 @@ module.exports = function () {
          })*/
     }
 
-    producer.on('ready', function(){
-        eventQueue = new eventQueueHandler(app, producer);
-      //  console.log('Kafka serv:', eventQueue);
-        app.set('eventQueue', eventQueue);
-        
-        require('./routes/index')(app, PostGre);
-    });
+    //producer.on('ready', function(){
+    //    eventQueue = new eventQueueHandler(app, producer);
+    //  //  console.log('Kafka serv:', eventQueue);
+    //    app.set('eventQueue', eventQueue);
+    //
+    //    require('./routes/index')(app, PostGre);
+    //});
 
-
+    require('./routes/index')(app, PostGre);
     /*port = parseInt(process.env.PORT) || 8835;*/
     /*server = http.createServer(app);*/
 

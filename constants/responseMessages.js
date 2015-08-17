@@ -6,7 +6,7 @@ module.exports = {
     SYNCRONIZED: 'Successfully synchronized',
     SAVED: 'Successfully saved',
     BOUGHT: 'Successfully bought',
-
+    ACTIVATED: 'Successfully activated',
     //-------Errors-------
 
     BAD_INCOMING_PARAMS: 'Not enough incoming parameters',

@@ -10,10 +10,10 @@ module.exports = function (knex) {
                 knex.raw(
                     'CREATE OR REPLACE FUNCTION update_updated_at_column() ' +
                     'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                    'NEW.updated_at = now(); ' +
-                    'RETURN NEW; ' +
-                    'END; ' +
+                        'BEGIN ' +
+                            'NEW.updated_at = now(); ' +
+                            'RETURN NEW; ' +
+                        'END; ' +
                     '$$ language \'plpgsql\';'
                     )
                     .exec(function (err) {
@@ -28,6 +28,30 @@ module.exports = function (knex) {
                         }
                         cb()
                     })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION del_expire_booster() ' +
+                    'RETURNS TRIGGER AS $$ ' +
+                        'BEGIN ' +
+                            'DELETE FROM ' + TABLES.USERS_BOOSTERS + ' WHERE flips_left = 0; ' +
+                            'RETURN NULL; ' +
+                        'END; ' +
+                    '$$ language \'plpgsql\';'
+                )
+                .exec(function (err) {
+                    if (err) {
+                        console.log('!!!!!!!!!');
+                        console.log(err);
+                        console.log('!!!!!!!!!');
+                    } else {
+                        console.log('##########');
+                        console.log('Create function');
+                        console.log('###########');
+                    }
+                    cb()
+                })
             },
 
             function (cb) {
@@ -226,9 +250,12 @@ module.exports = function (knex) {
                     row.boolean('is_active').defaultTo(false);
                     row.integer('flips_left');
 
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, function () {
                     knex.raw(
-                        'CREATE TRIGGER update_u_boosters_updtime BEFORE UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                        'CREATE TRIGGER update_u_boosters_updtime BEFORE UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column(); ' +
+                        'CREATE TRIGGER del_booster AFTER UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR ROW EXECUTE PROCEDURE  del_expire_booster();'
                     )
                         .exec(function (err) {
                             if (err) {

@@ -8,10 +8,12 @@ module.exports = function (PostGre, app) {
     var gameHandler = new GameHandler(PostGre, app);
 
         router.post('/sync', gameHandler.syncOfflineGame);
+        router.post('/game', gameHandler.singleGame);
 
        // router.post('/smash', gameHandler.addSmashes);
 
         router.get('/collection', gameHandler.getMyCollection);
+        router.get('/booster', gameHandler.activateBooster);
         router.get('/:id', gameHandler.getProfileById);
 
         router.put('/:id', gameHandler.updateProfile);
