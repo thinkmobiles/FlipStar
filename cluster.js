@@ -32,7 +32,7 @@ if( cluster.isMaster ) {
             clearInterval(interval);   
         }
         
-    }, (Math.random() * 10000) | 0 );
+    }, (Math.random() * 30000) | 0 );
 
 
     
