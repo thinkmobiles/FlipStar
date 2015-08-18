@@ -94,7 +94,7 @@ GameProfile = function (PostGre) {
             .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .where(TABLES.GAME_PROFILE + '.id', uid)
-            .select('first_name', 'last_name', 'stars_number', 'points_number', 'pogs_number', 'flips_number', 'last_seen_date')
+            .select('first_name', 'last_name', 'stars_number', 'points_number', 'pogs_number', 'flips_number')
             .limit(1)
             .exec(callback)
     };

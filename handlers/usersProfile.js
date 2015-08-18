@@ -53,7 +53,10 @@ Users = function (PostGre) {
                             req.session.loggedIn = true;
                             req.session.uId = profile.id;
 
-                            res.status(200).send(profile);
+                            res.status(200).send({
+                                uId: profile.id,
+                                date: profile.updated_at.toLocaleString()
+                            });
                         })
 
                     } else {

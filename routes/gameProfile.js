@@ -13,7 +13,7 @@ module.exports = function (PostGre, app) {
        // router.post('/smash', gameHandler.addSmashes);
 
         router.get('/collection', gameHandler.getMyCollection);
-        router.get('/booster', gameHandler.activateBooster);
+        router.get('/booster/:id', gameHandler.activateBooster);
         router.get('/:id', gameHandler.getProfileById);
 
         router.put('/:id', gameHandler.updateProfile);

@@ -130,19 +130,44 @@ GameProfile = function (PostGre) {
     this.singleGame = function (req, res, next) {
         var options = req.body;
         var uid = req.session.uId;
+
+        PostGre.knex
+            .raw(
+                'UPDATE game_profile SET stars_number = stars_number + ' + options.stars +
+                ' , flips_number = flips_number - 1, flips_spent = flips_spent + 1 ' +
+                'WHERE id = ' + uid + ' ' +
+                'RETURNING *'
+            )
+            .then(function (profile) {
+                PostGre.knex
+                    .raw(
+                        'UPDATE users_boosters SET flips_left = flips_left - 1 ' +
+                        'WHERE game_profile_id = ' + uid + ' AND is_active = true ' +
+                        'RETURNING *'
+                    )
+                    .then(function (boosters) {
+                        res.status(200).send('OK')
+                    })
+                    .catch(function (err) {
+                        next(err)
+                    })
+            })
+            .catch(function (err) {
+                next(err)
+            })
     };
 
     this.activateBooster = function (req, res, next) {
         var uid = req.session.uId;
-        var boosterIds = req.query.boosters;
-        boosterIds = boosterIds.split(',');
+        var boosterId = req.params.id;
 
         PostGre.knex(TABLES.USERS_BOOSTERS)
             .where('game_profile_id', uid)
-            .andWhere('booster_id', 'in', boosterIds)
+            .andWhere('booster_id', boosterId)
             .update({
                 'is_active': true
             })
+            .returning('*')
             .then(function () {
                 res.status(200).send(RESPONSES.ACTIVATED)
             })

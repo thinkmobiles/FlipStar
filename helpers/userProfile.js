@@ -59,6 +59,7 @@ UserProfile = function (PostGre) {
                     break;
                 case 'push_operator':
                     result[key] = value;
+                    result['device_firmware'] = value;
                     break;
                 case 'content_version':
                     result[key] = value;
@@ -73,9 +74,6 @@ UserProfile = function (PostGre) {
                     result[key] = value;
                     break;
                 case 'device_manufacturer':
-                    result[key] = value;
-                    break;
-                case 'device_firmware':
                     result[key] = value;
                     break;
 
@@ -243,7 +241,7 @@ UserProfile = function (PostGre) {
                 return callback(err)
             } else {
                 PostGre.knex(TABLES.USERS_PROFILE)
-                    .select('*', TABLES.GAME_PROFILE + '.id as id')
+                    .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id as id')
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
                     .where(TABLES.GAME_PROFILE + '.id', profile.id)
@@ -308,7 +306,7 @@ UserProfile = function (PostGre) {
                             'end ) ' +
                         'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
-                        'RETURNING  *, g.id as id'
+                        'RETURNING  g.updated_at, g.id as id'
                     )
                     .then(function (profile) {
                         if (profile && profile.rows && profile.rows.length) {
@@ -377,7 +375,7 @@ UserProfile = function (PostGre) {
             function (dId, cb) {
                 PostGre.knex
                     .raw(
-                        'update ' + TABLES.FB_NOTIFICATIONS + ' fb set ' +
+                        'UPDATE ' + TABLES.FB_NOTIFICATIONS + ' fb set ' +
                         'is_newbie = ( ' +
                             'case when extract(days from (current_timestamp - gp.last_seen_date)) >= 28 ' +
                             'then true ' +
@@ -406,7 +404,7 @@ UserProfile = function (PostGre) {
                             'end ) ' +
                         'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and d.id = g.device_id and u.facebook_id =  \'' + fbId + '\' ' +
-                        'RETURNING  *, g.id as id'
+                        'RETURNING g.updated_at , g.id as id'
                     )
                     .exec(cb)
             }
@@ -435,7 +433,7 @@ UserProfile = function (PostGre) {
 
     this.getExistingUser = function (options, callback) {
         PostGre.knex(TABLES.GAME_PROFILE)
-            .select('*',TABLES.GAME_PROFILE + '.id' + ' as id')
+            .select(TABLES.GAME_PROFILE + '.updated_at',TABLES.GAME_PROFILE + '.id' + ' as id')
             .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
             .where(function () {
