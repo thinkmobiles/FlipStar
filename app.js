@@ -13,7 +13,8 @@ module.exports = function () {
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
     var kafka = require('kafka-node');
-    var client = new kafka.Client('192.168.88.99:2181');
+    var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
+    var client = new kafka.Client(clientOptions);
     var producer = new kafka.HighLevelProducer(client);
     var eventQueueHandler = require('./helpers/eventQueue/kafkaServer');
     var eventQueue;
@@ -184,13 +185,19 @@ module.exports = function () {
          })*/
     }
 
-    //producer.on('ready', function(){
-    //    eventQueue = new eventQueueHandler(app, producer);
-    //  //  console.log('Kafka serv:', eventQueue);
-    //    app.set('eventQueue', eventQueue);
-    //
-    //    require('./routes/index')(app, PostGre);
-    //});
+    producer.on('ready', function(){
+
+        /*setTimeout(function() {
+            console.log('Left 35 sec');*/
+            eventQueue = new eventQueueHandler(app, producer);
+      //  console.log('Kafka serv:', eventQueue);
+            app.set('eventQueue', eventQueue);
+
+            
+            require('./routes/index')(app, PostGre);
+       /* }, 35000);*/
+
+    });
 
     require('./routes/index')(app, PostGre);
     /*port = parseInt(process.env.PORT) || 8835;*/

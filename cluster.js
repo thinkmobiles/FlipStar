@@ -4,6 +4,8 @@
 "use strict";
 
 var cluster = require( 'cluster' );
+var interval;
+var counter = 0;
 
 process.env.NODE_ENV = 'development';
 
@@ -19,9 +21,22 @@ if( cluster.isMaster ) {
 
     var cpuCount = require( 'os' ).cpus().length;
 
-    for( var i = 0; i < cpuCount; i += 1 ) {
+    /*for( var i = 0; i < cpuCount; i += 1 ) {
         cluster.fork();
-    }
+    }*/
+
+    interval = setInterval(function(){
+        if (counter < cpuCount){
+            cluster.fork();  
+            counter += 1;
+        } else{
+            clearInterval(interval);   
+        }
+        
+    }, (Math.random() * 30000) | 0 );
+
+
+    
 
     cluster.on( 'exit', function ( worker ) {
         console.log( 'Worker ' + worker.id + ' died :(' );

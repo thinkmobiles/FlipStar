@@ -33,7 +33,7 @@ module.exports = function(app, producer){
     };
 
     _.forEach(Consumers, function (value, key) {
-        var clientC = new kafka.Client('192.168.88.99:2181');
+        var clientC = new kafka.Client(clientOptions);
         var consumer = new Consumer(
             clientC,
             [
@@ -42,7 +42,6 @@ module.exports = function(app, producer){
                 }
             ],
             {
-                groupId: 'kafka-'+ value
             }
         );
 
@@ -54,6 +53,7 @@ module.exports = function(app, producer){
                 console.log('Bad formed JSON message: ', message.value);
                 message.value = '';
             }
+            message['consumerId'] = consumer.id;
 
             value.callback(message);
 
@@ -62,7 +62,13 @@ module.exports = function(app, producer){
         consumer.on('error', function(err){
            console.error(err);
            consumer.close(true, function(){
-        
+                consumer.removeAllListeners();
+                clientC = new kafka.Client(clientOptions);
+                consumer.client = clientC;
+                setTimeout(function() {
+                        consumer.connect();
+                }, Math.random() * 5000 | 0);
+                
            });
         });
 

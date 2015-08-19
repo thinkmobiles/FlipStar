@@ -18,5 +18,6 @@ module.exports = {
     BOOSTERS: 'boosters',
     USERS_BOOSTERS: 'users_boosters',
     FB_NOTIFICATIONS: 'fb_notifications',
-    FB_NOTIFICATIONS_VIEW: 'list_fb_notif'
+    FB_NOTIFICATIONS_VIEW: 'list_fb_notif',
+    PUSH_QUEUE: 'pushQueue'
 };

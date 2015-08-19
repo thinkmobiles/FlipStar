@@ -7,11 +7,11 @@ var TABLES = require('../../constants/tables');
 var RESPONSES = require('../../constants/responseMessages');
 var MODELS = require('../../constants/models');
 //var PushHandler = require('../notifications');
-var fbPushHelper = require('../FBnotifications');
+//var fbPushHelper = require('../FBnotifications');
 
 module.exports = function(PostGre){
-  //  var pusher = new PushHandler(PostGre);
-    var fbPusher = new fbPushHelper(PostGre);
+   // var pusher = new PushHandler(PostGre);
+    //var fbPusher = new fbPushHelper(PostGre);
 
     //var NotificationsHistoryModel = PostGre.Models[MODELS.NOTIFICATIONS_HISTORY];
 
@@ -21,7 +21,7 @@ module.exports = function(PostGre){
 
         callback: function (message) {
 
-            var userId = message.userId;
+            /*var userId = message.userId;
             var gameId;
             var notificationHistory;
             var saveObj;
@@ -86,7 +86,13 @@ module.exports = function(PostGre){
                             });
                     });
 
-            });
+            });*/
+        
+
+
+            console.log(' Consumer Event: ', message);
+
+
 
 
         }
@@ -98,7 +104,10 @@ module.exports = function(PostGre){
         topic: 'fbPush',
 
         callback: function(message){
-            fbPusher.sendNotification(message.value.msg, function(){});
+            /*fbPusher.sendNotification(message.value.msg, function(){
+                console.log('Sent ok!');
+            });*/
+            console.log(' Consumer Event: ', message);
         }
     };
 
