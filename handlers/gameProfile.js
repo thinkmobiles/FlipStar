@@ -130,30 +130,28 @@ GameProfile = function (PostGre) {
     this.singleGame = function (req, res, next) {
         var options = req.body;
         var uid = req.session.uId;
+        var responseObj;
 
         PostGre.knex
             .raw(
-                'UPDATE game_profile SET stars_number = stars_number + ' + options.stars +
-                ' , flips_number = flips_number - 1, flips_spent = flips_spent + 1 ' +
-                'WHERE id = ' + uid + ' ' +
-                'RETURNING *'
+                'SELECT * FROM game(' + uid + ', ' + options.stars + ');'
             )
             .then(function (profile) {
-                PostGre.knex
-                    .raw(
-                        'UPDATE users_boosters SET flips_left = flips_left - 1 ' +
-                        'WHERE game_profile_id = ' + uid + ' AND is_active = true ' +
-                        'RETURNING *'
-                    )
-                    .then(function (boosters) {
-                        res.status(200).send('OK')
-                    })
-                    .catch(function (err) {
-                        next(err)
-                    })
+                responseObj = {
+                    flips: profile.rows[0].flips,
+                    stars: profile.rows[0].stars_quantity,
+                    points: profile.rows[0].point,
+                    boosters: []
+                };
+                for (var i = profile.rows.length; i--;) {
+                    responseObj.boosters.push({booster_id: profile.rows[i].boosters, flips_left: profile.rows[i].left_flips});
+                }
+
+                res.status(200).send(responseObj)
             })
             .catch(function (err) {
                 next(err)
+
             })
     };
 
@@ -161,15 +159,15 @@ GameProfile = function (PostGre) {
         var uid = req.session.uId;
         var boosterId = req.params.id;
 
-        PostGre.knex(TABLES.USERS_BOOSTERS)
-            .where('game_profile_id', uid)
-            .andWhere('booster_id', boosterId)
-            .update({
-                'is_active': true
-            })
-            .returning('*')
-            .then(function () {
-                res.status(200).send(RESPONSES.ACTIVATED)
+        PostGre.knex
+            .raw(
+                'SELECT * FROM activate_booster(' + uid + ', ' + boosterId + ');'
+            )
+            .then(function (booster) {
+                res.status(200).send({
+                    booster: booster.rows[0].id,
+                    flips_left:  booster.rows[0].flips
+                })
             })
             .catch(function (err) {
                 next(err)

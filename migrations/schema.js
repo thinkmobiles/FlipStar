@@ -79,6 +79,69 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                knex.raw(
+                        'CREATE OR REPLACE FUNCTION game(guid INT, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
+                        '$$ ' +
+                            'BEGIN ' +
+                                'UPDATE game_profile gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.id = guid; ' +
+                                'IF found THEN ' +
+                                    'UPDATE users_boosters  SET flips_left = flips_left - 1   WHERE game_profile_id = guid AND is_active = true; ' +
+                                    'RETURN QUERY ' +
+                                        'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM game_profile gp ' +
+                                        'LEFT JOIN users_boosters ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
+                                        'WHERE gp.id = guid; ' +
+                                'END IF; ' +
+                                    'IF (SELECT flips_number FROM game_profile gp WHERE gp.id = guid) < 0 THEN ' +
+                                    'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
+                                'END IF; ' +
+                            'END; ' +
+                        '$$ ' +
+                        'LANGUAGE plpgsql;'
+                     )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION activate_booster(guid INT, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
+                    '$$ ' +
+                        'BEGIN ' +
+                            'UPDATE users_boosters  SET flips_left = flips_left + 100, is_active = true, quantity = quantity - 1 ' +
+                            'WHERE game_profile_id = guid AND booster_id = booster; ' +
+                            'RETURN QUERY SELECT booster_id, flips_left FROM users_boosters WHERE game_profile_id = guid AND booster_id = booster;' +
+                                'IF (SELECT quantity FROM users_boosters WHERE game_profile_id = guid AND booster_id = booster) < 0 THEN ' +
+                                    'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
+                                'END IF; ' +
+                        'END; ' +
+                    '$$ ' +
+                    'LANGUAGE plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
                 createTable(TABLES.COUNTRIES, function (row) {
                     row.increments('id').primary();
                     row.string('iso_code').notNullable();
