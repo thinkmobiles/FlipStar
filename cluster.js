@@ -15,15 +15,15 @@ if (process.env.NODE_ENV) {
     process.env.NODE_ENV = 'production';
     require('./config/production');
 }
-/*
 
-if( cluster.isMaster ) {
+
+/*if( cluster.isMaster ) {
 
     var cpuCount = require( 'os' ).cpus().length;
 
-    /*for( var i = 0; i < cpuCount; i += 1 ) {
+    /!*for( var i = 0; i < cpuCount; i += 1 ) {
         cluster.fork();
-    }*/
+    }*!/
 
     interval = setInterval(function(){
         if (counter < cpuCount){
@@ -53,6 +53,6 @@ if( cluster.isMaster ) {
 
 } else {
     require('./server');
-}
-*/
+}*/
+
 require('./server');
