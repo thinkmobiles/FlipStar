@@ -93,9 +93,9 @@ GameProfile = function (PostGre) {
         PostGre.knex(TABLES.USERS_PROFILE)
             .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
+            .leftJoin(TABLES.USERS_BOOSTERS, TABLES.GAME_PROFILE + '.id', TABLES.USERS_BOOSTERS + '.game_profile_id')
             .where(TABLES.GAME_PROFILE + '.id', uid)
-            .select('stars_number', 'points_number', 'flips_number')
-            .limit(1)
+            .select('stars_number', 'points_number', 'flips_number', 'booster_id', 'flips_left', 'is_active', TABLES.USERS_BOOSTERS + '.quantity')
             .exec(callback)
     };
 
@@ -225,13 +225,13 @@ GameProfile = function (PostGre) {
     this.calculatePoints = function (uid, callback) {
         PostGre.knex
             .raw(
-            'update game_profile ' +
-            'set points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) as points_number from game_profile gp ' +
-            'left join users_smashes us on us.game_profile_id = gp.id ' +
-            'left join smashes s on us.smash_id = s.id ' +
-            'where gp.id = ' + uid + ') ' +
-            'where id = ' + uid
-        )
+                'update game_profile ' +
+                'set points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) as points_number from game_profile gp ' +
+                    'left join users_smashes us on us.game_profile_id = gp.id ' +
+                    'left join smashes s on us.smash_id = s.id ' +
+                    'where gp.id = ' + uid + ') ' +
+                'where id = ' + uid
+            )
             .exec(callback)
     };
 

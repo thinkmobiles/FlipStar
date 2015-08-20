@@ -289,7 +289,7 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id, updated_at =  ' + '\'' + curDate + '\' ' +
+                        'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
                         'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and g.id = ' + uId + ' and d.device_id = \'' + deviceId + '\' '
                     )
@@ -339,7 +339,7 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id, updated_at =  ' + '\'' + curDate + '\' ' +
+                        'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
                         'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
                         'RETURNING d.id'
@@ -354,15 +354,15 @@ UserProfile = function (PostGre) {
                                 .then(function () {
                                     PostGre.knex
                                         .raw(
-                                            'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id, updated_at =  ' + '\'' + curDate + '\' ' +
+                                            'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
                                             'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
                                             'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
                                             'RETURNING d.id'
-                                    )
-                                    .then(function (result) {
-                                            cb(null, result.rows[0].id)
-                                    })
-                                    .otherwise(cb)
+                                        )
+                                        .then(function (result) {
+                                                cb(null, result.rows[0].id)
+                                        })
+                                        .otherwise(cb)
 
                                 })
                                 .otherwise(cb)

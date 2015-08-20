@@ -14,12 +14,28 @@ GameProfile = function (PostGre) {
 
     this.getProfileById = function (req, res, next) {
         var uid = req.params.id;
+        var responseObj;
 
         gameProfHelper.getProfileById(uid, function (err, result) {
             if (err) {
                 return next(err)
             }
-            res.status(200).send(result[0])
+            responseObj = {
+                flips: result[0].flips_number,
+                points: result[0].points_number,
+                stars: result[0].stars_number,
+                boosters: []
+            };
+
+            for (var i = result.length; i--;) {
+                responseObj.boosters.push({
+                    booster: result[i].booster_id,
+                    activated: result[i].is_active,
+                    remainder: result[i].flips_left,
+                    quantity: result[i].quantity
+                })
+            }
+            res.status(200).send(responseObj)
         })
     };
 
