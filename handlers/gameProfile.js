@@ -189,49 +189,6 @@ GameProfile = function (PostGre) {
                 next(err)
             })
     };
-
-   /* this.addSmashes = function (req, res, next) {
-        var options = req.body;
-        var uid = options.uid;
-        var smashesId = _.pluck(options.smashes, 'id');
-        var quantities = _.pluck(options.smashes, 'quantity');
-        var curDate = new Date();
-        var insertObj;
-
-        async.eachSeries(smashesId, function (smash, cb){
-            insertObj = {
-                game_profile_id: uid,
-                smash_id: smash,
-                quantity: quantities[smashesId.indexOf(smash)],
-                updated_at: curDate,
-                created_at: curDate
-            };
-
-
-            PostGre.knex
-                .raw(
-                    'update users_smashes set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
-                    'where game_profile_id = ' + uid + ' and smash_id = ' + smash +
-                    'returning users_smashes.id'
-                )
-                .then(function (result) {
-                    if (result.rows.length) {
-                        cb()
-                    } else {
-                        PostGre.knex(TABLES.USERS_SMASHES)
-                            .insert(insertObj)
-                            .exec(cb)
-                    }
-                })
-                .otherwise(cb)
-        }, function (err) {
-            if (err) {
-                return next(err)
-            }
-            res.status(200).send({success: RESPONSES.UPDATED})
-        })
-    };*/
-
 };
 
 module.exports = GameProfile;
