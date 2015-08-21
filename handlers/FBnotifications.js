@@ -19,9 +19,8 @@ FBnotif = function (app) {
 
         PostGre.knex
             .raw(
-                'UPDATE  fb_notifications f SET unresponsive_notification = 0, ' +
-                ' is_newbie = false, updated_at = current_timestamp ' +
-                'where facebook_id = \'' + fuid + '\''
+                'UPDATE ' + TABLES.FB_NOTIFICATIONS + ' SET unresponsive_notification = 0, is_newbie = false ' +
+                'WHERE facebook_id = \'' + fuid + '\''
             )
             .exec(function (err) {
                 if (err) {
@@ -47,13 +46,6 @@ FBnotif = function (app) {
 
                 res.status(200).send('SEND');
             });
-
-          /*  fbHelper.sendNotification(dispatchList, function (err) {
-                if (err) {
-                    return next(err)
-                }
-                res.status(200).send('SEND')
-            })*/
         })
 
 

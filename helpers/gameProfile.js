@@ -130,12 +130,12 @@ GameProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                    'select s.id, sum(set*100) as price from smashes s ' +
-                    'where id in ' + queryStr + ' and id not in (select s.id from smashes s ' +
-                    'left join users_smashes us on s.id = us.smash_id ' +
-                    'where game_profile_id = ' + profile.id + ')' +
-                    'group by s.id'
-                )
+                        'SELECT s.id, sum(set*100) as price FROM ' + TABLES.SMASHES + ' s ' +
+                        'WHERE id in ' + queryStr + ' AND id NOT IN (select s.id from smashes s ' +
+                        'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us on s.id = us.smash_id ' +
+                        'WHERE game_profile_id = ' + profile.id + ')' +
+                        'GROUP BY s.id'
+                    )
                     .then(function (result) {
                         cb(null, result.rows)
                     })
@@ -225,12 +225,12 @@ GameProfile = function (PostGre) {
     this.calculatePoints = function (uid, callback) {
         PostGre.knex
             .raw(
-                'update game_profile ' +
-                'set points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) as points_number from game_profile gp ' +
-                    'left join users_smashes us on us.game_profile_id = gp.id ' +
-                    'left join smashes s on us.smash_id = s.id ' +
-                    'where gp.id = ' + uid + ') ' +
-                'where id = ' + uid
+                'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
+                'SET points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) AS points_number FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                    'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                    'WHERE gp.id = ' + uid + ') ' +
+                'WHERE id = ' + uid
             )
             .exec(callback)
     };

@@ -290,8 +290,8 @@ UserProfile = function (PostGre) {
                 PostGre.knex
                     .raw(
                         'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
-                        'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'where   u.id = g.user_id and g.id = ' + uId + ' and d.device_id = \'' + deviceId + '\' '
+                        'FROM ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
+                        'WHERE   u.id = g.user_id and g.id = ' + uId + ' AND d.device_id = \'' + deviceId + '\' '
                     )
                     .exec(cb)
             },
@@ -300,12 +300,12 @@ UserProfile = function (PostGre) {
                     .raw(
                         'UPDATE  ' + TABLES.GAME_PROFILE + ' g SET sessions_number = sessions_number + 1 , last_seen_date = ' + '\'' + curDate + '\' , ' +
                             'session_max_length = ( ' +
-                            'case when session_max_length < \'' + sessionLength + '\' ' +
-                            'then \'' + sessionLength + '\' ' +
-                            'else session_max_length ' +
-                            'end ) ' +
-                        'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'where   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' and d.device_id = \'' + deviceId + '\' ' +
+                            'CASE WHEN session_max_length < \'' + sessionLength + '\' ' +
+                            'THEN \'' + sessionLength + '\' ' +
+                            'ELSE session_max_length ' +
+                            'END ) ' +
+                        'FROM ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
+                        'WHERE   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' AND d.device_id = \'' + deviceId + '\' ' +
                         'RETURNING  g.updated_at, g.id as id'
                     )
                     .then(function (profile) {
@@ -340,8 +340,8 @@ UserProfile = function (PostGre) {
                 PostGre.knex
                     .raw(
                         'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
-                        'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
+                        'FROM ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
+                        'WHERE   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  AND ' + 'd.device_id =  \'' + deviceId + '\' ' +
                         'RETURNING d.id'
                     )
                     .then(function (result) {
@@ -355,8 +355,8 @@ UserProfile = function (PostGre) {
                                     PostGre.knex
                                         .raw(
                                             'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
-                                            'from ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                                            'where   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  and ' + 'd.device_id =  \'' + deviceId + '\' ' +
+                                            'FROM ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
+                                            'WHERE   u.id = g.user_id and  u.facebook_id =  \'' + fbId + '\'  AND ' + 'd.device_id =  \'' + deviceId + '\' ' +
                                             'RETURNING d.id'
                                         )
                                         .then(function (result) {
