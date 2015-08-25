@@ -38,96 +38,54 @@ UserProfile = function (PostGre) {
 
     function prepareDeviceSaveInfo (options) {
         var result = {};
-        var key;
-        var value;
+        var value = [
+            'device_id',
+            'device_type',
+            'device_timezone',
+            'push_token',
+            'push_operator',
+            'content_version',
+            'screen_width',
+            'screen_height',
+            'device_model',
+            'device_manufacturer'
+        ];
 
-        for (key in options) {
-            value = options[key];
+        for (var i = value.length; i--;){
 
-            switch (key) {
-                case 'device_id':
-                    result[key] = value;
-                    break;
-                case 'device_type':
-                    result[key] = value;
-                    break;
-                case 'device_timezone':
-                    result[key] = value;
-                    break;
-                case 'push_token':
-                    result[key] = value;
-                    break;
-                case 'push_operator':
-                    result[key] = value;
-                    result['device_firmware'] = value;
-                    break;
-                case 'content_version':
-                    result[key] = value;
-                    break;
-                case 'screen_width':
-                    result[key] = value;
-                    break;
-                case 'screen_height':
-                    result[key] = value;
-                    break;
-                case 'device_model':
-                    result[key] = value;
-                    break;
-                case 'device_manufacturer':
-                    result[key] = value;
-                    break;
-
+            if (options['push_operator']) {
+                result['device_firmware'] = options['push_operator']
             }
-
+            result[value[i]] = options[value[i]]? options[value[i]] : null
         }
+
         result.updated_at = new Date();
         return result;
     };
 
     function prepareUserSaveInfo (options) {
         var result = {};
-        var key;
-        var value;
+        var value = [
+           'facebook_id',
+            'first_name',
+            'last_name',
+            'gender',
+            'email',
+            'language_id',
+            'country_id',
+            'birthday',
+            'timezone',
+            'phone_number'
+        ];
 
-        for (key in options) {
-            value = options[key];
+        for (var i = value.length; i--;){
 
-            switch (key) {
-                case 'facebook_id':
-                    result[key] = value;
-                    break;
-                case 'first_name':
-                    result[key] = value;
-                    break;
-                case 'last_name':
-                    result[key] = value;
-                    break;
-                case 'gender':
-                    result[key] = value;
-                    break;
-                case 'email':
-                    result[key] = value;
-                    break;
-                case 'language_id':
-                    result[key] = value;
-                    break;
-                case 'country_id':
-                    result[key] = value;
-                    break;
-                case 'birthday':
-                    result[key] = value;
-                    result['age_range'] = getCurrentAge(value);
-                    break;
-                case 'timezone':
-                    result[key] = value;
-                    break;
-                case 'phone_number':
-                    result[key] = value;
-                    break;
-
+            if (options['birthday']) {
+                result['age_range'] = getCurrentAge(value)
             }
-
+            result[value[i]] = options[value[i]]? options[value[i]] : null
         }
+
         result.updated_at = new Date();
         return result;
     };
@@ -283,6 +241,7 @@ UserProfile = function (PostGre) {
         var deviceId = options.device_id;
         var sessionLength = options.session_length;
         var curDate = new Date().toISOString();
+        var deviceObj = prepareDeviceSaveInfo(options);
         var err;
 
         async.series([
@@ -291,9 +250,18 @@ UserProfile = function (PostGre) {
                     .raw(
                         'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
                         'FROM ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'WHERE   u.id = g.user_id and g.id = ' + uId + ' AND d.device_id = \'' + deviceId + '\' '
+                        'WHERE   u.id = g.user_id and g.id = ' + uId + ' AND d.device_id = \'' + deviceId + '\' ' +
+                        'RETURNING d.id'
                     )
-                    .exec(cb)
+                    .then(function (result){
+                        PostGre.knex(TABLES.DEVICE)
+                            .where()
+                            .update(deviceObj)
+                            .exec(cb)
+                    })
+                    .catch(function (err) {
+                        cb(err)
+                    })
             },
             function (cb) {
                 PostGre.knex
@@ -333,6 +301,7 @@ UserProfile = function (PostGre) {
         var fbId = options.facebook_id;
         var sessionLength = options.session_length;
         var curDate = new Date().toISOString();
+        var userSaveInfo = prepareUserSaveInfo(options);
         var deviceInfo;
 
         async.waterfall([
@@ -346,7 +315,18 @@ UserProfile = function (PostGre) {
                     )
                     .then(function (result) {
                         if (result.rows.length && result.rows[0]) {
-                            cb(null, result.rows[0].id)
+                            deviceInfo = prepareDeviceSaveInfo(options);
+                            //cb(null, result.rows[0].id)
+                            PostGre.knex(TABLES.DEVICE)
+                                .where('id', result.rows[0].id)
+                                .update(deviceInfo)
+                                .then(function () {
+                                    cb(null, result.rows[0].id)
+                                })
+                                .catch(function (err) {
+                                    cb(err)
+                                })
+
                         } else {
                             deviceInfo = prepareDeviceSaveInfo(options);
                             PostGre.knex(TABLES.DEVICE)
@@ -404,9 +384,28 @@ UserProfile = function (PostGre) {
                             'end ) ' +
                         'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and d.id = g.device_id and u.facebook_id =  \'' + fbId + '\' ' +
-                        'RETURNING g.updated_at , g.id as id'
+                        'RETURNING g.updated_at , g.id as id, g.user_id'
                     )
-                    .exec(cb)
+                    .exec(function (err, result) {
+                        if (err) {
+                            cb(err)
+                        } else {
+                            cb(null, result)
+                        }
+                    });
+            },
+
+            function (result, cb) {
+
+                PostGre.knex(TABLES.USERS_PROFILE)
+                    .where('id', result.rows[0].user_id)
+                    .update(userSaveInfo)
+                    .exec(function (err, user) {
+                        if (err) {
+                            return cb(err)
+                        }
+                        cb(null, result)
+                    })
             }
         ], function (err, result){
             if (err) {
