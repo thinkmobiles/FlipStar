@@ -35,7 +35,8 @@ process.env.RABBITMQ_PASSWORD = 'user';
 
 /* kafka Server*/
 
-process.env.KAFKA_HOST = 'localhost';
+process.env.KAFKA_HOST = '192.168.88.250';
+//process.env.KAFKA_HOST = 'localhost';
 process.env.KAFKA_PORT = 2181;
 
 /*facebook notifications*/

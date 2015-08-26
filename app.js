@@ -189,7 +189,7 @@ module.exports = function () {
 
         /*setTimeout(function() {
             console.log('Left 35 sec');*/
-            eventQueue = new eventQueueHandler(app, producer);
+            eventQueue = eventQueueHandler(app, producer);
       //  console.log('Kafka serv:', eventQueue);
             app.set('eventQueue', eventQueue);
 
@@ -197,6 +197,10 @@ module.exports = function () {
             require('./routes/index')(app, PostGre);
        /* }, 35000);*/
 
+    });
+
+    producer.on('error', function(err){
+        console.log(err);
     });
 
 

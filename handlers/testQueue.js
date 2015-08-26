@@ -29,15 +29,43 @@ module.exports = function(app){
 
 
         //app.set('eventQueue', eventQueue);
-        eventQueue.sendMessage(topic, msgObj, function (err, data) {
-            if (err) {
+        /*for (var i = 0; i < 100; i += 1){
+            setTimeout(function() {
+                eventQueue.sendMessage(topic, msgObj, function (err, data) {
+                    if (err) {
+                        return next(err);
+                    }
+                });
+            }, 200);
+            
+        }*/
+        /*var counter = 0;
+
+        var c = setInterval(function(){
+            if (counter < countMsg){
+                eventQueue.sendMessage(topic, msgObj, function (err, data) {
+                    if (err) {
+                        return next(err);
+                    }
+                    counter += 1;
+                }); 
+
+            } else {
+                clearInterval(c);
+            }
+           
+        }, 20)*/
+
+        eventQueue.sendMessage(topic, msgObj, function (err, data){
+            if (err){
                 return next(err);
             }
-
-
+            
             res.status(200).send({success: 'Message sent successfully'});
-        });
 
+        })
+        
+        
 
     }
 };

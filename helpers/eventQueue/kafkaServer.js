@@ -8,9 +8,7 @@ module.exports = function(app, producer){
     var PostGre = app.get('PostGre');
     var kafka = require('kafka-node');
     var _ = require('lodash');
-    var Consumers = require('./consumers')(PostGre);
-
-//    var Producer = kafka.HighLevelProducer;
+    var Consumers = require('./consumers')(app, PostGre);
     var Consumer = kafka.HighLevelConsumer;
 
     var Broker = {
@@ -19,8 +17,6 @@ module.exports = function(app, producer){
     };
 
     var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
-  //  var producer = new Producer( client );
-
 
     Broker.producers['main'] = producer;
 
@@ -33,6 +29,7 @@ module.exports = function(app, producer){
     };
 
     _.forEach(Consumers, function (value, key) {
+
         var clientC = new kafka.Client(clientOptions);
         var consumer = new Consumer(
             clientC,
@@ -46,6 +43,7 @@ module.exports = function(app, producer){
         );
 
         consumer.on('message', function (message) {
+
             try {
                 message.value = JSON.parse(message.value);
             } catch (err) {
@@ -53,6 +51,7 @@ module.exports = function(app, producer){
                 console.log('Bad formed JSON message: ', message.value);
                 message.value = '';
             }
+
             message['consumerId'] = consumer.id;
 
             value.callback(message);

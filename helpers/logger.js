@@ -12,9 +12,12 @@ mainLogger = new ( winston.Logger )({
             timestamp: true/*,
             colorize: true*/
         }),
+
         new (winston.transports.File)({
             filename: path.join( appDir, 'app.log' )
         })
+
+
     ]
 });
 

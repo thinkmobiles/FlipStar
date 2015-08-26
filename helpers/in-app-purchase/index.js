@@ -3,7 +3,7 @@ var async = require('async');
 var apple = require('./lib/apple');
 var google = require('./lib/google');
 var windows = require('./lib/windows');
-var amazon = require('./lib/amazon')();
+var amazon = require('./lib/amazon');
 var constants = require('./constants');
 
 module.exports.APPLE = constants.SERVICES.APPLE;
