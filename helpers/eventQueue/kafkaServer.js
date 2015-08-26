@@ -20,6 +20,21 @@ module.exports = function(app/*, producer*/){
     var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
 
     Broker.initProducer = function() {
+        return;
+    };
+
+    Broker.sendMessage = function(topic, message, cb) {
+
+        if (cb && typeof cb === 'function') {
+            /*Broker.producers.main.send([{topic: topic, messages: JSON.stringify(message)}], callback);*/
+            Consumers[topic].callback( message );
+        }
+
+        cb();
+    };
+
+    /* TODO use if kafka enabled */
+    /*Broker.initProducer = function() {
 
         var producerClient = new kafka.Client(clientOptions);
         var producer = new Producer( producerClient );
@@ -80,7 +95,7 @@ module.exports = function(app/*, producer*/){
 
         Broker.consumers[key] = consumer;
 
-    });
+    });*/
 
     return Broker;
 };

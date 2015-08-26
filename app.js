@@ -159,24 +159,16 @@ module.exports = function () {
     eventQueue = eventQueueHandler(app);
     producer = eventQueue.initProducer();
 
-    producer.on('ready', function(){
+    /*producer.on('ready', function(){*/
 
         app.set('eventQueue', eventQueue);
         require('./routes/index')(app, PostGre);
 
-    });
+    /*});*/
 
-    producer.on('error', function(err){
+    /*producer.on('error', function(err){
         console.log(err);
-    });
-
-
-    /*port = parseInt(process.env.PORT) || 8835;*/
-    /*server = http.createServer(app);*/
-
-    /*server.listen(port, function () {
-     console.log('Express start on port ' + port);
-     });*/
+    });*/
 
     return app;
 };
