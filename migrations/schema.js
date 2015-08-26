@@ -10,11 +10,122 @@ module.exports = function (knex) {
                 knex.raw(
                     'CREATE OR REPLACE FUNCTION update_updated_at_column() ' +
                     'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                    'NEW.updated_at = now(); ' +
-                    'RETURN NEW; ' +
-                    'END; ' +
-                    '$$ language \'plpgsql\';'
+                        'BEGIN ' +
+                            'NEW.updated_at = now(); ' +
+                            'RETURN NEW; ' +
+                        'END; ' +
+                    '$$ language plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION del_expire_booster() ' +
+                    'RETURNS TRIGGER AS $$ ' +
+                        'BEGIN ' +
+                            'DELETE FROM ' + TABLES.USERS_BOOSTERS + ' WHERE flips_left = 0 AND quantity = 0; ' +
+                            'RETURN NULL; ' +
+                        'END; ' +
+                    '$$ language plpgsql;'
+                )
+                .exec(function (err) {
+                    if (err) {
+                        console.log('!!!!!!!!!');
+                        console.log(err);
+                        console.log('!!!!!!!!!');
+                    } else {
+                        console.log('##########');
+                        console.log('Create function');
+                        console.log('###########');
+                    }
+                    cb()
+                })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION desactivate_booster() ' +
+                    'RETURNS TRIGGER AS $$ ' +
+                        'BEGIN ' +
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = false, quantity = quantity -1, flips_left = 100  WHERE flips_left = 0; ' +
+                            'RETURN NULL; ' +
+                        'END; ' +
+                    '$$ language plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                        'CREATE OR REPLACE FUNCTION game(guid INT, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
+                        '$$ ' +
+                            'BEGIN ' +
+                                'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.id = guid; ' +
+                                'IF found THEN ' +
+                                    'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = guid AND is_active = true; ' +
+                                    'RETURN QUERY ' +
+                                        'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                                        'LEFT JOIN ' + TABLES.GAME_PROFILE + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
+                                        'WHERE gp.id = guid; ' +
+                                'END IF; ' +
+                                    'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.id = guid) < 0 THEN ' +
+                                    'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
+                                'END IF; ' +
+                            'END; ' +
+                        '$$ ' +
+                        'LANGUAGE plpgsql;'
+                     )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION activate_booster(guid INT, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
+                    '$$ ' +
+                        'BEGIN ' +
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left + 100, is_active = true, quantity = quantity - 1 ' +
+                            'WHERE game_profile_id = guid AND booster_id = booster; ' +
+                            'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster;' +
+                                'IF (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster) < 0 THEN ' +
+                                    'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
+                                'END IF; ' +
+                        'END; ' +
+                    '$$ ' +
+                    'LANGUAGE plpgsql;'
                     )
                     .exec(function (err) {
                         if (err) {
@@ -58,10 +169,10 @@ module.exports = function (knex) {
                     row.string('facebook_id').unique();
                     row.string('first_name', 50);
                     row.string('last_name', 50);
-                    row.integer('country_id').references('id').inTable(TABLES.COUNTRIES).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('language_id').references('id').inTable(TABLES.LANGUAGE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('gender');
-                    row.timestamp('birthday');
+                    row.string('country_id');//.references('id').inTable(TABLES.COUNTRIES).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('language_id');//.references('id').inTable(TABLES.LANGUAGE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('gender');
+                    row.date('birthday');
                     row.string('age_range');
                     row.string('email');
                     row.string('timezone');
@@ -124,7 +235,7 @@ module.exports = function (knex) {
                     row.increments('id').primary();
                     row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.string('device_id');
-                    row.integer('device_type');
+                    row.string('device_type');
                     row.string('device_timezone');
                     row.string('push_token').unique();
                     row.string('push_operator');
@@ -176,9 +287,9 @@ module.exports = function (knex) {
                     row.string('utm_source');
                     row.string('install_country');
                     row.string('last_login_country');
-                    row.integer('real_spent');
-                    row.integer('soft_currency_spent');
-                    row.integer('flips_spent');
+                    row.integer('real_spent').defaultTo(0);
+                    row.integer('soft_currency_spent').defaultTo(0);
+                    row.integer('flips_spent').defaultTo(0);
                     row.integer('fb_friends_number');
                     row.integer('shares');
                     row.integer('tools_used');
@@ -225,10 +336,15 @@ module.exports = function (knex) {
                     row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('SET NULL').onUpdate('CASCADE');
                     row.boolean('is_active').defaultTo(false);
                     row.integer('flips_left');
+                    row.integer('quantity');
 
+                    row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
+                    row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
                 }, function () {
                     knex.raw(
-                        'CREATE TRIGGER update_u_boosters_updtime BEFORE UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column();'
+                        'CREATE TRIGGER update_u_boosters_updtime BEFORE UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR EACH ROW EXECUTE PROCEDURE  update_updated_at_column(); ' +
+                        'CREATE TRIGGER desactivate_booster AFTER UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR ROW EXECUTE PROCEDURE  desactivate_booster(); ' +
+                        'CREATE TRIGGER del_booster AFTER UPDATE ON ' + TABLES.USERS_BOOSTERS + ' FOR ROW EXECUTE PROCEDURE  del_expire_booster(); '
                     )
                         .exec(function (err) {
                             if (err) {

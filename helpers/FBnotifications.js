@@ -20,23 +20,25 @@ FBnotif = function (PostGre) {
             'AS ( ' +
                     'SELECT facebook_id, group_name ' +
                     'FROM ' +
-                    '(SELECT facebook_id , text  \'' + GROUPS.GROUP_B + '\'  as group_name ' +
-                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 0) as TABLE1 ' +
+                    '(SELECT facebook_id , text  \'' + GROUPS.GROUP_B + '\'  AS group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 0) AS TABLE1 ' +
                 'UNION ' +
-                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_C + '\' as group_name ' +
-                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 1 and  extract(days from (current_timestamp - notification_date)) >= 2) ' +
+                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_C + '\' AS group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 1 ' +
+                    'AND  extract(days from (current_timestamp - notification_date)) >= 2) ' +
                 'UNION ' +
-                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_D + '\' as group_name ' +
-                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 2 and  extract(days from (current_timestamp - notification_date)) > 7) ' +
+                    '(SELECT facebook_id, text \'' + GROUPS.GROUP_D + '\' AS group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + '  WHERE is_newbie = false and unresponsive_notification = 2 ' +
+                    'AND  extract(days from (current_timestamp - notification_date)) > 7) ' +
                 'UNION ' +
-                    '(SELECT u.facebook_id, text \'' + GROUPS.GROUP_E + '\' as group_name ' +
-                    'FROM  ' + TABLES.GAME_PROFILE + ' g LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
+                    '(SELECT u.facebook_id, text \'' + GROUPS.GROUP_E + '\' AS group_name ' +
+                    'FROM  ' + TABLES.GAME_PROFILE + ' g LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
                     'WHERE extract(days from (current_timestamp - g.last_seen_date)) > 28) ' +
                 'UNION ' +
-                    '(SELECT fb.facebook_id, text \'' + GROUPS.GROUP_A + '\' as group_name ' +
-                    'FROM ' + TABLES.FB_NOTIFICATIONS + ' fb LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on fb.facebook_id = u.facebook_id ' +
+                    '(SELECT fb.facebook_id, text \'' + GROUPS.GROUP_A + '\' AS group_name ' +
+                    'FROM ' + TABLES.FB_NOTIFICATIONS + ' fb LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON fb.facebook_id = u.facebook_id ' +
                     'LEFT JOIN ' + TABLES.GAME_PROFILE + ' g on g.user_id = u.id ' +
-                    'where fb.is_newbie = true and extract(days from (current_timestamp - g.last_seen_date)) <= 28) ' +
+                    'WHERE fb.is_newbie = true AND extract(days from (current_timestamp - g.last_seen_date)) <= 28) ' +
             ')'
         )
             .exec(function (err) {
@@ -91,6 +93,7 @@ FBnotif = function (PostGre) {
                     CONSTANTS.FB_LIMITS.GROWTH_11
                 ];
                 limit = valuesList[conditionList.indexOf(true)];
+
                 callback(null, limit);
             })
     };
@@ -136,9 +139,9 @@ FBnotif = function (PostGre) {
 
                 PostGre.knex
                     .raw(
-                    'UPDATE  fb_notifications f SET unresponsive_notification = unresponsive_notification + 1, ' +
-                    'is_newbie = false, notification_date = current_timestamp, updated_at = current_timestamp ' +
-                    'where facebook_id = \'' + fuid + '\''
+                    'UPDATE  ' + TABLES.FB_NOTIFICATIONS + ' f SET unresponsive_notification = unresponsive_notification + 1, ' +
+                    'is_newbie = false, notification_date = current_timestamp ' +
+                    'WHERE facebook_id = \'' + fuid + '\''
                 )
                     .exec(function (err) {
                         if (err) {

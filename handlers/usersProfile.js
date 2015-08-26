@@ -33,7 +33,10 @@ Users = function (PostGre) {
                     req.session.loggedIn = true;
                     req.session.uId = profile.id;
 
-                    res.status(200).send(profile);
+                    res.status(200).send({
+                        uId: profile.id,
+                        date: profile.updated_at.toLocaleString()
+                    });
                 })
 
             } else if (UNKNOWN_FB_USER) {
@@ -53,7 +56,10 @@ Users = function (PostGre) {
                             req.session.loggedIn = true;
                             req.session.uId = profile.id;
 
-                            res.status(200).send(profile);
+                            res.status(200).send({
+                                uId: profile.id,
+                                date: profile.updated_at.toLocaleString()
+                            });
                         })
 
                     } else {
@@ -64,7 +70,10 @@ Users = function (PostGre) {
                             req.session.loggedIn = true;
                             req.session.uId = profile[0].id;
 
-                            res.status(201).send(profile[0]);
+                            res.status(201).send({
+                                uId: profile[0].id,
+                                date: profile[0].updated_at.toLocaleString()
+                            });
                         })
                     }
                 })
@@ -82,7 +91,10 @@ Users = function (PostGre) {
                         req.session.loggedIn = true;
                         req.session.uId = profile.id;
 
-                        res.status(200).send(profile);
+                        res.status(200).send({
+                            uId: profile.id,
+                            date: profile.updated_at.toLocaleString()
+                        });
                     })
 
                 })
@@ -98,7 +110,10 @@ Users = function (PostGre) {
                         req.session.loggedIn = true;
                         req.session.uId = profile[0].id;
 
-                        res.status(200).send(profile[0])
+                        res.status(200).send({
+                            uId: profile[0].id,
+                            date: profile[0].updated_at.toLocaleString()
+                        })
 
                     } else {
                         userProfHelper.createNewProfile(options, function (err, profile) {
@@ -107,9 +122,12 @@ Users = function (PostGre) {
                                 return next(err)
                             }
                             req.session.loggedIn = true;
-                            req.session.uId = profile.id;
+                            req.session.uId = profile[0].id;
 
-                            res.status(201).send(profile[0]);
+                            res.status(201).send({
+                                uId: profile[0].id,
+                                date: profile[0].updated_at.toLocaleString()
+                            });
                         })
                     }
                 })

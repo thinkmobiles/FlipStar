@@ -14,12 +14,28 @@ GameProfile = function (PostGre) {
 
     this.getProfileById = function (req, res, next) {
         var uid = req.params.id;
+        var responseObj;
 
         gameProfHelper.getProfileById(uid, function (err, result) {
             if (err) {
                 return next(err)
             }
-            res.status(200).send(result[0])
+            responseObj = {
+                flips: result[0].flips_number,
+                points: result[0].points_number,
+                stars: result[0].stars_number,
+                boosters: []
+            };
+
+            for (var i = result.length; i--;) {
+                responseObj.boosters.push({
+                    booster: result[i].booster_id,
+                    activated: result[i].is_active,
+                    remainder: result[i].flips_left,
+                    quantity: result[i].quantity
+                })
+            }
+            res.status(200).send(responseObj)
         })
     };
 
@@ -127,48 +143,52 @@ GameProfile = function (PostGre) {
 
     };
 
-   /* this.addSmashes = function (req, res, next) {
+    this.singleGame = function (req, res, next) {
         var options = req.body;
-        var uid = options.uid;
-        var smashesId = _.pluck(options.smashes, 'id');
-        var quantities = _.pluck(options.smashes, 'quantity');
-        var curDate = new Date();
-        var insertObj;
+        var uid = req.session.uId;
+        var responseObj;
 
-        async.eachSeries(smashesId, function (smash, cb){
-            insertObj = {
-                game_profile_id: uid,
-                smash_id: smash,
-                quantity: quantities[smashesId.indexOf(smash)],
-                updated_at: curDate,
-                created_at: curDate
-            };
+        PostGre.knex
+            .raw(
+                'SELECT * FROM game(' + uid + ', ' + options.stars + ');'
+            )
+            .then(function (profile) {
+                responseObj = {
+                    flips: profile.rows[0].flips,
+                    stars: profile.rows[0].stars_quantity,
+                    points: profile.rows[0].point,
+                    boosters: []
+                };
+                for (var i = profile.rows.length; i--;) {
+                    responseObj.boosters.push({booster_id: profile.rows[i].boosters, flips_left: profile.rows[i].left_flips});
+                }
 
+                res.status(200).send(responseObj)
+            })
+            .catch(function (err) {
+                next(err)
 
-            PostGre.knex
-                .raw(
-                    'update users_smashes set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
-                    'where game_profile_id = ' + uid + ' and smash_id = ' + smash +
-                    'returning users_smashes.id'
-                )
-                .then(function (result) {
-                    if (result.rows.length) {
-                        cb()
-                    } else {
-                        PostGre.knex(TABLES.USERS_SMASHES)
-                            .insert(insertObj)
-                            .exec(cb)
-                    }
+            })
+    };
+
+    this.activateBooster = function (req, res, next) {
+        var uid = req.session.uId;
+        var boosterId = req.params.id;
+
+        PostGre.knex
+            .raw(
+                'SELECT * FROM activate_booster(' + uid + ', ' + boosterId + ');'
+            )
+            .then(function (booster) {
+                res.status(200).send({
+                    booster: booster.rows[0].id,
+                    flips_left:  booster.rows[0].flips
                 })
-                .otherwise(cb)
-        }, function (err) {
-            if (err) {
-                return next(err)
-            }
-            res.status(200).send({success: RESPONSES.UPDATED})
-        })
-    };*/
-
+            })
+            .catch(function (err) {
+                next(err)
+            })
+    };
 };
 
 module.exports = GameProfile;
