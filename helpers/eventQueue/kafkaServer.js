@@ -3,13 +3,14 @@
  */
 
 
-module.exports = function(app, producer){
+module.exports = function(app/*, producer*/){
 
     var PostGre = app.get('PostGre');
     var kafka = require('kafka-node');
     var _ = require('lodash');
     var Consumers = require('./consumers')(app, PostGre);
     var Consumer = kafka.HighLevelConsumer;
+    var Producer = kafka.HighLevelProducer;
 
     var Broker = {
         consumers: {},
@@ -18,7 +19,13 @@ module.exports = function(app, producer){
 
     var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
 
-    Broker.producers['main'] = producer;
+    Broker.initProducer = function() {
+
+        var producerClient = new kafka.Client(clientOptions);
+        var producer = new Producer( producerClient );
+        Broker.producers['main'] = producer;
+        return producer;
+    };
 
     Broker.sendMessage = function (topic, message, callback) {
 
