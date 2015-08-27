@@ -19,8 +19,8 @@ Users = function (PostGre) {
         var fbId = options.facebook_id;
 
         var GUEST = !!(uid && !fbId);
-        var FB_USER = !!(uid && fbId) || !!(!uid && fbId);
-
+        var FB_USER = !!(uid && fbId);
+        
         if (options && options.device_id) {
 
             if (GUEST) {
@@ -39,19 +39,42 @@ Users = function (PostGre) {
                 })
 
             }  else if (FB_USER) {
-                userProfHelper.enterFBUser(options, function (err, profile) {
-
+                userProfHelper.isExistingFBUser(fbId, function (err, exist) {
                     if (err) {
                         return next(err)
                     }
-                    req.session.loggedIn = true;
-                    req.session.uId = profile.id;
 
-                    res.status(200).send({
-                        uId: profile.id,
-                        date: profile.updated_at.toLocaleString()
-                    });
+                    if(exist && exist !== uid) { // todo mergeProfiles
+
+                        userProfHelper.mergeProfiles(exist, options, function (err, profile) {
+                            if (err) {
+                                return next(err)
+                            }
+                            req.session.loggedIn = true;
+                            req.session.uId = profile.id;
+
+                            res.status(200).send({
+                                uId: profile.id,
+                                date: profile.updated_at.toLocaleString()
+                            });
+                        })
+                    } else {
+                        userProfHelper.enterFBUser(options, function (err, profile) {
+
+                            if (err) {
+                                return next(err)
+                            }
+                            req.session.loggedIn = true;
+                            req.session.uId = profile.id;
+
+                            res.status(200).send({
+                                uId: profile.id,
+                                date: profile.updated_at.toLocaleString()
+                            });
+                        })
+                    }
                 })
+
 
             }
             else {

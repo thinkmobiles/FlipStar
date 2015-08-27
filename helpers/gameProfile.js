@@ -118,6 +118,7 @@ GameProfile = function (PostGre) {
         var insertObj = [];
         var queryStr = '';
         var price = 0;
+        // todo refactor open smashes
 
         for (var i = smashes.length; i--;) {
             queryStr += '\'' + smashes[i] + '\'' + ','
@@ -141,6 +142,7 @@ GameProfile = function (PostGre) {
                     })
                     .otherwise(cb)
             },
+
             function (data, cb) {
                 for (var i = data.length; i--;) {
                     insertObj.push({

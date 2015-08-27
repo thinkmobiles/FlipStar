@@ -88,7 +88,7 @@ module.exports = function (knex) {
                                     'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = guid AND is_active = true; ' +
                                     'RETURN QUERY ' +
                                         'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                                        'LEFT JOIN ' + TABLES.GAME_PROFILE + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
+                                        'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
                                         'WHERE gp.id = guid; ' +
                                 'END IF; ' +
                                     'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.id = guid) < 0 THEN ' +
@@ -402,7 +402,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.USERS_SMASHES, function (row) {
                     row.increments('id').primary();
-                    row.boolean('isOpen').defaultTo('false');
+                    row.boolean('is_open').defaultTo('false');
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
                     row.integer('quantity').defaultTo(0);

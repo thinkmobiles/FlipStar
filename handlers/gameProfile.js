@@ -58,7 +58,7 @@ GameProfile = function (PostGre) {
 
         PostGre.knex(TABLES.USERS_SMASHES)
             .where('game_profile_id', uid)
-            .select('smash_id', 'quantity')
+            .select('smash_id', 'quantity', 'is_open')
             .then(function (collection) {
                 res.status(200).send(collection)
             })
@@ -107,12 +107,12 @@ GameProfile = function (PostGre) {
                                         gamesLength = games.length;
                                         updProf.flips_number = maxFlips - gamesLength;
 
-                                        for (gamesLength; gamesLength--;) {
-                                            updProf.stars_number += games[gamesLength];
-                                            updProf.points_number += games[gamesLength];
+                                        for (var i = gamesLength; i--;) {
+                                            updProf.stars_number += games[i];
+                                            updProf.points_number += games[i];
                                         }
 
-                                        updProf.flips_number = (profile[0].points_number <= 50 && updProf.flips_number > 50) ? 50 : updProf.flips_number;
+                                        updProf.flips_number = (profile[0].flips_number <= 50 && updProf.flips_number > 50) ? 50 : updProf.flips_number;
 
                                         cb(null, updProf);
 
@@ -129,6 +129,9 @@ GameProfile = function (PostGre) {
                                     .where('id', uid)
                                     .update(updProf)
                                     .then(function () {
+                                        req.session.loggedIn = true;
+                                        req.session.uId = uid;
+
                                         res.status(200).send({
                                             success: RESPONSES.SYNCRONIZED
                                         })
@@ -136,14 +139,6 @@ GameProfile = function (PostGre) {
                                     .catch(function (err) {
                                         next(err)
                                     })
-                               /* gameProfHelper.calculatePoints(uid, function (err) {
-                                    if (err) {
-                                        return next(err)
-                                    }
-                                    res.status(200).send({
-                                        success: RESPONSES.SYNCRONIZED
-                                    })
-                                })*/
                             })
 
                         }
@@ -171,7 +166,7 @@ GameProfile = function (PostGre) {
                     boosters: []
                 };
                 for (var i = profile.rows.length; i--;) {
-                    responseObj.boosters.push({booster_id: profile.rows[i].boosters, flips_left: profile.rows[i].left_flips});
+                    responseObj.boosters.push({booster_id: profile.rows[i].boosters, flips_left: profile.rows[i].left_flips ? profile.rows[i].left_flips : 0});
                 }
 
                 res.status(200).send(responseObj)
