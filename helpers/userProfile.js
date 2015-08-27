@@ -463,10 +463,14 @@ UserProfile = function (PostGre) {
     this.mergeProfiles = function (fbProfUid, options, callback) {
         var mergeuid = options.uId;
         var ids = [fbProfUid, mergeuid];
+        var userId;
+        var fbUserId;
+
+        var maxPointProf;
+        var minPointProf;
+
         var mergedProfile;
-        var mergedSmashes;
-        var mergedBosters;
-        var mergedAchievements;
+        var mergedBoosters;
 
         async.parallel([
             function (cb) {
@@ -474,14 +478,20 @@ UserProfile = function (PostGre) {
                     .select('*')
                     .whereIn('id', ids)
                     .then(function (profiles) {
+                        userId = (profiles[0].id === fbProfUid) ? profiles[1].user_id : profiles[0].user_id;
+                        fbUserId = (profiles[0].id === fbProfUid) ? profiles[0].user_id : profiles[1].user_id;
+                        maxPointProf =  (profiles[0].points_number > profiles[1].points_number) ? profiles[0].id : profiles[1].id;
+                        minPointProf =  (profiles[0].points_number < profiles[1].points_number) ? profiles[0].id : profiles[1].id;
+
                         mergedProfile = {
                             registration_date: (profiles[0].registration_date > profiles[1].registration_date) ? profiles[1].registration_date : profiles[0].registration_date,
                             registration_week: (parseInt(profiles[0].registration_week) > parseInt(profiles[1].registration_week)) ? profiles[1].registration_week : profiles[0].registration_week,
                             sessions_number: profiles[0].sessions_number + profiles[1].sessions_number + 1,
                             session_max_length: (parseInt(profiles[0].session_max_length) > parseInt(profiles[1].session_max_length)) ? profiles[0].session_max_length : profiles[1].session_max_length,
-                            stars_number: (profiles[0].stars_number > profiles[1].stars_number) ? profiles[0].stars_number : profiles[1].stars_number,
+                            points_number: (profiles[0].points_number > profiles[1].points_number) ? profiles[0].points_number : profiles[1].points_number,
+                            stars_number: (profiles[0].points_number > profiles[1].points_number) ? profiles[0].stars_number : profiles[1].stars_number,
                             coins_number: (profiles[0].coins_number > profiles[1].coins_number) ? profiles[0].coins_number : profiles[1].coins_number,
-                            pogs_number: (profiles[0].pogs_number > profiles[1].pogs_number) ? profiles[0].pogs_number : profiles[1].pogs_number,
+                            pogs_number: (profiles[0].points_number > profiles[1].points_number) ? profiles[0].pogs_number : profiles[1].pogs_number,
                             flips_number: (profiles[0].flips_number > profiles[1].flips_number) ? profiles[0].flips_number : profiles[1].flips_number,
                             real_spent: profiles[0].real_spent + profiles[1].real_spent,
                             soft_currency_spent: profiles[0].soft_currency_spent + profiles[1].soft_currency_spent,
@@ -505,53 +515,20 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'SELECT smash_id, sum(quantity) as quantity, bool_or(is_open) as is_open, ' + fbProfUid + ' as game_profile_id  ' +
-                        'FROM ' + TABLES.USERS_SMASHES + ' ' +
-                        'WHERE game_profile_id in (\'' + mergeuid + '\', \'' + fbProfUid + '\') ' +
-                        'GROUP BY smash_id'
-                    )
-                    .then(function (smashes) {
-                        mergedSmashes = smashes.rows;
-                        cb()
-                    })
-                    .catch(function (err) {
-                        cb(err)
-                    })
-            },
-
-            function (cb) {
-                PostGre.knex
-                    .raw(
                         'SELECT booster_id, sum(quantity) as quantity, sum(flips_left) as flips_left, bool_or(is_active) as is_active, ' + fbProfUid + ' as game_profile_id ' +
                         'FROM ' + TABLES.USERS_BOOSTERS + ' ' +
                         'WHERE game_profile_id in (\'' + mergeuid + '\', \'' + fbProfUid + '\') ' +
                         'GROUP BY booster_id'
                     )
                     .then(function (boosters) {
-                        mergedBosters = boosters.rows;
-                        cb()
-                    })
-                    .catch(function (err) {
-                        cb(err)
-                    })
-            },
-
-            function (cb) {
-                PostGre.knex
-                    .raw(
-                        'SELECT achievements_id, min(created_at) as created_at, ' + fbProfUid + ' as game_profile_id ' +
-                        'FROM ' + TABLES.USERS_ACHIEVEMENTS + ' ' +
-                        'where game_profile_id in  (\'' + mergeuid + '\', \'' + fbProfUid + '\') ' +
-                        'group by achievements_id'
-                    )
-                    .then(function (achievements) {
-                        mergedAchievements = achievements.rows;
+                        mergedBoosters = boosters.rows;
                         cb()
                     })
                     .catch(function (err) {
                         cb(err)
                     })
             }
+
         ], function (err) {
 
             if (err) {
@@ -560,7 +537,168 @@ UserProfile = function (PostGre) {
 
             async.series([
                 function (cb) {
-                    
+                    PostGre.knex(TABLES.NOTIFICATIONS_QUEUE)
+                        .where('game_profile_id', mergeuid)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.NOTIFICATIONS_HISTORY)
+                        .where('game_profile_id', mergeuid)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_BOOSTERS)
+                        .whereIn('game_profile_id', ids)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_ACHIEVEMENTS)
+                        .where('game_profile_id', minPointProf)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_SMASHES)
+                        .where('game_profile_id', minPointProf)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_PURCHASES)
+                        .where('game_profile_id', mergeuid)
+                        .update({
+                            game_profile_id: fbProfUid
+                        })
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_SMASHES)
+                        .where('game_profile_id', maxPointProf)
+                        .update({
+                            game_profile_id: fbProfUid
+                        })
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_ACHIEVEMENTS)
+                        .where('game_profile_id', maxPointProf)
+                        .update({
+                            game_profile_id: fbProfUid
+                        })
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.GAME_PROFILE)
+                        .where('id', mergeuid)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_PROFILE)
+                        .where('id', userId)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_BOOSTERS)
+                        .insert(mergedBoosters)
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+
+                function (cb) {
+                    PostGre.knex(TABLES.DEVICE)
+                        .where('user_id', userId)
+                        .update({
+                            user_id: fbUserId
+                        })
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                        PostGre.knex(TABLES.GAME_PROFILE)
+                            .where('id', fbProfUid)
+                            .update(mergedProfile)
+                            .returning('*')
+                            .then(function (profile) {
+                                cb(null, profile)
+                            })
+                            .catch(function (err) {
+                                cb(err)
+                            })
                 }
 
             ], function (err, result) {
@@ -568,7 +706,7 @@ UserProfile = function (PostGre) {
                     return callback(err)
                 }
 
-                callback(null, result)
+                callback(null, result[result.length - 1][0])
             })
         })
 

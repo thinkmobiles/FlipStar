@@ -280,6 +280,7 @@ module.exports = function (knex) {
                     row.integer('stars_number').defaultTo(0);
                     row.integer('points_number').defaultTo(0);
                     row.integer('pogs_number').defaultTo(0);
+                    row.integer('coins_number').defaultTo(0);
                     row.integer('flips_number').defaultTo(0);
                     row.string('app_flyer_source');
                     row.string('app_flyer_media');
