@@ -32,5 +32,11 @@ module.exports = {
         'Message for group D',
         'Message for group E',
         'Message for group A'
-    ]
+    ],
+
+    PURCHASE_GROUP_USERS: {
+        GROUP_A: 'A',
+        GROUP_B: 'B',
+        GROUP_C: 'C'
+    }
 };

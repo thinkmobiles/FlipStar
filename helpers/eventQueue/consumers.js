@@ -6,14 +6,15 @@
 var TABLES = require('../../constants/tables');
 var RESPONSES = require('../../constants/responseMessages');
 var MODELS = require('../../constants/models');
-//var PushHandler = require('../notifications');
 //var fbPushHelper = require('../FBnotifications');
+var logger = require('../logger');
 
-module.exports = function(PostGre){
-   // var pusher = new PushHandler(PostGre);
+
+module.exports = function(app, PostGre){
+    var pushQueue = require('../pushQueue')(app, PostGre);
     //var fbPusher = new fbPushHelper(PostGre);
 
-    //var NotificationsHistoryModel = PostGre.Models[MODELS.NOTIFICATIONS_HISTORY];
+    var NotificationsHistoryModel = PostGre.Models[MODELS.NOTIFICATIONS_HISTORY];
 
     var pushConsumer = {
 
@@ -21,15 +22,25 @@ module.exports = function(PostGre){
 
         callback: function (message) {
 
-            /*var userId = message.userId;
+            var userId = message.userId;
             var gameId;
             var notificationHistory;
             var saveObj;
             var now;
 
-            pusher.sendPushNotifications(userId, message.msg, message.option, function (err) {
-                if (err) {
-                    return console.log(err);
+            var msgObj = {
+                msg: message.msg,
+                priority: message.priority,
+                timeToSend: message.timeToSend
+            };
+
+            pushQueue.sendMsgFromQueue(userId, msgObj, function(err, isSent){
+                if (err){
+                    return logger.error(err);
+                }
+
+                if (!isSent){
+                    return;
                 }
 
                 now = new Date();
@@ -86,14 +97,9 @@ module.exports = function(PostGre){
                             });
                     });
 
-            });*/
-        
+            });
 
-
-            console.log(' Consumer Event: ', message);
-
-
-
+            //console.log(' Consumer Event: ', message);
 
         }
 
@@ -133,10 +139,31 @@ module.exports = function(PostGre){
 
     };
 
+    var groupPushConsumer ={
+
+        topic: 'groupPush',
+
+        callback: function(message){
+
+            pushQueue.sendMsgToGroupUsers(message, function(err){
+
+                if (err){
+                    return logger.error(err);
+                }
+
+                console.log({success: 'message sent to users group'});
+
+            })
+
+        }
+
+    };
+
     return {
         push: pushConsumer,
         fbPush: fbPushConsumer,
         profile: profileConsumer,
-        game: gameConsumer
+        game: gameConsumer,
+        groupPush: groupPushConsumer
     }
 };

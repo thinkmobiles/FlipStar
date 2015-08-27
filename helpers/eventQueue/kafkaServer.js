@@ -3,15 +3,14 @@
  */
 
 
-module.exports = function(app, producer){
+module.exports = function(app/*, producer*/){
 
     var PostGre = app.get('PostGre');
     var kafka = require('kafka-node');
     var _ = require('lodash');
-    var Consumers = require('./consumers')(PostGre);
-
-//    var Producer = kafka.HighLevelProducer;
+    var Consumers = require('./consumers')(app, PostGre);
     var Consumer = kafka.HighLevelConsumer;
+    var Producer = kafka.HighLevelProducer;
 
     var Broker = {
         consumers: {},
@@ -19,10 +18,29 @@ module.exports = function(app, producer){
     };
 
     var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
-  //  var producer = new Producer( client );
 
+    Broker.initProducer = function() {
+        return;
+    };
 
-    Broker.producers['main'] = producer;
+    Broker.sendMessage = function(topic, message, cb) {
+
+        if (cb && typeof cb === 'function') {
+            /*Broker.producers.main.send([{topic: topic, messages: JSON.stringify(message)}], callback);*/
+            Consumers[topic].callback( message );
+        }
+
+        cb();
+    };
+
+    /* TODO use if kafka enabled */
+    /*Broker.initProducer = function() {
+
+        var producerClient = new kafka.Client(clientOptions);
+        var producer = new Producer( producerClient );
+        Broker.producers['main'] = producer;
+        return producer;
+    };
 
     Broker.sendMessage = function (topic, message, callback) {
 
@@ -33,6 +51,7 @@ module.exports = function(app, producer){
     };
 
     _.forEach(Consumers, function (value, key) {
+
         var clientC = new kafka.Client(clientOptions);
         var consumer = new Consumer(
             clientC,
@@ -46,6 +65,7 @@ module.exports = function(app, producer){
         );
 
         consumer.on('message', function (message) {
+
             try {
                 message.value = JSON.parse(message.value);
             } catch (err) {
@@ -53,6 +73,7 @@ module.exports = function(app, producer){
                 console.log('Bad formed JSON message: ', message.value);
                 message.value = '';
             }
+
             message['consumerId'] = consumer.id;
 
             value.callback(message);
@@ -74,7 +95,7 @@ module.exports = function(app, producer){
 
         Broker.consumers[key] = consumer;
 
-    });
+    });*/
 
     return Broker;
 };

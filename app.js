@@ -13,28 +13,20 @@ module.exports = function () {
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
     var kafka = require('kafka-node');
-    var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;
-    var client = new kafka.Client(clientOptions);
-    var producer = new kafka.HighLevelProducer(client);
+    /*var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;*/
+    /*var client = new kafka.Client(clientOptions);*/
+    /*var producer = new kafka.HighLevelProducer(client);*/
     var eventQueueHandler = require('./helpers/eventQueue/kafkaServer');
     var eventQueue;
+    var producer;
 
-//var marked = require('marked');
-
-    var markdownString = '```js\n console.log("hello"); \n```';
-
-    var port;
-    var server;
     var config;
     var knex;
     var PostGre;
     var Models;
-    var rabbitConfig;
     var sessionStore;
-
-//app.engine('html', cons.swig);
-//app.set('view engine', 'html');
-//app.set('views', __dirname + '/views');
+    var uploaderConfig;
+    var imagesUploader;
 
 
     app.use( morgan('dev'));
@@ -42,17 +34,6 @@ module.exports = function () {
     app.use(bodyParser.urlencoded({extended: false}));
     app.use(cookieParser());
     app.use(express.static(path.join(__dirname, 'public')));
-
-
-//app.set('views', __dirname + '/public/templates/static');
-//app.set('view engine', 'html');
-
-    /*if (process.env.NODE_ENV) {
-     require('./config/' + process.env.NODE_ENV.toLowerCase());
-     } else {
-     process.env.NODE_ENV = 'production';
-     require('./config/production');
-     }*/
 
     config = {
         db: parseInt(process.env.SESSION_DB) || 3,
@@ -89,9 +70,8 @@ module.exports = function () {
     PostGre = require('bookshelf')(knex);
 
     Models = require('./models/index');
-    //Collections = require('./collections/index');
 
-    var uploaderConfig = {
+    uploaderConfig = {
         type: process.env.UPLOADING_TYPE,
         directory: 'public'//,
         /* awsConfig: {
@@ -100,23 +80,14 @@ module.exports = function () {
          imageUrlDurationSec: 60 * 60 * 24 * 365 * 10
          }*/
     };
-    var imagesUploader = require('./helpers/imageUploader/imageUploader')(uploaderConfig);
+    imagesUploader = require('./helpers/imageUploader/imageUploader')(uploaderConfig);
 
     PostGre.imagesUploader = imagesUploader;
 
     PostGre.Models = new Models(PostGre);
-    //PostGre.Collections = new Collections(PostGre);
     app.set('PostGre', PostGre);
 
-
-    rabbitConfig = {
-        host: process.env.RABBITMQ_HOST,
-        port: process.env.RABBITMQ_PORT,
-        login: process.env.RABBITMQ_USER,
-        password: process.env.RABBITMQ_PASSWORD
-    };
-
-
+    /* TODO remove in production */
     if (process.env.NODE_ENV === 'development') {
         console.log('Test Route');
         app.post('/authorize', function (req, res, next) {
@@ -185,27 +156,19 @@ module.exports = function () {
          })*/
     }
 
-    producer.on('ready', function(){
+    eventQueue = eventQueueHandler(app);
+    producer = eventQueue.initProducer();
 
-        /*setTimeout(function() {
-            console.log('Left 35 sec');*/
-            eventQueue = new eventQueueHandler(app, producer);
-      //  console.log('Kafka serv:', eventQueue);
-            app.set('eventQueue', eventQueue);
+    /*producer.on('ready', function(){*/
 
-            
-            require('./routes/index')(app, PostGre);
-       /* }, 35000);*/
+        app.set('eventQueue', eventQueue);
+        require('./routes/index')(app, PostGre);
 
-    });
+    /*});*/
 
-    require('./routes/index')(app, PostGre);
-    /*port = parseInt(process.env.PORT) || 8835;*/
-    /*server = http.createServer(app);*/
-
-    /*server.listen(port, function () {
-     console.log('Express start on port ' + port);
-     });*/
+    /*producer.on('error', function(err){
+        console.log(err);
+    });*/
 
     return app;
 };

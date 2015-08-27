@@ -24,18 +24,10 @@ process.env.SESSION_HOST = process.env.SESSION_HOST || 'localhost';
 process.env.SESSION_DB = process.env.SESSION_DB || 3;
 process.env.SESSION_PORT = process.env.SESSION_PORT || 6379;
 
-/* RabbitMQ settings */
-
-//process.env.BROKER_TYPE = 'publisher';
-process.env.RABBITMQ_HOST = process.env.RABBITMQ_HOST || 'localhost';
-//process.env.RABBITMQ_HOST = '192.168.88.250';
-process.env.RABBITMQ_PORT = 5672;
-process.env.RABBITMQ_USER = 'user';
-process.env.RABBITMQ_PASSWORD = 'user';
-
 /* kafka Server*/
 
-process.env.KAFKA_HOST = 'localhost';
+process.env.KAFKA_HOST = '192.168.88.250';
+/*process.env.KAFKA_HOST = 'localhost';*/
 process.env.KAFKA_PORT = 2181;
 
 /*facebook notifications*/
