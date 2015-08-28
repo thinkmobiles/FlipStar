@@ -1,6 +1,7 @@
 var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var MODELS = require('../constants/models');
+var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('lodash');
 var Session = require('./sessions');
@@ -196,11 +197,45 @@ GameProfile = function (PostGre) {
             })
     };
 
-    this.OpenOrBuySmashes = function (req, res, next) {
+    this.openOrBuySmashes = function (req, res, next) {
         var options = req.body;
         var uid = req.session.uId;
+        var err;
+        var data;
 
+        function openCallback (err) {
+            if (err) {
+                return next(err)
+            }
+            res.status(200).send({
+                success: RESPONSES.OPEN_SMASHES
+            })
+        }
 
+        function buyCallback (err) {
+            if (err) {
+                return next(err)
+            }
+            res.status(200).send({
+                success: RESPONSES.BUY_SMASHES
+            })
+        }
+
+        if (!options || typeof options.action !== 'number' || typeof options.smash_id !== 'number') {
+
+            err = new Error(RESPONSES.INVALID_PARAMETERS);
+            err.status = 400;
+            return next(err);
+
+        }
+
+        data = {
+            uid: uid,
+            smash_id: options.smash_id,
+            currency: CONSTANTS.CURRENCY_TYPE.SOFT
+        };
+
+        options.action ? gameProfHelper.buySmashes(data, buyCallback) : gameProfHelper.openSmashes(data, openCallback);
     };
 };
 

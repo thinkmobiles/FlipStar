@@ -9,7 +9,7 @@ module.exports = function (PostGre, app) {
 
         router.post('/sync', gameHandler.syncOfflineGame);
         router.post('/game', gameHandler.singleGame);
-        router.post('/smash', gameHandler.OpenOrBuySmashes);
+        router.post('/smash', gameHandler.openOrBuySmashes);
 
         router.get('/collection', gameHandler.getMyCollection);
         router.get('/booster/:id', gameHandler.activateBooster);

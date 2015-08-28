@@ -48,5 +48,7 @@ module.exports = {
     ACTION: {
         OPEN: 0,
         BUY: 1
-    }
+    },
+
+    SMASH_DEFAULT_PRICE: 100
 };
