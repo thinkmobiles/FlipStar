@@ -38,5 +38,15 @@ module.exports = {
         GROUP_A: 'A',
         GROUP_B: 'B',
         GROUP_C: 'C'
+    },
+
+    CURRENCY_TYPE: {
+        REAL: 0,
+        SOFT: 1
+    },
+
+    ACTION: {
+        OPEN: 0,
+        BUY: 1
     }
 };

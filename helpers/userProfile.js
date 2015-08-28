@@ -536,7 +536,7 @@ UserProfile = function (PostGre) {
             }
 
             async.series([
-                function (cb) {
+                /*function (cb) {
                     PostGre.knex(TABLES.NOTIFICATIONS_QUEUE)
                         .where('game_profile_id', mergeuid)
                         .delete()
@@ -558,7 +558,7 @@ UserProfile = function (PostGre) {
                         .catch(function (err) {
                             cb(err)
                         })
-                },
+                },*/
 
                 function (cb) {
                     PostGre.knex(TABLES.USERS_BOOSTERS)

@@ -114,7 +114,7 @@ GameProfile = function (PostGre) {
             .exec(callback)
     };
 
-    this.openSmashes = function (profile, smashes, callback) {
+    this.openS = function (profile, smashes, callback) {
         var insertObj = [];
         var queryStr = '';
         var price = 0;
@@ -148,9 +148,7 @@ GameProfile = function (PostGre) {
                     insertObj.push({
                         game_profile_id: profile.id,
                         smash_id: data[i].id,
-                        isOpen: true,
-                        updated_at: new Date(),
-                        created_at: new Date()
+                        isOpen: true
                     });
                     price += parseInt(data[i].price);
                 }
@@ -237,6 +235,16 @@ GameProfile = function (PostGre) {
             .exec(callback)
     };
 
+    this.OpenSmashes = function (uid, sid, callback) {
+        var err;
+
+        if (typeof callback !== 'function') {
+            err = new Error('Callback isn\'t function');
+            throw err;
+        }
+
+        PostGre.knex.raw('SELECT open_smash(' + uid + ', ' + sid + ');')
+    };
 };
 
 module.exports = GameProfile;

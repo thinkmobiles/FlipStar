@@ -195,6 +195,13 @@ GameProfile = function (PostGre) {
                 next(err)
             })
     };
+
+    this.OpenOrBuySmashes = function (req, res, next) {
+        var options = req.body;
+        var uid = req.session.uId;
+
+
+    };
 };
 
 module.exports = GameProfile;

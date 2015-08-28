@@ -142,6 +142,74 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                knex.raw(
+                        'CREATE OR REPLACE FUNCTION open_smash(guid INT, sid INT) RETURNS VOID AS ' +
+                            '$$ ' +
+                                'BEGIN' +
+                                    'LOOP ' +
+                                        'UPDATE  ' + TABLES.USERS_SMASHES + ' SET is_open = true   WHERE game_profile_id = guid  AND smash_id = sid ; ' +
+                                        'IF found THEN ' +
+                                            'RETURN; ' +
+                                        'END IF; ' +
+                                        'BEGIN ' +
+                                            'INSERT INTO  ' + TABLES.USERS_SMASHES + ' (game_profile_id, smash_id, is_open, quantity) VALUES (guid, sid, true, 0); ' +
+                                            'RETURN; ' +
+                                            'EXCEPTION WHEN unique_violation THEN ' +
+                                        'END; ' +
+                                    'END LOOP; ' +
+                                'END; ' +
+                            '$$ ' +
+                        'LANGUAGE plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                        'CREATE OR REPLACE FUNCTION buy_booster(guid INT, bid INT) RETURNS VOID AS ' +
+                            '$$ ' +
+                                'BEGIN ' +
+                                    'LOOP ' +
+                                        'UPDATE  ' + TABLES.USERS_BOOSTERS + ' SET quantity = quantity + 1   WHERE game_profile_id = guid  AND booster_id = bid ; ' +
+                                        'IF found THEN ' +
+                                            'RETURN; ' +
+                                        'END IF; ' +
+                                        'BEGIN ' +
+                                            'INSERT INTO  ' + TABLES.USERS_BOOSTERS + ' (game_profile_id, booster_id, is_active, flips_left, quantity) VALUES (guid, bid, false, 100, 0); ' +
+                                            'RETURN; ' +
+                                            'EXCEPTION WHEN unique_violation THEN ' +
+                                        'END; ' +
+                                    'END LOOP; ' +
+                                'END; ' +
+                            '$$ ' +
+                        'LANGUAGE plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
                 createTable(TABLES.COUNTRIES, function (row) {
                     row.increments('id').primary();
                     row.string('iso_code').notNullable();
