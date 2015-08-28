@@ -14,5 +14,5 @@ module.exports = {
     NOTIFICATIONS_HISTORY: 'notifications_history',
     PURCHASE_HISTORY: 'purchase_history',
     BOOSTERS: 'boosters',
-    USERS_BOOSTERS: 'users_boosters',
+    USERS_BOOSTERS: 'users_boosters'
 };
