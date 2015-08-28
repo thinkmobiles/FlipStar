@@ -8,7 +8,8 @@ module.exports = {
     BOUGHT: 'Successfully bought',
     ACTIVATED: 'Successfully activated',
     GAME: 'Successfully game saved',
-    OPEN_SMASHES: 'Successfully open',
+    OPEN_SMASHES: 'Successfully opened',
+    BUY_SMASHES: 'Successfully bought',
     //-------Errors-------
 
     BAD_INCOMING_PARAMS: 'Not enough incoming parameters',

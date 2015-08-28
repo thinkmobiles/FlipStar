@@ -203,14 +203,17 @@ GameProfile = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                    'update users_smashes set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
-                    'where game_profile_id = ' + uid + ' and smash_id = ' + smash +
-                    'returning users_smashes.id'
+                    'UPDATE ' + TABLES.USERS_SMASHES + ' set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
+                    'WHERE game_profile_id = ' + uid + ' AND smash_id = ' + smash +
+                    'RETURNING users_smashes.id'
                 )
                 .then(function (result) {
+
                     if (result.rows.length) {
                         cb()
+
                     } else {
+
                         PostGre.knex(TABLES.USERS_SMASHES)
                             .insert(insertObj)
                             .exec(cb)
@@ -258,7 +261,7 @@ GameProfile = function (PostGre) {
             function (cb) {
 
                 if (data.currency === CONSTANTS.CURRENCY_TYPE.SOFT) {
-                    
+
                     PostGre.knex(TABLES.GAME_PROFILE)
                         .select('stars_number')
                         .where('id', uid)
@@ -280,7 +283,7 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT open_smash(' + uid + ', ' + sid + ')')
                     .then(function () {
-                        cb(null, price)
+                        cb()
                     })
                     .catch(function (err) {
                         cb(err)
@@ -295,16 +298,28 @@ GameProfile = function (PostGre) {
                         .raw(
                             'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
                             'SET  stars_number = stars_number - ' + price + ', ' +
-                            'points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                                'points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
+                                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                                    'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                                    'WHERE gp.id = ' + uid + ') ' +
+                            'WHERE id = ' + uid
+                        )
+                        .exec(cb)
+
+                } else {
+
+                    PostGre.knex
+                        .raw(
+                            'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
+                            'SET  points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
+                                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                 'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                                 'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                                 'WHERE gp.id = ' + uid + ') ' +
                             'WHERE id = ' + uid
                         )
                         .exec(cb)
-
-                } else {
-                    cb()
                 }
             }
 
@@ -320,9 +335,101 @@ GameProfile = function (PostGre) {
 
     };
 
-    this.buySmashes = function (uid, sid, callback) {
-        callback()
-    }
+    this.buySmashes = function (data, callback) {
+        var err;
+        var uid = data.uid;
+        var sid = data.smash_id;
+        var setId;
+        var price;
+
+        (sid%15) ? setId = 1 + (sid/15) | 0 : setId = (sid/15) | 0;
+        price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
+
+        if (typeof callback !== 'function') {
+            err = new Error(typeof callback + ' is not function');
+            throw err;
+        }
+
+        async.series([
+
+            function (cb) {
+
+                if (data.currency === CONSTANTS.CURRENCY_TYPE.SOFT) {
+
+                    PostGre.knex(TABLES.GAME_PROFILE)
+                        .select('stars_number')
+                        .where('id', uid)
+                        .then(function (result) {
+                            err = new Error(RESPONSES.NOT_ENOUGH_STARS);
+                            err.status = 400;
+
+                            (result[0].stars_number - price) < 0 ? cb(err) : cb();
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                } else {
+                    cb()
+                }
+            },
+
+            function (cb) {
+                PostGre.knex
+                    .raw(
+                        'UPDATE users_smashes ' +
+                        'SET quantity = quantity + 1 ' +
+                        'WHERE game_profile_id =  ' + uid + ' AND smash_id =  ' + sid
+                    )
+                    .then(function () {
+                        cb()
+                    })
+                    .catch(function (err) {
+                        cb(err)
+                    })
+            },
+
+            function (cb) {
+
+                if (data.currency === CONSTANTS.CURRENCY_TYPE.SOFT) {
+
+                    PostGre.knex
+                        .raw(
+                        'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
+                        'SET  stars_number = stars_number - ' + price + ', ' +
+                        'points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
+                        'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                        'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                        'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                        'WHERE gp.id = ' + uid + ') ' +
+                        'WHERE id = ' + uid
+                    )
+                        .exec(cb)
+
+                } else {
+
+                    PostGre.knex
+                        .raw(
+                        'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
+                        'SET  points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
+                        'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                        'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                        'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                        'WHERE gp.id = ' + uid + ') ' +
+                        'WHERE id = ' + uid
+                    )
+                        .exec(cb)
+                }
+            }
+
+        ], function (err) {
+            if (err) {
+                return callback(err)
+            }
+
+            callback();
+        })
+
+    };
 };
 
 module.exports = GameProfile;

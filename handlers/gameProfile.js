@@ -212,6 +212,15 @@ GameProfile = function (PostGre) {
             })
         }
 
+        function buyCallback (err) {
+            if (err) {
+                return next(err)
+            }
+            res.status(200).send({
+                success: RESPONSES.BUY_SMASHES
+            })
+        }
+
         if (options && options.hasOwnProperty('action') && options.hasOwnProperty('smash_id')) {
 
             data = {
@@ -220,7 +229,7 @@ GameProfile = function (PostGre) {
                 currency: CONSTANTS.CURRENCY_TYPE.SOFT
             };
 
-            options.action ? gameProfHelper.buySmashes(data, callback) : gameProfHelper.openSmashes(data, openCallback);
+            options.action ? gameProfHelper.buySmashes(data, buyCallback) : gameProfHelper.openSmashes(data, openCallback);
 
         } else {
             err = new Error(RESPONSES.INVALID_PARAMETERS);
