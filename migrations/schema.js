@@ -203,7 +203,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.FB_NOTIFICATIONS, function (row) {
                     row.increments('id').primary();
-                    row.string('facebook_id').unique().references('facebook_id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.string('facebook_id').unique().references('facebook_id').inTable(TABLES.USERS_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('unresponsive_notification').defaultTo(0);
                     row.boolean('is_newbie').defaultTo(true);
                     row.timestamp('notification_date');
@@ -270,7 +270,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.GAME_PROFILE, function (row) {
                     row.increments('id').primary();
-                    row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('device_id').references('id').inTable(TABLES.DEVICE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.string('app_platform');
                     row.timestamp('registration_date');
@@ -333,8 +333,8 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.USERS_BOOSTERS, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
+                    row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('CASCADE').onUpdate('CASCADE');
                     row.boolean('is_active').defaultTo(false);
                     row.integer('flips_left');
                     row.integer('quantity');
@@ -365,8 +365,8 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.FRIENDS, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('friend_game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
+                    row.integer('friend_game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
@@ -404,8 +404,8 @@ module.exports = function (knex) {
                 createTable(TABLES.USERS_SMASHES, function (row) {
                     row.increments('id').primary();
                     row.boolean('is_open').defaultTo('false');
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
+                    row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('quantity').defaultTo(0);
 
                     row.unique(['game_profile_id', 'smash_id']);
@@ -461,8 +461,8 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.USERS_ACHIEVEMENTS, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
-                    row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
+                    row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('CASCADE').onUpdate('CASCADE');
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
@@ -518,7 +518,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.USERS_PURCHASES, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('purchase_id').notNullable();
                     row.integer('recipe_id').notNullable();
 
@@ -546,7 +546,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.NOTIFICATIONS_QUEUE, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
 
@@ -574,7 +574,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.NOTIFICATIONS_HISTORY, function (row) {
                     row.increments('id').primary();
-                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('SET NULL').onUpdate('CASCADE');
+                    row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('type').notNullable();
                     row.integer('priority').notNullable();
                     row.timestamp('delivery_date');
