@@ -584,7 +584,6 @@ Purchase = function(PostGre){
         var allSmashes;
         var userGroup;
         var counter = 0;
-        var newSmashes = [];
         var groupedSmashes;
         var smashArray = [];
         var smashObj;
