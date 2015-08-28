@@ -451,6 +451,10 @@ Purchase = function(PostGre){
         var firstLogin = new Date(userFirstLogin);
         var firstPurchase;
 
+        if (!userPurchases){
+            return false;
+        }
+
         if (userPurchases.length >= 5) {
             return true;
         }
@@ -471,6 +475,10 @@ Purchase = function(PostGre){
         var firstPurchase;
         var purchaseCount;
         var bool = true;
+
+        if (!userPurchases){
+            return false;
+        }
 
         if (userPurchases.length){
             firstPurchase = new Date(userPurchases[userPurchases.length - 1]);
@@ -501,6 +509,10 @@ Purchase = function(PostGre){
 
         var firstLogin = new Date(userFirstLogin);
         var firstPurchase;
+
+        if (!userPurchases){
+            return false;
+        }
 
         if (userPurchases.length){
             firstPurchase = new Date(userPurchases[userPurchases.length - 1]);
