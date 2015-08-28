@@ -8,6 +8,7 @@ module.exports = {
     BOUGHT: 'Successfully bought',
     ACTIVATED: 'Successfully activated',
     GAME: 'Successfully game saved',
+    OPEN_SMASHES: 'Successfully open',
     //-------Errors-------
 
     BAD_INCOMING_PARAMS: 'Not enough incoming parameters',
@@ -17,5 +18,6 @@ module.exports = {
     NOT_VALID_RECEIPT: 'Receipt not valid',
     RECEIPT_USED: 'Receipt is already used',
     NOT_IMPLEMENTED: 'not implemented',
-    INVALID_PARAMETERS: 'Invalid incoming parameters'
+    INVALID_PARAMETERS: 'Invalid incoming parameters',
+    NOT_ENOUGH_STARS: 'Not enough stars'
 };
