@@ -221,21 +221,21 @@ GameProfile = function (PostGre) {
             })
         }
 
-        if (options && options.hasOwnProperty('action') && options.hasOwnProperty('smash_id')) {
+        if (!options || typeof options.action !== 'number' || typeof options.smash_id !== 'number') {
 
-            data = {
-                uid: uid,
-                smash_id: options.smash_id,
-                currency: CONSTANTS.CURRENCY_TYPE.SOFT
-            };
-
-            options.action ? gameProfHelper.buySmashes(data, buyCallback) : gameProfHelper.openSmashes(data, openCallback);
-
-        } else {
             err = new Error(RESPONSES.INVALID_PARAMETERS);
             err.status = 400;
-            next(err)
+            return next(err);
+
         }
+
+        data = {
+            uid: uid,
+            smash_id: options.smash_id,
+            currency: CONSTANTS.CURRENCY_TYPE.SOFT
+        };
+
+        options.action ? gameProfHelper.buySmashes(data, buyCallback) : gameProfHelper.openSmashes(data, openCallback);
     };
 };
 

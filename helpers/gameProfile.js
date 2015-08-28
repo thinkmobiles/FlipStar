@@ -9,7 +9,6 @@ var Users;
 
 GameProfile = function (PostGre) {
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
-    var gameProfileHelper = this;
 
     function prepareGameProfSaveInfo (options) {
         var result = {};
