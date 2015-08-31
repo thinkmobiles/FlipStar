@@ -12,81 +12,37 @@ GameProfile = function (PostGre) {
 
     function prepareGameProfSaveInfo (options) {
         var result = {};
-        var key;
-        var value;
+        var value = [
+            'app_platform',
+            'sessions_number',
+            'session_max_length',
+            'stars_number',
+            'points_number',
+            'pogs_number',
+            'flips_number',
+            'app_flyer_source',
+            'app_flyer_media',
+            'app_flyer_campaign',
+            'utm_source',
+            'last_login_country',
+            'real_spent',
+            'soft_currency_spent',
+            'flips_spent',
+            'fb_friends_number',
+            'shares',
+            'tools_used',
+            'offers_seen',
+            'offers_bought',
+            'promo_seen'
+        ];
 
-        for (key in options) {
-            value = options[key];
+        for (var i = value.length; i--;){
 
-            switch (key) {
-                case 'app_platform':
-                    result[key] = value;
-                    break;
-                case 'sessions_number':
-                    result[key] = value;
-                    break;
-                case 'session_max_length':
-                    result[key] = value;
-                    break;
-                case 'stars_number':
-                    result[key] = value;
-                    break;
-                case 'points_number':
-                    result[key] = value;
-                    break;
-                case 'pogs_number':
-                    result[key] = value;
-                    break;
-                case 'flips_number':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_source':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_media':
-                    result[key] = value;
-                    break;
-                case 'app_flyer_campaign':
-                    result[key] = value;
-                    break;
-                case 'utm_source':
-                    result[key] = value;
-                    break;
-                case 'last_login_country':
-                    result[key] = value;
-                    break;
-                case 'real_spent':
-                    result[key] = value;
-                    break;
-                case 'soft_currency_spent':
-                    result[key] = value;
-                    break;
-                case 'flips_spent':
-                    result[key] = value;
-                    break;
-                case 'fb_friends_number':
-                    result[key] = value;
-                    break;
-                case 'shares':
-                    result[key] = value;
-                    break;
-                case 'tools_used':
-                    result[key] = value;
-                    break;
-                case 'offers_seen':
-                    result[key] = value;
-                    break;
-                case 'offers_bought':
-                    result[key] = value;
-                    break;
-                case 'promo_seen':
-                    result[key] = value;
-                    break;
-
-            }
-
+            result[value[i]] = options[value[i]]? options[value[i]] : null
         }
+
         result.last_seen_date = new Date();
+
         return result;
     };
 
