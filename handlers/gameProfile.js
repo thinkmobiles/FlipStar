@@ -70,79 +70,105 @@ GameProfile = function (PostGre) {
         var options = req.body;
         var uid = options.uId;
         var games = options.games;
-        var curDate = new Date();
+        var open = options.open;
+        var buy = options.buy;;
         var gameDate = new Date(options.date);
-        var updProf = {};
-        var maxFlips;
         var err;
-        var gamesLength;
 
                 PostGre.knex(TABLES.GAME_PROFILE)
                     .where('id', uid)
                     .then(function (profile) {
 
                         if (profile[0].last_seen_date > gameDate) {
+
                             err = new Error(RESPONSES.OUTDATED);
                             err.status = 400;
-                            next(err);
-                        } else {
-                            async.waterfall([
+
+                            return next(err);
+                        }
+                            async.series([
+
                                 function (cb) {
+
                                     if (options.first_name) {
                                         userProfHelper.updateUser(uid, options, cb)
+
                                     } else {
                                         cb()
                                     }
                                 },
 
-                                function(user, cb) {
+                                function(cb) {
+
                                     if (games && games.length) {
-                                        updProf.last_seen_date = new Date();
-                                        updProf.id = profile[0].id;
-                                        updProf.stars_number = profile[0].stars_number;
-                                        updProf.points_number = profile[0].points_number;
 
-                                        maxFlips = parseInt((gameDate - profile[0].last_seen_date)/(1000*60*60)) * 5 + profile[0].flips_number;
+                                        gameProfHelper.syncGames(options, function (err) {
 
-                                        games = games.slice(0, maxFlips);
-                                        gamesLength = games.length;
-                                        updProf.flips_number = maxFlips - gamesLength;
-
-                                        for (var i = gamesLength; i--;) {
-                                            updProf.stars_number += games[i];
-                                            updProf.points_number += games[i];
-                                        }
-
-                                        updProf.flips_number = (profile[0].flips_number <= 50 && updProf.flips_number > 50) ? 50 : updProf.flips_number;
-
-                                        cb(null, updProf);
+                                            if(err) {
+                                                return cb(err)
+                                            }
+                                            cb()
+                                        })
 
                                     } else {
                                        cb()
                                     }
+                                },
+
+                                function (cb) {
+
+                                    if (open && open.length) {
+
+                                        gameProfHelper.syncOpenSmashes(uid, open, function (err) {
+
+                                            if(err) {
+                                                return cb(err)
+                                            }
+                                            cb()
+                                        })
+
+                                    } else {
+                                        cb()
+                                    }
+                                },
+
+                                function (cb) {
+
+                                    if (buy && buy.length) {
+
+                                        gameProfHelper.syncBoughtSmashes(uid, buy, function (err) {
+
+                                            if(err) {
+                                                return cb(err)
+                                            }
+                                            cb()
+                                        })
+
+                                    } else {
+                                        cb()
+                                    }
                                 }
 
                             ], function (err) {
+
                                 if (err) {
                                     return next(err)
                                 }
-                                PostGre.knex(TABLES.GAME_PROFILE)
-                                    .where('id', uid)
-                                    .update(updProf)
-                                    .then(function () {
-                                        req.session.loggedIn = true;
-                                        req.session.uId = uid;
 
-                                        res.status(200).send({
-                                            success: RESPONSES.SYNCRONIZED
-                                        })
+                                gameProfHelper.calculatePoints(uid, function (err) {
+
+                                    if (err) {
+                                        return next(err)
+                                    }
+
+                                    req.session.loggedIn = true;
+                                    req.session.uId = uid;
+
+                                    res.status(200).send({
+                                        success: RESPONSES.SYNCRONIZED
                                     })
-                                    .catch(function (err) {
-                                        next(err)
-                                    })
+                                })
                             })
-
-                        }
 
                     })
                     .otherwise(next)

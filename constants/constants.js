@@ -50,5 +50,6 @@ module.exports = {
         BUY: 1
     },
 
-    SMASH_DEFAULT_PRICE: 100
+    SMASH_DEFAULT_PRICE: 100,
+    FLIPS_PER_HOUR: 5
 };
