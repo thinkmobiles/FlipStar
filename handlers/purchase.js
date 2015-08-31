@@ -346,7 +346,7 @@ Purchase = function(PostGre){
                 break;
 
             default: {
-                probability = lodash.random(2, 9) * 10 - 5;
+                probability = _.random(2, 9) * 10 - 5;
             }
                 break;
         }
