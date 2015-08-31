@@ -50,6 +50,62 @@ Purchase = function(PostGre){
 
     }
 
+    function getALlPurchaseDate(gameProfId, callback){
+
+        PostGre
+            .knex(TABLES.USERS_PURCHASES)
+            .select('created_at')
+            .where({game_profile_id: gameProfId})
+            .orderBy('created_at', 'desc')
+            .exec(function(err, resultRows){
+
+                if (err){
+                    return callback(err);
+                }
+
+                if (!resultRows.length){
+
+                    callback(null, null);
+
+                } else {
+
+                    callback(null, resultRows);
+
+                }
+
+            });
+    }
+
+    function getPurchaseDate(gameProfId, criterion, callback){
+
+        var requiredDate;
+
+        getALlPurchaseDate(gameProfId, function(err, data){
+            if (err){
+                callback(err);
+            }
+
+            if (!data.length){
+
+                return callback(null, null);
+
+            }
+
+            switch (criterion) {
+                case 'first':
+                    requiredDate = data[data.length - 1];
+                    break;
+                case 'last':
+                    requiredDate = data[0];
+                    break;
+            }
+
+            callback(null, requiredDate);
+
+        });
+
+    }
+
     function buyStars(validReceipt, data, callback) {
 
         var gameProfId = data.gameProfile;
@@ -882,7 +938,7 @@ Purchase = function(PostGre){
                     if (err){
 
                         errObj = {
-                            err: err,
+                            err: err.stack,
                             index: key
                         };
 
@@ -904,7 +960,7 @@ Purchase = function(PostGre){
 
             if (errArray.length){
 
-                res.status(400).send({error: errArray});
+                res.status(400).send({errors: errArray});
 
             } else {
 
