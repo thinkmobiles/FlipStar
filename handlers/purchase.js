@@ -187,7 +187,7 @@ Purchase = function(PostGre){
 
                 packageId = validReceipt.productId;
 
-                purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'flips'});
+                purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'coins'});
 
                 purchase
                     .fetch()
@@ -453,18 +453,18 @@ Purchase = function(PostGre){
 
         if (!userPurchases.length){
             return false;
-        }
+        } else {
 
-        if (userPurchases.length >= 5) {
-            return true;
-        }
-
-        if (userPurchases.length){
             firstPurchase = new Date(userPurchases[userPurchases.length - 1]);
-        }
 
-        if (firstLogin.getYear() === firstPurchase.getYear() && firstLogin.getMonth() === firstPurchase.getMonth() && firstLogin.getDate() === firstPurchase.getDate()) {
-            return true;
+            if (userPurchases.length >= 5) {
+                return true;
+            }
+
+            if (firstLogin.getYear() === firstPurchase.getYear() && firstLogin.getMonth() === firstPurchase.getMonth() && firstLogin.getDate() === firstPurchase.getDate()) {
+                return true;
+            }
+
         }
 
     }
@@ -478,28 +478,29 @@ Purchase = function(PostGre){
 
         if (!userPurchases.length){
             return false;
-        }
+        } else {
 
-        if (userPurchases.length){
             firstPurchase = new Date(userPurchases[userPurchases.length - 1]);
 
             purchaseCount = userPurchases.length;
-        }
 
-        if (daysBetweenDates(firstPurchase, firstLogin) === 3) {
-            return true;
-        }
 
-        if (userPurchases.length <= 5){
-
-            for (var i = purchaseCount - 1; i >= 1; i -= 1){
-                if (daysBetweenDates(userPurchases[i] - userPurchases[i - 1]) > 2){
-                    bool = false;
-                    break;
-                }
+            if (daysBetweenDates(firstPurchase, firstLogin) === 3) {
+                return true;
             }
 
-            return bool;
+            if (userPurchases.length <= 5){
+
+                for (var i = purchaseCount - 1; i >= 1; i -= 1){
+                    if (daysBetweenDates(userPurchases[i] - userPurchases[i - 1]) > 2){
+                        bool = false;
+                        break;
+                    }
+                }
+
+                return bool;
+
+            }
 
         }
 
@@ -512,15 +513,16 @@ Purchase = function(PostGre){
 
         if (!userPurchases.length){
             return false;
-        }
+        } else {
 
-        if (userPurchases.length){
             firstPurchase = new Date(userPurchases[userPurchases.length - 1]);
+
+            if (daysBetweenDates(firstPurchase, firstLogin) === 7) {
+                return true;
+            }
+
         }
 
-        if (daysBetweenDates(firstPurchase, firstLogin) === 7) {
-            return true;
-        }
     }
 
     function getUserGroup(gameProfileId, cb){
@@ -585,7 +587,6 @@ Purchase = function(PostGre){
 
     }
 
-
     function buyPacks(validReceipt, data, callback){
 
         var gameProfId = data.gameProfile;
@@ -606,7 +607,7 @@ Purchase = function(PostGre){
 
         packageId = validReceipt.productId;
 
-        purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'pack'});
+        purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'packs'});
 
         purchase
             .fetch()
