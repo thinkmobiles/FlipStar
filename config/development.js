@@ -10,8 +10,8 @@ process.env.DB_USER = process.env.DB_USER || 'postgres';
 process.env.DB_PASS = process.env.DB_PASS || 'postgres';
 
 /* App Settings */
-process.env.PORT = process.env.PORT || 8840;
-process.env.HOST = process.env.HOST || 'http://134.249.164.53:8840';
+process.env.PORT = process.env.PORT || 8899;
+process.env.HOST = process.env.HOST || 'http://134.249.164.53:8899';
 
 /* Redis Settings*/
 process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';
