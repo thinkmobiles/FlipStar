@@ -99,7 +99,8 @@ app.get('/databases/drop', function (req, res) {
 });
 
 app.get('/databases/default', function (req, res) {
-    schema.setDefaultData(req, res);
+    schema.setDefaultData();
+    res.send('<b>Defaults data filled successfully</b>');
 });
 
 /*app.get('/add_admin', function (req, res) {

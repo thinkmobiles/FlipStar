@@ -821,12 +821,14 @@ module.exports = function (knex) {
             .raw(sqlString)
             .exec(function(err){
                 if(err){
-                   return cb(err);
+
+                    return cb(err);
+
                 }
 
                 cb(null);
 
-            })
+            });
 
     }
 
@@ -834,7 +836,7 @@ module.exports = function (knex) {
         var sqlString = " CREATE OR REPLACE FUNCTION fillBoosters() RETURNS VOID AS $$ " +
                             " BEGIN " +
                                 " INSERT INTO boosters (name) VALUES " +
-                                "('slow_strength_bar'), " +
+                                " ('slow_strength_bar'), " +
                                 " ('slow_aiming_bar'), " +
                                 " ('double_gold_rewards'); " +
                             " END; " +
