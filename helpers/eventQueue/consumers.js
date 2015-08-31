@@ -16,6 +16,49 @@ module.exports = function(app, PostGre){
 
     var NotificationsHistoryModel = PostGre.Models[MODELS.NOTIFICATIONS_HISTORY];
 
+    function saveOrUpdateNotificatioHistory (gameId, message, callback) {
+
+        var now = new Date();
+        var notificationHistory;
+        var saveObj;
+
+        notificationHistory = new NotificationsHistoryModel({'game_profile_id': gameId});
+
+        saveObj = {
+            'game_profile_id': gameId,
+            'type': message.type,
+            'priority': message.priority,
+            'delivery_date': now
+        };
+
+        notificationHistory
+            .fetch()
+            .then(function (resultModel) {
+
+                if (!resultModel) {
+                    notificationHistory
+                        .save(saveObj)
+                        .then(function () {
+                            console.log({success: RESPONSES.SAVED});
+                        })
+                        .otherwise(callback);
+                } else {
+                    resultModel
+                        .save({
+                            'type': message.type,
+                            'priority': message.priority,
+                            'delivery_date': now
+                        }, {patch: true})
+                        .then(function () {
+                            console.log({success: RESPONSES.SAVED});
+                        })
+                        .otherwise(callback);
+                }
+
+            });
+
+    }
+
     var pushConsumer = {
 
         topic: 'push',
@@ -24,10 +67,6 @@ module.exports = function(app, PostGre){
 
             var userId = message.userId;
             var gameId;
-            var notificationHistory;
-            var saveObj;
-            var now;
-
             var msgObj = {
                 msg: message.msg,
                 priority: message.priority,
@@ -42,8 +81,6 @@ module.exports = function(app, PostGre){
                 if (!isSent){
                     return;
                 }
-
-                now = new Date();
 
                 PostGre.knex
                     .select('id')
@@ -63,38 +100,10 @@ module.exports = function(app, PostGre){
 
                         gameId = resultRow[0];
 
-                        notificationHistory = new NotificationsHistoryModel({'game_profile_id': gameId});
+                        saveOrUpdateNotificatioHistory(gameId, message, function(err){
+                           logger.error(err);
+                        });
 
-                        saveObj = {
-                            'game_profile_id': gameId,
-                            'type': message.type,
-                            'priority': message.priority,
-                            'delivery_date': now
-                        };
-
-                        notificationHistory
-                            .fetch()
-                            .then(function (resultModel) {
-
-                                if (!resultModel) {
-                                    notificationHistory
-                                        .save(saveObj)
-                                        .then(function () {
-                                            console.log({success: RESPONSES.SAVED});
-                                        });
-                                } else {
-                                    resultModel
-                                        .save({
-                                            'type': message.type,
-                                            'priority': message.priority,
-                                            'delivery_date': now
-                                        }, {patch: true})
-                                        .then(function () {
-                                            console.log({success: RESPONSES.SAVED});
-                                        });
-                                }
-
-                            });
                     });
 
             });
@@ -139,7 +148,7 @@ module.exports = function(app, PostGre){
 
     };
 
-    var groupPushConsumer ={
+    var groupPushConsumer = {
 
         topic: 'groupPush',
 
@@ -153,7 +162,7 @@ module.exports = function(app, PostGre){
 
                 console.log({success: 'message sent to users group'});
 
-            })
+            });
 
         }
 

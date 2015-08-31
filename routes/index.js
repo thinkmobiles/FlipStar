@@ -7,7 +7,7 @@ module.exports = function (app, PostGre) {
     //Routers
     var usersRouter = require('./userProfile')(PostGre, app);
     var gameRouter = require('./gameProfile')(PostGre, app);
-    //var purchaseRouter = require('./purchase')(PostGre, app);
+    var purchaseRouter = require('./purchase')(PostGre, app);
     var queueRouter = require('./eventQueue')(PostGre, app);
     var session = new Session(PostGre);
 
@@ -17,7 +17,7 @@ module.exports = function (app, PostGre) {
 
     app.use('/user', usersRouter);
     app.use('/gameProfile', gameRouter);
-    //app.use('/purchase', purchaseRouter);
+    app.use('/purchase', purchaseRouter);
     app.use('/queue', queueRouter);
 
     function notFound(req, res, next) {
@@ -56,7 +56,10 @@ module.exports = function (app, PostGre) {
          console.error(err.message);
          //console.error(err.stack);
          }*/
-        console.error(err.message || err);
+
+        // TODO change
+
+        console.error(err.stack);
         res.status(status).send({error: err.message || err, stack: err.stack});
     }
 
