@@ -121,7 +121,6 @@ Purchase = function(PostGre){
         var key = options[itemType];
         var saveObj = {};
 
-
         purchase
             .fetch()
             .exec(function(err, resultPackage){
