@@ -160,7 +160,8 @@ GameProfile = function (PostGre) {
     this.syncGames = function (options, callback) {
         var uid = options.uId;
         var gameDate = new Date(options.date);
-        var games = options.games;
+        var games = _.pluck(options.games, 'stars');
+        var boosters = _.flatten( _.pluck(options.games, 'boosters_id'));
         var updProf = {};
         var maxFlips;
         var gamesLength;
@@ -185,15 +186,32 @@ GameProfile = function (PostGre) {
 
                 updProf.flips_number = (profile[0].flips_number <= 50 && maxFlips > 50) ? 50 : maxFlips - gamesLength;
 
-                PostGre.knex(TABLES.GAME_PROFILE)
-                    .where('id', uid)
-                    .update(updProf)
-                    .then(function () {
-                        callback()
-                    })
-                    .catch(function (err) {
-                        callback(err)
-                    })
+                async.each(boosters, function (booster, cb) {
+
+                    PostGre.knex
+                        .raw(
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = true, flips_left = flips_left - 1 ' +
+                            'WHERE game_profile_id = ' + uid + ' AND booster_id = ' + booster
+                        )
+                        .exec(cb)
+
+                }, function (err) {
+
+                    if (err) {
+                        return callback(err)
+                    }
+
+                    PostGre.knex(TABLES.GAME_PROFILE)
+                        .where('id', uid)
+                        .update(updProf)
+                        .then(function () {
+                            callback()
+                        })
+                        .catch(function (err) {
+                            callback(err)
+                        })
+                })
+
             })
             .catch(function (err) {
                 callback(err)
@@ -302,7 +320,7 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw(
                 'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                'SET points_number = (select sum(quantity)*sum(distinct set) + min(stars_number) AS points_number FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                'SET points_number = (SELECT COALESCE( SUM(quantity)*SUM(distinct set) , \'0\' ) + MIN(stars_number) AS points_number FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                     'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                     'WHERE gp.id = ' + uid + ') ' +

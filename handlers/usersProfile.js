@@ -18,7 +18,7 @@ Users = function (PostGre) {
         var uid = options.uId;
         var fbId = options.facebook_id;
 
-        var GUEST = !!(uid && !fbId);
+        var GUEST = !!(uid !== -1 && !fbId);
         var FB_USER = !!(uid && fbId);
         
         if (options && options.device_id) {

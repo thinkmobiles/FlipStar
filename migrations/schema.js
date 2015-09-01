@@ -405,7 +405,7 @@ module.exports = function (knex) {
                     row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('CASCADE').onUpdate('CASCADE');
                     row.boolean('is_active').defaultTo(false);
                     row.integer('flips_left');
-                    row.integer('quantity');
+                    row.integer('quantity').defaultTo(0);
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));

@@ -20,5 +20,6 @@ module.exports = {
     RECEIPT_USED: 'Receipt is already used',
     NOT_IMPLEMENTED: 'not implemented',
     INVALID_PARAMETERS: 'Invalid incoming parameters',
-    NOT_ENOUGH_STARS: 'Not enough stars'
+    NOT_ENOUGH_STARS: 'Not enough stars',
+    UNDEFINED_PLAYER: 'No such player'
 };

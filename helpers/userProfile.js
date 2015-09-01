@@ -254,6 +254,7 @@ UserProfile = function (PostGre) {
                         'RETURNING d.id'
                     )
                     .then(function (result){
+
                         PostGre.knex(TABLES.DEVICE)
                             .where('id', result.rows[0].id)
                             .update(deviceObj)

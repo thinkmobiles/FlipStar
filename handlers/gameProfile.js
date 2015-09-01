@@ -21,19 +21,27 @@ GameProfile = function (PostGre) {
             if (err) {
                 return next(err)
             }
+
+            if (!result.length) {
+                err = new Error(RESPONSES.UNDEFINED_PLAYER);
+                err.status = 500;
+                return next(err);
+            }
+
             responseObj = {
                 flips: result[0].flips_number,
                 points: result[0].points_number,
                 stars: result[0].stars_number,
+                coins: result[0].coins_number,
                 boosters: []
             };
 
             for (var i = result.length; i--;) {
                 responseObj.boosters.push({
-                    booster: result[i].booster_id,
-                    activated: result[i].is_active,
-                    remainder: result[i].flips_left,
-                    quantity: result[i].quantity
+                    booster: result[i].booster_id ? result[i].booster_id : -1,
+                    activated: result[i].is_active ? result[i].is_active : -1,
+                    remainder: result[i].flips_left ? result[i].flips_left : -1,
+                    quantity: result[i].quantity ? result[i].quantity : -1
                 })
             }
             res.status(200).send(responseObj)
@@ -71,7 +79,7 @@ GameProfile = function (PostGre) {
         var uid = options.uId;
         var games = options.games;
         var open = options.open;
-        var buy = options.buy;;
+        var buy = options.buy;
         var gameDate = new Date(options.date);
         var err;
 
@@ -86,6 +94,7 @@ GameProfile = function (PostGre) {
 
                             return next(err);
                         }
+
                             async.series([
 
                                 function (cb) {
@@ -192,8 +201,9 @@ GameProfile = function (PostGre) {
                     points: profile.rows[0].point,
                     boosters: []
                 };
+
                 for (var i = profile.rows.length; i--;) {
-                    responseObj.boosters.push({booster_id: profile.rows[i].boosters, flips_left: profile.rows[i].left_flips ? profile.rows[i].left_flips : 0});
+                    responseObj.boosters.push({booster_id: profile.rows[i].boosters ? profile.rows[i].boosters : 0, flips_left: profile.rows[i].left_flips ? profile.rows[i].left_flips : 0});
                 }
 
                 res.status(200).send(responseObj)
