@@ -869,7 +869,7 @@ module.exports = function (knex) {
                 async.series([
                     function(cb){
                         knex
-                            .raw("SELECT fillSmashes(); ")
+                            .raw(" SELECT fillSmashes(); ")
                             .exec(cb);
                     },
 
@@ -887,7 +887,7 @@ module.exports = function (knex) {
 
                     function(cb){
                         knex
-                            .raw("SELECT fillBoosters(); ")
+                            .raw(" SELECT fillBoosters(); ")
                             .exec(cb)
                     }
 
