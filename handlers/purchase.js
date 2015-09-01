@@ -50,20 +50,123 @@ Purchase = function(PostGre){
 
     }
 
+    function getALlPurchaseDate(gameProfId, callback){
+
+        PostGre
+            .knex(TABLES.USERS_PURCHASES)
+            .select('created_at')
+            .where({game_profile_id: gameProfId})
+            .orderBy('created_at', 'desc')
+            .exec(function(err, resultRows){
+
+                if (err){
+                    return callback(err);
+                }
+
+                if (!resultRows.length){
+
+                    callback(null, null);
+
+                } else {
+
+                    callback(null, resultRows);
+
+                }
+
+            });
+    }
+
+    function getPurchaseDate(gameProfId, criterion, callback){
+
+        var requiredDate;
+
+        getALlPurchaseDate(gameProfId, function(err, data){
+            if (err){
+                callback(err);
+            }
+
+            if (!data.length){
+
+                return callback(null, null);
+
+            }
+
+            switch (criterion) {
+                case 'first':
+                    requiredDate = data[data.length - 1];
+                    break;
+                case 'last':
+                    requiredDate = data[0];
+                    break;
+            }
+
+            callback(null, requiredDate);
+
+        });
+
+    }
+
+    function getItemAndSaveToUser(gameProfileModel, packageId, itemType,  cb){
+
+        var purchase = new PurchaseModel({'store_item_id': packageId, 'type': itemType});
+        var currentPointItem;
+        var countItem;
+
+        var options = {
+            'stars': 'stars_number',
+            'flips': 'flips_number',
+            'coins': 'coins_number'
+        };
+
+        var key = options[itemType];
+        var saveObj = {};
+
+        purchase
+            .fetch()
+            .exec(function(err, resultPackage){
+
+                if (err){
+                    return cb(err);
+                }
+
+                if (!resultPackage){
+                    err = new Error(RESPONSES.DATABASE_ERROR);
+                    err.status = 400;
+                    return cb(err);
+                }
+
+                currentPointItem = gameProfileModel.get(options[itemType]);
+                countItem = resultPackage.get('value');
+                saveObj[key] = countItem + currentPointItem;
+
+                gameProfileModel
+                    .save(saveObj, {patch: true})
+                    .exec(function(err){
+
+                        if (err){
+                            return cb(err);
+                        }
+
+                        cb(null);
+
+                    });
+            });
+    }
+
     function buyStars(validReceipt, data, callback) {
 
         var gameProfId = data.gameProfile;
-        var currentStars;
-        var countStars;
-        var purchase;
         var packageId;
         var saveObj;
-        var err;
         var currentGameProfileModel = new GameProfileModel({'id': gameProfId});
 
         currentGameProfileModel
             .fetch()
-            .then(function (resultProfileModel) {
+            .exec(function (err, resultProfileModel) {
+
+                if (err){
+                    return callback(err);
+                }
 
                 if (!resultProfileModel) {
 
@@ -75,53 +178,41 @@ Purchase = function(PostGre){
 
                 packageId = validReceipt.productId;
 
-                purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'stars'});
+                saveObj = {
+                    'game_profile_id': parseInt(gameProfId),
+                    'purchase_id': 1,
+                    'recipe_id': validReceipt.receiptId
+                };
 
-                purchase
-                    .fetch()
-                    .then(function (resultModel) {
+                async.series([
+                    async.apply(getItemAndSaveToUser, resultProfileModel, packageId, 'stars'),
+                    async.apply(saveToHistory, saveObj)
+                ], function(err){
 
-                        countStars = resultModel.get('value');
-                        currentStars = resultProfileModel.get('stars_number');
+                    if (err){
+                        return callback(err);
+                    }
 
-                        currentGameProfileModel
-                            .save({'stars_number': currentStars + countStars}, {patch: true})
-                            .then(function () {
+                    callback(null);
 
-                                //TODO check purchase history
-                                //todo add to user_purchase table field receipt
-
-                                saveObj = {
-                                    'game_profile_id': parseInt(gameProfId),
-                                    'purchase_id': 1,
-                                    'recipe_id': validReceipt.receiptId
-                                };
-
-
-                                saveToHistory(saveObj, callback);
-
-                            })
-                            .otherwise(callback);
-                    })
-                    .otherwise(callback);
-            })
-            .otherwise(callback);
+                });
+            });
     };
 
     function buyFlips(validReceipt, data, callback) {
 
         var gameProfId = data.gameProfile;
-        var currentFlips;
-        var countFlips;
-        var purchase;
         var saveObj;
         var packageId;
         var currentGameProfileModel = new GameProfileModel({'id': gameProfId});
-        var err;
 
         currentGameProfileModel
             .fetch()
-            .then(function (resultProfileModel) {
+            .exec(function (err, resultProfileModel) {
+
+                if (err){
+                    return callback(err);
+                }
 
                 if (!resultProfileModel) {
 
@@ -133,49 +224,42 @@ Purchase = function(PostGre){
 
                 packageId = validReceipt.productId;
 
-                purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'flips'});
+                saveObj = {
+                    'game_profile_id': parseInt(gameProfId),
+                    'purchase_id': 1,
+                    'recipe_id': validReceipt.receiptId
+                };
 
-                purchase
-                    .fetch()
-                    .then(function (resultModel) {
-                        countFlips = resultModel.get('value');
-                        currentFlips = resultProfileModel.get('flips_number');
+                async.series([
+                    async.apply(getItemAndSaveToUser, resultProfileModel, packageId, 'flips'),
+                    async.apply(saveToHistory, saveObj)
+                ], function(err){
 
-                        resultProfileModel
-                            .save({'flips_number': currentFlips + countFlips}, {patch: true})
-                            .then(function () {
+                    if (err){
+                        return callback(err);
+                    }
 
-                                saveObj = {
-                                    'game_profile_id': parseInt(gameProfId),
-                                    'purchase_id': 1,
-                                    'recipe_id': validReceipt.receiptId
-                                };
+                    callback(null);
 
-                                saveToHistory(saveObj, callback);
+                });
 
-                            })
-                            .otherwise(callback);
-                    })
-                    .otherwise(callback);
-            })
-            .otherwise(callback);
-
+            });
     }
 
     function buyCoins (validReceipt, data, callback) {
 
         var gameProfId = data.gameProfile;
-        var currentCoins;
-        var purchase;
         var saveObj;
         var packageId;
-        var countCoins;
         var currentProfileModel = new GameProfileModel({'id': gameProfId});
-        var err;
 
         currentProfileModel
             .fetch()
-            .then(function (resultProfileModel) {
+            .exec(function (err, resultProfileModel) {
+
+                if(err){
+                    return callback(err);
+                }
 
                 if (!resultProfileModel) {
 
@@ -187,43 +271,25 @@ Purchase = function(PostGre){
 
                 packageId = validReceipt.productId;
 
-                purchase = new PurchaseModel({'store_item_id': packageId, 'type': 'coins'});
+                saveObj = {
+                    'user_id': parseInt(uId),
+                    'receipt_id': validReceipt.receiptId,
+                    'receipt': validReceipt.receipt
+                };
 
-                purchase
-                    .fetch()
-                    .then(function (resultModel) {
+                async.series([
+                    async.apply(getItemAndSaveToUser, resultProfileModel, packageId, 'coins'),
+                    async.apply(saveToHistory, saveObj)
+                ], function(err){
 
-                        if (!resultModel) {
+                    if (err){
+                        return callback(err);
+                    }
 
-                            err = new Error(RESPONSES.DATABASE_ERROR);
-                            err.status = 400;
-                            return next(err);
+                    callback(null);
+                })
 
-                        }
-
-                        countCoins = resultModel.get('value');
-                        currentCoins = resultProfileModel.get('coins_number');
-
-                        resultProfileModel
-                            .save({'coins_number': countCoins + currentCoins}, {patch: true})
-                            .then(function () {
-
-                                saveObj = {
-                                    'user_id': parseInt(uId),
-                                    'receipt_id': validReceipt.receiptId,
-                                    'receipt': validReceipt.receipt
-                                };
-
-                                saveToHistory(saveObj, callback)
-
-                            })
-                            .otherwise(callback);
-
-                    })
-                    .otherwise(callback)
-
-            })
-            .otherwise(callback);
+            });
     }
 
     function buyBoosters(validReceipt, data, callback) {
@@ -346,7 +412,7 @@ Purchase = function(PostGre){
                 break;
 
             default: {
-                probability = lodash.random(2, 9) * 10 - 5;
+                probability = _.random(2, 9) * 10 - 5;
             }
                 break;
         }
@@ -882,7 +948,7 @@ Purchase = function(PostGre){
                     if (err){
 
                         errObj = {
-                            err: err,
+                            err: err.stack,
                             index: key
                         };
 
@@ -904,7 +970,7 @@ Purchase = function(PostGre){
 
             if (errArray.length){
 
-                res.status(400).send({error: errArray});
+                res.status(400).send({errors: errArray});
 
             } else {
 

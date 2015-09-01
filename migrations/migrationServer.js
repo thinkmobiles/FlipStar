@@ -78,6 +78,7 @@ app.get('/', function (req, res) {
 
     html += '<a href="/databases/create">Create Tables</a><br/>';
     html += '<a href="/databases/drop">Drop Tables</a><br/>';
+    html += '<a href="/databases/default">Set default data</a><br/>';
     //html += '<a href="/databases/default">Set Defult Date</a><br/>';
     //html += '<a href="/add_admin">Add admin</a><br/>';
     //html+='<a href="/seed/default">Seed Default</a><br/>';
@@ -97,9 +98,10 @@ app.get('/databases/drop', function (req, res) {
     res.send('<b>Drop Take Success</b>');
 });
 
-/*app.get('/databases/default', function (req, res) {
-    schema.setDefaultData(req, res);
-});*/
+app.get('/databases/default', function (req, res) {
+    schema.setDefaultData();
+    res.send('<b>Defaults data filled successfully</b>');
+});
 
 /*app.get('/add_admin', function (req, res) {
     var admin = bookshelf.Model.extend({

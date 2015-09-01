@@ -164,7 +164,7 @@ var Socket = function( server, app ) {
 
         socket.on('endTour', function() {});
 
-        socket.on('getGameList')
+        //socket.on('getGameList')
 
     });
 

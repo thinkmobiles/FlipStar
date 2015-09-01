@@ -2,6 +2,7 @@ module.exports = function (knex) {
     var TABLES = require('../constants/tables');
     var when = require('when');
     var async = require('../node_modules/async');
+    var _ = require('lodash');
 
     function create() {
         async.series([
@@ -766,8 +767,155 @@ module.exports = function (knex) {
         })
     }
 
+    function fillPurchasePack (cb){
+
+        var sqlString = " CREATE OR REPLACE FUNCTION fillPacks(os VARCHAR) RETURNS VOID AS $$ " +
+                            " BEGIN " +
+                            " INSERT INTO purchases (type, name, store, value, store_item_id) VALUES " +
+                                " ('packs', '1_packs', os, 1, os || '_p1'), " +
+                                " ('packs', '5_packs', os, 5, os || '_p2'), " +
+                                " ('packs', '12_packs', os, 12, os || '_p3'), " +
+                                " ('packs', '40_packs', os, 40, os || '_p4'), " +
+                                " ('packs', '60_packs', os, 60, os || '_p5'), " +
+                                " ('flips', '15_flips', os, 15, os || '_f1'), " +
+                                " ('flips', '40_flips', os, 40, os || '_f2'), " +
+                                " ('flips', '100_flips', os, 100, os || '_f3'), " +
+                                " ('flips', '350_flips', os, 350, os || '_f4'), " +
+                                " ('flips', '600_flips', os, 600, os || '_f5'), " +
+                                " ('stars', '200000_stars', os, 200000, os || '_s1'), " +
+                                " ('stars', '1000000_stars', os, 1000000, os || '_s2'), " +
+                                " ('stars', '2500000_stars', os, 2500000, os || '_s3'), " +
+                                " ('stars', '10000000_stars', os, 10000000, os || '_s4'), " +
+                                " ('stars', '15000000_stars', os, 15000000, os || '_s5'), " +
+                                " ('boosters', 'slow_strength_bar', os, 0, os || '_b1'), " +
+                                " ('boosters', 'slow_aiming_bar', os, 0, os || '_b2'), " +
+                                " ('boosters', 'double_gold_rewards', os, 0, os || '_b3'); " +
+
+                            " END; " +
+                        " $$ LANGUAGE plpgsql; ";
+
+
+        knex
+            .raw(sqlString)
+            .exec(function(err){
+                if(err){
+                    return cb(err);
+                }
+
+                cb(null);
+            });
+    }
+
+    function fillSmashes (cb){
+        var sqlString = "CREATE OR REPLACE FUNCTION fillSmashes() RETURNS VOID AS $$ " +
+                            " declare counter int := 1; " +
+                            " BEGIN " +
+                                " WHILE (counter <= 300) LOOP " +
+                                    " INSERT INTO smashes (name, set) VALUES ('AAA', (((counter - 1) / 15) | 0) + 1); " +
+                                        " counter := counter + 1; " +
+                                " END LOOP; " +
+                            " END; " +
+                        " $$ LANGUAGE plpgsql; ";
+
+        knex
+            .raw(sqlString)
+            .exec(function(err){
+                if(err){
+
+                    return cb(err);
+
+                }
+
+                cb(null);
+
+            });
+
+    }
+
+    function fillBoosters (cb) {
+        var sqlString = " CREATE OR REPLACE FUNCTION fillBoosters() RETURNS VOID AS $$ " +
+                            " BEGIN " +
+                                " INSERT INTO boosters (name) VALUES " +
+                                " ('slow_strength_bar'), " +
+                                " ('slow_aiming_bar'), " +
+                                " ('double_gold_rewards'); " +
+                            " END; " +
+                        " $$ LANGUAGE plpgsql; ";
+
+        knex
+            .raw(sqlString)
+            .exec(function(err){
+                if (err){
+                    return cb(err);
+                }
+
+                cb(null);
+            })
+    }
+
+    function setDefaultOptions () {
+
+        async.parallel([
+            fillPurchasePack,
+            fillSmashes,
+            fillBoosters
+        ],function(err){
+            if (err) {
+                console.log('===============================');
+                console.log(err);
+                console.log('===============================');
+            } else {
+
+                async.series([
+                    function(cb){
+                        knex
+                            .raw(" SELECT fillSmashes(); ")
+                            .exec(cb);
+                    },
+
+                    function(cb){
+                        knex
+                            .raw(" SELECT fillPacks('APPLE'); ")
+                            .exec(cb);
+                    },
+
+                    function(cb){
+                        knex
+                            .raw(" SELECT fillPacks('GOOGLE'); ")
+                            .exec(cb);
+                    },
+
+                    function(cb){
+                        knex
+                            .raw(" SELECT fillBoosters(); ")
+                            .exec(cb)
+                    }
+
+                ], function(err){
+                    if (err){
+
+                        console.log('===============================');
+                        console.log(err);
+                        console.log('===============================');
+
+                    } else {
+
+                        console.log('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<');
+                        console.log('Default options filled successfully');
+                        console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
+
+                    }
+                })
+
+            }
+        });
+
+
+    }
+
     return {
         create: create,
-        drop: drop
+        drop: drop,
+        setDefaultData: setDefaultOptions
     }
 };
