@@ -274,6 +274,21 @@ GameProfile = function (PostGre) {
 
         options.action ? gameProfHelper.buySmashes(data, openOrBuyCallback) : gameProfHelper.openSmashes(data, openOrBuyCallback);
     };
+
+    this.addFlips = function (req, res, next) {
+        var uid = req.session.uId;
+
+        gameProfHelper.addFlips(uid, 0, function (err) {
+
+            if (err) {
+                return next(err)
+            }
+
+            res.status(200).send({
+                success: RESPONSES.FLIPS_ADDED
+            })
+        });
+    };
 };
 
 module.exports = GameProfile;

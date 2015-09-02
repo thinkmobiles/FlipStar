@@ -22,5 +22,6 @@ module.exports = {
     INVALID_PARAMETERS: 'Invalid incoming parameters',
     NOT_ENOUGH_STARS: 'Not enough stars',
     UNDEFINED_PLAYER: 'No such player',
-    NOT_OPEN: 'Smash closed'
+    NOT_OPEN: 'Smash closed',
+    FLIPS_ADDED: 'Successfully flips added'
 };

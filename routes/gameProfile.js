@@ -11,10 +11,12 @@ module.exports = function (PostGre, app) {
         router.post('/game', gameHandler.singleGame);
         router.post('/smash', gameHandler.openOrBuySmashes);
 
+        router.get('/flip', gameHandler.addFlips);
         router.get('/collection', gameHandler.getMyCollection);
         router.get('/booster/:id', gameHandler.activateBooster);
         router.get('/:id', gameHandler.getProfileById);
 
         router.put('/:id', gameHandler.updateProfile);
+
     return router;
 };

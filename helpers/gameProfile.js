@@ -393,7 +393,7 @@ GameProfile = function (PostGre) {
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
 
         if (typeof callback !== 'function') {
-            err = new Error(typeof callback + ' is not function');
+            err = new Error(typeof callback + ' is not a function');
             throw err;
         }
 
@@ -497,7 +497,7 @@ GameProfile = function (PostGre) {
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
 
         if (typeof callback !== 'function') {
-            err = new Error(typeof callback + ' is not function');
+            err = new Error(typeof callback + ' is not a function');
             throw err;
         }
 
@@ -594,6 +594,24 @@ GameProfile = function (PostGre) {
             callback(null, CONSTANTS.ACTION.BUY);
         })
 
+    };
+
+    this.addFlips = function (uid, quantity, callback) {
+        var err;
+
+        if (typeof callback !== 'function') {
+            err = new Error(typeof callback + ' is not a function');
+            throw err;
+        }
+
+        PostGre.knex
+            .raw('SELECT add_flips(' + uid + ', ' + quantity + ');')
+            .then(function () {
+                callback()
+            })
+            .catch(function (err) {
+                callback(err)
+            })
     };
 };
 

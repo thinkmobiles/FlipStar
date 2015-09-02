@@ -211,6 +211,45 @@ module.exports = function (knex) {
             },
 
             function (cb) {
+                knex.raw(
+                        'CREATE OR REPLACE FUNCTION add_flips(guid INT,  quan INT) RETURNS VOID AS '  +
+                            '$$ ' +
+                                'BEGIN ' +
+                                    'IF quan <> 0 ' +
+                                    'THEN ' +
+                                        'UPDATE game_profile SET flips_number = flips_number + quan ' +
+                                        'WHERE id = guid; ' +
+
+                                    'ELSE ' +
+                                        'UPDATE game_profile SET flips_number = ( ' +
+                                            'CASE ' +
+                                            'WHEN flips_number + 5 > 50 AND flips_number < 50  THEN 50 ' +
+                                            'WHEN flips_number + 5 > 50 AND flips_number >= 50  THEN flips_number ' +
+                                            'ELSE flips_number + 5 ' +
+                                            'END ' +
+                                            ') ' +
+                                        'WHERE id = guid; ' +
+
+                                    'END IF; ' +
+                                'END; ' +
+                            '$$ ' +
+                        'LANGUAGE plpgsql;'
+                    )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
                 createTable(TABLES.COUNTRIES, function (row) {
                     row.increments('id').primary();
                     row.string('iso_code').notNullable();
