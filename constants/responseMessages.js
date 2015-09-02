@@ -21,5 +21,6 @@ module.exports = {
     NOT_IMPLEMENTED: 'not implemented',
     INVALID_PARAMETERS: 'Invalid incoming parameters',
     NOT_ENOUGH_STARS: 'Not enough stars',
-    UNDEFINED_PLAYER: 'No such player'
+    UNDEFINED_PLAYER: 'No such player',
+    NOT_OPEN: 'Smash closed'
 };

@@ -44,6 +44,7 @@ GameProfile = function (PostGre) {
                     quantity: result[i].quantity ? result[i].quantity : -1
                 })
             }
+
             res.status(200).send(responseObj)
         })
     };
@@ -53,9 +54,11 @@ GameProfile = function (PostGre) {
         var options = req.body;
 
         gameProfHelper.updateProfile(uid, options, function (err, result) {
+
             if (err) {
                 return next(err)
             }
+
             res.status(200).send({
                 success: RESPONSES.UPDATED
             })
@@ -71,7 +74,9 @@ GameProfile = function (PostGre) {
             .then(function (collection) {
                 res.status(200).send(collection)
             })
-            .otherwise(next)
+            .catch(function (err) {
+                next(err)
+            })
     };
 
     this.syncOfflineGame = function (req, res, next) {
@@ -180,7 +185,9 @@ GameProfile = function (PostGre) {
                             })
 
                     })
-                    .otherwise(next)
+                    .catch(function (err) {
+                        next(err)
+                    })
 
 
     };
@@ -239,22 +246,16 @@ GameProfile = function (PostGre) {
         var err;
         var data;
 
-        function openCallback (err) {
-            if (err) {
-                return next(err)
-            }
-            res.status(200).send({
-                success: RESPONSES.OPEN_SMASHES
-            })
-        }
+        function openOrBuyCallback (err, action) {
+            var response;
 
-        function buyCallback (err) {
             if (err) {
                 return next(err)
             }
-            res.status(200).send({
-                success: RESPONSES.BUY_SMASHES
-            })
+
+            action ? response = {success: RESPONSES.BUY_SMASHES} : response = {success: RESPONSES.OPEN_SMASHES};
+
+            res.status(200).send(response)
         }
 
         if (!options || typeof options.action !== 'number' || typeof options.smash_id !== 'number') {
@@ -271,7 +272,7 @@ GameProfile = function (PostGre) {
             currency: CONSTANTS.CURRENCY_TYPE.SOFT
         };
 
-        options.action ? gameProfHelper.buySmashes(data, buyCallback) : gameProfHelper.openSmashes(data, openCallback);
+        options.action ? gameProfHelper.buySmashes(data, openOrBuyCallback) : gameProfHelper.openSmashes(data, openOrBuyCallback);
     };
 };
 

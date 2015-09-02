@@ -44,7 +44,7 @@ Users = function (PostGre) {
                         return next(err)
                     }
 
-                    if(exist && exist !== uid) { // todo mergeProfiles
+                    if(exist && exist !== uid) {
 
                         userProfHelper.mergeProfiles(exist, options, function (err, profile) {
                             if (err) {
@@ -139,6 +139,7 @@ Users = function (PostGre) {
                 },
 
                 function (cb) {
+
                     if (addFriendsList && addFriendsList.length) {
                         for (var i = addFriendsList.length; i--;) {
                             queryStr += '\'' + addFriendsList[i] + '\'' + ','
@@ -149,31 +150,34 @@ Users = function (PostGre) {
 
                         PostGre.knex
                             .raw(
-                                'insert into ' + TABLES.FRIENDS + ' (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
-                                'select ' + uid + ' as g_id, g.id, ' + '\'' + curDate + '\'' + ' as updated_at, ' + '\'' + curDate + '\'' + ' as created_at from users_profile u ' +
-                                'left join ' + TABLES.GAME_PROFILE + ' g on g.user_id = u.id ' +
-                                'where facebook_id in ' + queryStr +
-                                'and g.id not in (select friend_game_profile_id from ' + TABLES.FRIENDS + '  where game_profile_id = ' + uid + ')'
+                                'INSERT into ' + TABLES.FRIENDS + ' (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
+                                'SELECT ' + uid + ' AS g_id, g.id, ' + '\'' + curDate + '\'' + ' AS updated_at, ' + '\'' + curDate + '\'' + ' AS created_at FROM ' + TABLES.USERS_PROFILE + ' u ' +
+                                'LEFT JOIN ' + TABLES.GAME_PROFILE + ' g ON g.user_id = u.id ' +
+                                'WHERE facebook_id IN ' + queryStr +
+                                'AND g.id NOT IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + '  WHERE game_profile_id = ' + uid + ')'
                             )
-                            .exec(function (err) {
-                                if (err) {
-                                    cb(err)
-                                } else {
-                                    cb()
-                                }
-                            });
+                            .then(function () {
+                                cb()
+                            })
+                            .catch(function (err) {
+                                cb(err)
+                            })
+
                     } else {
                         cb()
                     }
                 }
             ], function (err, result) {
+
                 if (err) {
                   return next(err)
+
                 } else {
                     res.status(200).send(result[0])
                 }
 
             })
+
         } else {
             err = new Error(RESPONSES.BAD_INCOMING_PARAMS);
             err.status = 500;
@@ -188,12 +192,11 @@ Users = function (PostGre) {
         PostGre.knex(TABLES.GAME_PROFILE)
             .where('id', uid)
             .update('last_seen_date', curDate)
-            .exec(function (err) {
-
-                if (err) {
-                    return next(err)
-                }
-                session.kill(req, res, next);
+            .then(function () {
+                session.kill(req, res, next)
+            })
+            .catch(function (err) {
+                next(err)
             })
     };
 
@@ -202,19 +205,24 @@ Users = function (PostGre) {
         var uid = req.session.uId;
 
         if (type === CONSTANTS.FRIENDS) {
+
             PostGre.knex
                 .raw(
-                    'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from ' + TABLES.GAME_PROFILE + ' g ' +
-                    'left join ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
-                    'where g.id in (select friend_game_profile_id from ' + TABLES.FRIENDS+ ' where game_profile_id = ' + uid +') ' +
-                    'order by g.points_number desc ' +
-                    'limit 25'
+                    'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
+                    'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
+                    'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS+ ' WHERE game_profile_id = ' + uid +') ' +
+                    'ORDER BY g.points_number DESC ' +
+                    'LIMIT 25'
                 )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
                 })
-                .otherwise(next)
+                .catch(function (err) {
+                    next(err)
+                })
+
         } else {
+
             PostGre.knex(TABLES.USERS_PROFILE)
                 .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                 .select('first_name', 'last_name', 'points_number')
@@ -223,7 +231,9 @@ Users = function (PostGre) {
                 .then(function (profiles) {
                     res.status(200).send(profiles)
                 })
-                .otherwise(next)
+                .catch(function (err) {
+                    next(err)
+                })
         }
 
     };
@@ -233,14 +243,16 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'select g.id, g.points_number, g.stars_number, u.first_name, u.last_name from ' + TABLES.GAME_PROFILE + ' g ' +
-                'left join ' + TABLES.USERS_PROFILE + ' u on g.user_id = u.id ' +
-                'where g.id in (select friend_game_profile_id from ' + TABLES.FRIENDS + ' where game_profile_id = ' + uid +')'
+                'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
+                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
+                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ' + uid +')'
             )
             .then(function (friends) {
                 res.status(200).send(friends.rows)
             })
-            .otherwise(next)
+            .catch(function (err) {
+                next(err)
+            })
     };
 
 };
