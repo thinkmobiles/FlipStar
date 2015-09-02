@@ -591,7 +591,7 @@ GameProfile = function (PostGre) {
                 return callback(err)
             }
 
-            callback(null, CONSTANTS.ACTION.BUY);
+            callback();
         })
 
     };

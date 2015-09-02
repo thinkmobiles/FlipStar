@@ -246,14 +246,14 @@ GameProfile = function (PostGre) {
         var err;
         var data;
 
-        function openOrBuyCallback (err, action) {
+        function openOrBuyCallback (err) {
             var response;
 
             if (err) {
                 return next(err)
             }
 
-            action ? response = {success: RESPONSES.BUY_SMASHES} : response = {success: RESPONSES.OPEN_SMASHES};
+            options.action ? response = {success: RESPONSES.BUY_SMASHES} : response = {success: RESPONSES.OPEN_SMASHES};
 
             res.status(200).send(response)
         }

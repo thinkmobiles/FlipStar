@@ -1,5 +1,6 @@
 module.exports = function (knex) {
     var TABLES = require('../constants/tables');
+    var CONSTANTS = require('../constants/constants');
     var when = require('when');
     var async = require('../node_modules/async');
     var _ = require('lodash');
@@ -223,9 +224,9 @@ module.exports = function (knex) {
                                     'ELSE ' +
                                         'UPDATE game_profile SET flips_number = ( ' +
                                             'CASE ' +
-                                            'WHEN flips_number + 5 > 50 AND flips_number < 50  THEN 50 ' +
-                                            'WHEN flips_number + 5 > 50 AND flips_number >= 50  THEN flips_number ' +
-                                            'ELSE flips_number + 5 ' +
+                                            'WHEN flips_number + ' + CONSTANTS.FLIPS_PER_HOUR + ' > 50 AND flips_number < ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + ' ' +
+                                            'WHEN flips_number + ' + CONSTANTS.FLIPS_PER_HOUR + ' > 50 AND flips_number >= ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN flips_number ' +
+                                            'ELSE flips_number + ' + CONSTANTS.FLIPS_PER_HOUR + ' ' +
                                             'END ' +
                                             ') ' +
                                         'WHERE id = guid; ' +
