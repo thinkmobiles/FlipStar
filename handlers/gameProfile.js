@@ -41,7 +41,7 @@ GameProfile = function (PostGre) {
                     booster: result[i].booster_id ? result[i].booster_id : -1,
                     activated: result[i].is_active ? result[i].is_active : -1,
                     remainder: result[i].flips_left ? result[i].flips_left : -1,
-                    quantity: result[i].quantity ? result[i].quantity : -1
+                    quantity: result[i].quantity || result[i].quantity === 0 ? result[i].quantity : -1
                 })
             }
 
@@ -86,13 +86,14 @@ GameProfile = function (PostGre) {
         var open = options.open;
         var buy = options.buy;
         var gameDate = new Date(options.date);
+        var curDate = new Date();
         var err;
 
                 PostGre.knex(TABLES.GAME_PROFILE)
                     .where('id', uid)
                     .then(function (profile) {
 
-                        if (profile[0].last_seen_date > gameDate) {
+                        if (profile[0].last_seen_date > gameDate && gameDate < curDate) {
 
                             err = new Error(RESPONSES.OUTDATED);
                             err.status = 400;
@@ -276,9 +277,13 @@ GameProfile = function (PostGre) {
     };
 
     this.addFlips = function (req, res, next) {
-        var uid = req.session.uId;
+        var data = {
+            uid: req.session.uId,
+            quantity: req.body.flips || CONSTANTS.FLIPS_PER_HOUR,
+            actionType: CONSTANTS.FLIPS_ACTION.TIMER
+        };
 
-        gameProfHelper.addFlips(uid, 0, function (err) {
+        gameProfHelper.addFlips(data, function (err) {
 
             if (err) {
                 return next(err)

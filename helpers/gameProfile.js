@@ -38,7 +38,7 @@ GameProfile = function (PostGre) {
 
         for (var i = value.length; i--;){
 
-            result[value[i]] = options[value[i]]? options[value[i]] : null
+            result[value[i]] = options[value[i]] ? options[value[i]] : null;
         }
 
         result.last_seen_date = new Date();
@@ -50,12 +50,12 @@ GameProfile = function (PostGre) {
 
         PostGre.knex(TABLES.USERS_PROFILE)
             .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
-            .leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
+            //.leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .leftJoin(TABLES.USERS_BOOSTERS, TABLES.GAME_PROFILE + '.id', TABLES.USERS_BOOSTERS + '.game_profile_id')
             .where(TABLES.GAME_PROFILE + '.id', uid)
             .select('stars_number', 'points_number', 'flips_number', 'booster_id', 'flips_left', 'is_active', TABLES.USERS_BOOSTERS + '.quantity')
-            .then(function () {
-                callback()
+            .then(function (result) {
+                callback(null, result)
             })
             .catch(function (err) {
                 callback(err)
@@ -596,7 +596,10 @@ GameProfile = function (PostGre) {
 
     };
 
-    this.addFlips = function (uid, quantity, callback) {
+    this.addFlips = function (options, callback) {
+        var uid = options.uid;
+        var quantity = options.quantity;
+        var actionType = options.actionType;
         var err;
 
         if (typeof callback !== 'function') {
@@ -605,7 +608,7 @@ GameProfile = function (PostGre) {
         }
 
         PostGre.knex
-            .raw('SELECT add_flips(' + uid + ', ' + quantity + ');')
+            .raw('SELECT add_flips(' + uid + ', ' + quantity + ', ' + actionType + ');')
             .then(function () {
                 callback()
             })
