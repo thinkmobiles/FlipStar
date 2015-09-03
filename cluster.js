@@ -21,10 +21,6 @@ if (process.env.NODE_ENV) {
 
     var cpuCount = require( 'os' ).cpus().length;
 
-    /!*for( var i = 0; i < cpuCount; i += 1 ) {
-        cluster.fork();
-    }*!/
-
     interval = setInterval(function(){
         if (counter < cpuCount){
             cluster.fork();  

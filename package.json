@@ -33,5 +33,10 @@
     "supertest": "^0.15.0",
     "underscore": "^1.7.0",
     "winston": "^1.0.1"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-jsdoc": "^0.6.8",
+    "markdown": "^0.5.0"
   }
 }

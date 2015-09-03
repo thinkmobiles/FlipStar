@@ -83,10 +83,15 @@ function getOnlineGameStatus( gameId, callback ) {
     store.readFromStorage( gameId, callback )
 }
 
+function searchOnlineGame( userId, bet, stack ) {
+
+}
+
 module.exports = function() {
 
     return {
 
+        searchOnlineGame: searchOnlineGame,
         createOnlineGameRecord : createOnlineGameRecord,
         getOnlineGameStatus : getOnlineGameStatus,
         getUserGameList : getUserGameList

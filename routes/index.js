@@ -38,29 +38,29 @@ module.exports = function (app, PostGre) {
     function errorHandler(err, req, res, next) {
         var status = err.status || 500;
 
-        /* if (process.env.NODE_ENV === 'production') {
-         if (status === 401) {
-         logWriter.log('', err.message + '\n' + err.stack);
-         }
-         res.status(status);
-         } else {
-         if (status !== 401) {
-         logWriter.log('', err.message + '\n' + err.stack);
-         }
-         res.status(status).send({err.message + '\n' + err.stack);
-         }
+        if (process.env.NODE_ENV === 'production') {
+            if (status === 401) {
+                logWriter.log('', err.message + '\n' + err.stack);
+            }
+            res.status(status);
+        } else {
+            if (status !== 401) {
+                logWriter.log('', err.message + '\n' + err.stack);
+            }
+            res.status(status).send(err.message + '\n' + err.stack);
+        }
 
-         if (status === 401) {
-         console.warn(err.message);
-         } else {
-         console.error(err.message);
-         //console.error(err.stack);
-         }*/
+        if (status === 401) {
+            console.warn(err.message);
+        } else {
+            console.error(err.message);
+            //console.error(err.stack);
+        }
 
-        // TODO change
+        /*// TODO change
 
         console.error(err.stack);
-        res.status(status).send({error: err.message || err, stack: err.stack});
+        res.status(status).send({error: err.message || err, stack: err.stack});*/
     }
 
     app.use(notFound);

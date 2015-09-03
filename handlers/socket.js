@@ -2,9 +2,6 @@
  * Created by eriy on 09.07.15.
  */
 
-/*var sockets = require('socket.io');
-var redisObject = require('../helpers/redisClient')();
-var RedisSocketStore = require( 'socket.io/lib/stores/redis' );*/
 var logger = require('../helpers/logger');
 var sharedSession = require("express-socket.io-session");
 var redis = require( 'socket.io-redis' );
@@ -36,7 +33,7 @@ var Socket = function( server, app ) {
 
         if ( ! socket.handshake.session.uId ) {
             err = new Error({ message: 'unAuthorized', socketId: socket.id });
-            err.status = 403;
+            err.status = 401;
 
             if ( process.env.NODE_ENV === 'development') {
                 console.log('Socket: ', socket.id, ' unAuthorized','\n', 'session: ', socket.handshake);
@@ -164,9 +161,33 @@ var Socket = function( server, app ) {
 
         socket.on('endTour', function() {});
 
-        //socket.on('getGameList')
+        socket.on('getGameList', function () {});
+
+        socket.on('isOnline', function ( uId ) {
+
+            io.in( uId).clients( function( err, clients ) {
+                if ( err ) {
+                    return console.error( err );
+                }
+
+
+            })
+
+        })
 
     });
+
+    io.isOnline = function ( uId, callback  ) {
+
+        io.in( uId).clients( function( err, clients ) {
+            if ( err ) {
+                return console.error( err );
+            }
+
+            callback( null, !!clients.length );
+        });
+
+    };
 
     return io;
 };
