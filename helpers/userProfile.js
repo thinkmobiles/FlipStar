@@ -1,6 +1,7 @@
 var TABLES = require('../constants/tables');
 var MODELS = require('../constants/models');
 var RESPONSES = require('../constants/responseMessages');
+var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('lodash');
 var Session = require('../handlers/sessions');
@@ -30,14 +31,28 @@ UserProfile = function (PostGre) {
             weekNumber += 1;
         }
         return weekNumber;
-    };
+    }
 
     function getCurrentAge(date) {
         return ((new Date().getTime() - new Date(date)) / (24 * 3600 * 365.25 * 1000)) | 0;
-    };
+    }
 
-    function prepareDeviceSaveInfo (options) {
-        var result = {};
+    function prepareSaveInfo (type, options) {
+        var newInfo;
+        var err;
+
+        if (typeof prepareSaveInfo[type] !== 'function') {
+            err = new Error(typeof type + ' doesn\'t exist');
+            throw err;
+        }
+
+        newInfo = new prepareSaveInfo[type](options);
+
+        return newInfo;
+    }
+
+    prepareSaveInfo.device = function (options) {
+        var device = {};
         var value = [
             'device_id',
             'device_type',
@@ -54,19 +69,18 @@ UserProfile = function (PostGre) {
         for (var i = value.length; i--;){
 
             if (options['push_operator']) {
-                result['device_firmware'] = options['push_operator']
+                device['device_firmware'] = options['push_operator']
             }
-            result[value[i]] = options[value[i]]? options[value[i]] : null
+            device[value[i]] = options[value[i]]? options[value[i]] : null
         }
 
-        result.updated_at = new Date();
-        return result;
+        return device;
     };
 
-    function prepareUserSaveInfo (options) {
-        var result = {};
+    prepareSaveInfo.user = function (options) {
+        var user = {};
         var value = [
-           'facebook_id',
+            'facebook_id',
             'first_name',
             'last_name',
             'gender',
@@ -81,13 +95,24 @@ UserProfile = function (PostGre) {
         for (var i = value.length; i--;){
 
             if (options['birthday']) {
-                result['age_range'] = getCurrentAge(value)
+                user['age_range'] = getCurrentAge(value)
             }
-            result[value[i]] = options[value[i]]? options[value[i]] : null
+            user[value[i]] = options[value[i]]? options[value[i]] : null
         }
 
-        result.updated_at = new Date();
-        return result;
+        return user;
+    };
+
+    prepareSaveInfo.profile = function () {
+        var curDate = new Date();
+
+        return {
+                flips_number: 50,
+                sessions_number: 1,
+                registration_date: curDate,
+                last_seen_date: curDate,
+                registration_week: getWeekNumber()
+            }
     };
 
     this.createNewProfile = function (options, callback) {
@@ -98,7 +123,7 @@ UserProfile = function (PostGre) {
         async.waterfall([
 
             function (cb) {
-                userObj = prepareUserSaveInfo(options);
+                userObj = prepareSaveInfo(CONSTANTS.INFO_TYPES.USER, options);
 
                 UserModel
                     .forge()
@@ -131,7 +156,7 @@ UserProfile = function (PostGre) {
                 }
             },
             function (user, cb) {
-                deviceObj = prepareDeviceSaveInfo(options);
+                deviceObj = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
                 deviceObj.user_id = user.id;
 
                 DeviceModel
@@ -174,15 +199,9 @@ UserProfile = function (PostGre) {
             },
 
             function (device, cb) {
-                gameProf = {
-                    device_id: device.id,
-                    user_id: device.get('user_id'),
-                    flips_number: 50,
-                    sessions_number: 1,
-                    registration_date: new Date(),
-                    last_seen_date: new Date(),
-                    registration_week: getWeekNumber()
-                };
+                gameProf = prepareSaveInfo(CONSTANTS.INFO_TYPES.PROFILE);
+                gameProf.device_id = device.id;
+                gameProf.user_id = device.get('user_id');
 
                 GameProfileModel
                     .forge()
@@ -217,7 +236,7 @@ UserProfile = function (PostGre) {
     };
 
     this.updateUser = function (uid, options, callback) {
-        var userSaveInfo = prepareUserSaveInfo(options);
+        var userSaveInfo = prepareSaveInfo(CONSTANTS.INFO_TYPES.USER, options);
 
         PostGre.knex(TABLES.GAME_PROFILE)
             .select('user_id')
@@ -245,7 +264,7 @@ UserProfile = function (PostGre) {
         var deviceId = options.device_id;
         var sessionLength = options.session_length;
         var curDate = new Date().toISOString();
-        var deviceObj = prepareDeviceSaveInfo(options);
+        var deviceObj = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
         var err;
 
         async.series([
@@ -317,8 +336,8 @@ UserProfile = function (PostGre) {
         var fbId = options.facebook_id;
         var sessionLength = options.session_length;
         var curDate = new Date().toISOString();
-        var userSaveInfo = prepareUserSaveInfo(options);
-        var deviceInfo;
+        var userSaveInfo = prepareSaveInfo(CONSTANTS.INFO_TYPES.USER, options);
+        var deviceInfo = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
 
         async.waterfall([
             function (cb) {
@@ -353,7 +372,6 @@ UserProfile = function (PostGre) {
                     )
                     .then(function (result) {
                         if (result.rows.length && result.rows[0]) {
-                            deviceInfo = prepareDeviceSaveInfo(options);
 
                             PostGre.knex(TABLES.DEVICE)
                                 .where('id', result.rows[0].id)
@@ -366,7 +384,6 @@ UserProfile = function (PostGre) {
                                 })
 
                         } else {
-                            deviceInfo = prepareDeviceSaveInfo(options);
 
                             PostGre.knex(TABLES.DEVICE)
                                 .insert(deviceInfo, 'id')

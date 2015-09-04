@@ -11,7 +11,7 @@ GameProfile = function (PostGre) {
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
 
     function prepareGameProfSaveInfo (options) {
-        var result = {};
+        var gameProfile = {};
         var value = [
             'app_platform',
             'sessions_number',
@@ -38,12 +38,12 @@ GameProfile = function (PostGre) {
 
         for (var i = value.length; i--;){
 
-            result[value[i]] = options[value[i]] ? options[value[i]] : null;
+            gameProfile[value[i]] = options[value[i]] ? options[value[i]] : null;
         }
 
-        result.last_seen_date = new Date();
+        gameProfile.last_seen_date = new Date();
 
-        return result;
+        return gameProfile;
     }
 
     this.getProfileById = function (uid, callback) {

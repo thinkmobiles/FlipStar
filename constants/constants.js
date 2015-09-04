@@ -57,5 +57,11 @@ module.exports = {
     FLIPS_ACTION: {
         TIMER: 0,
         BUY:1
+    },
+
+    INFO_TYPES: {
+        USER: 'user',
+        DEVICE: 'device',
+        PROFILE: 'profile'
     }
 };
