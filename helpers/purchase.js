@@ -1,7 +1,3 @@
-/**
- * Created by migal on 27.07.15.
- */
-
 var async = require('async');
 var iap = require('./in-app-purchase');
 var MODELS = require('../constants/models');

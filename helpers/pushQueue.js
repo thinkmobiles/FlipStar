@@ -1,7 +1,3 @@
-/**
- * Created by migal on 11.08.15.
- */
-
 var Tables = require('../constants/tables');
 var RESPONSES = require('../constants/responseMessages');
 var PushHandler = require('./notifications');

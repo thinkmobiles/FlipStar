@@ -1,5 +1,7 @@
 /**
- * Created by migal on 27.07.15.
+ * @description Purchases management module
+ * @module purchase
+ *
  */
 
 var TABLES = require('../constants/tables');

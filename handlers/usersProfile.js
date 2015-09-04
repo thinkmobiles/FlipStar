@@ -1,3 +1,9 @@
+/**
+ * @description User profile management module
+ * @module usersProfile
+ *
+ */
+
 var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var CONSTANTS = require('../constants/constants');

@@ -1,3 +1,8 @@
+/**
+ * @description Facebook notification management module
+ * @module FBnotification
+ *
+ */
 var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
 var GROUPS = require('../constants/FbNotificationGroup');

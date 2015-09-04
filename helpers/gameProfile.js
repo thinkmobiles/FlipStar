@@ -44,7 +44,7 @@ GameProfile = function (PostGre) {
         result.last_seen_date = new Date();
 
         return result;
-    };
+    }
 
     this.getProfileById = function (uid, callback) {
 
@@ -183,8 +183,9 @@ GameProfile = function (PostGre) {
     this.syncGames = function (options, callback) {
         var uid = options.uId;
         var gameDate = new Date(options.date);
-        var games = _.pluck(options.games, 'stars');
-        var boosters = _.flatten( _.pluck(options.games, 'boosters_id'));
+        var gameList = options.games;
+        var games = _.pluck(gameList, 'stars');
+        var boosters = _.flatten( _.pluck(gameList, 'boosters_id'));
         var updProf = {};
         var maxFlips;
         var gamesLength;

@@ -1,7 +1,3 @@
-/**
- * Created by migal on 03.08.15.
- */
-
 var path = require('path');
 //var applePusher = require('./apns')();
 //var googlePusher = require('./gcm')();

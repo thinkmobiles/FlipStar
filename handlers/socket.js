@@ -1,7 +1,3 @@
-/**
- * Created by eriy on 09.07.15.
- */
-
 var logger = require('../helpers/logger');
 var sharedSession = require("express-socket.io-session");
 var redis = require( 'socket.io-redis' );

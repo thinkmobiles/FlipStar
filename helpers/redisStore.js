@@ -1,6 +1,3 @@
-/**
- * Created by eriy on 22.07.15.
- */
 var redis = require('redis');
 var _ = require('lodash');
 var gameMaxTTL = 60 * 30;

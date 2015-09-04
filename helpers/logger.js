@@ -1,6 +1,3 @@
-/**
- * Created by eriy on 02.07.15.
- */
 var winston = require('winston');
 var path = require('path');
 var appDir = path.dirname( require.main.filename );

@@ -1,6 +1,3 @@
-/**
- * Created by migal on 12.08.15.
- */
 var QueueHandler = require('../helpers/eventQueue/kafkaServer');
 
 module.exports = function(app){

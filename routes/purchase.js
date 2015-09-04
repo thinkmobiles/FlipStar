@@ -1,7 +1,3 @@
-/**
- * Created by migal on 29.07.15.
- */
-
 var express = require('express');
 var router = express.Router();
 var PurchaseHandler = require('../handlers/purchase');

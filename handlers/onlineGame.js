@@ -1,6 +1,9 @@
 /**
- * Created by eriy on 23.07.15.
+ * @description Online game management module
+ * @module onlineGame
+ *
  */
+
 var _ = require('lodash');
 var async = require('async');
 var store = require('../helpers/redisStore')();

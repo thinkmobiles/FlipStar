@@ -40,12 +40,12 @@ module.exports = function (app, PostGre) {
 
         if (process.env.NODE_ENV === 'production') {
             if (status === 401) {
-                logWriter.log('', err.message + '\n' + err.stack);
+                /*logWriter*/console.log('', err.message + '\n' + err.stack);
             }
             res.status(status);
         } else {
             if (status !== 401) {
-                logWriter.log('', err.message + '\n' + err.stack);
+                /*logWriter*/console.log('', err.message + '\n' + err.stack);
             }
             res.status(status).send(err.message + '\n' + err.stack);
         }
