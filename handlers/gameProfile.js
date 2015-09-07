@@ -179,15 +179,30 @@ GameProfile = function (PostGre) {
         var games = options.games;
         var open = options.open;
         var buy = options.buy;
-        var gameDate = new Date(options.date);
+        var gameDate = new Date(options.date).toISOString();
         var curDate = new Date();
         var err;
 
-                PostGre.knex(TABLES.GAME_PROFILE)
-                    .where('id', uid)
-                    .then(function (profile) {
+        /*PostGre.knex
+            .raw(
+            'SELECT   gp.last_seen_date < to_timestamp(' + gameDate + ', \'YYYY MM DD HH MI ss\') AND  ' +
+            'to_timestamp(' + gameDate + ', \'YYYY MM DD HH MI ss\') < now() ' +
+            'FROM game_profile  gp ' +
+            'WHERE gp.id = ' + uid + '; '
+        )*/
 
-                        if (profile[0].last_seen_date > gameDate && gameDate < curDate) {
+                /*PostGre.knex(TABLES.GAME_PROFILE)
+                    .where('id', uid)*/
+                PostGre.knex
+                    .raw(
+                        'SELECT   gp.last_seen_date < to_timestamp(\'' + gameDate + '\', \'YYYY MM DD HH MI ss\') AND  ' +
+                        'to_timestamp(\'' + gameDate + '\', \'YYYY MM DD HH MI ss\') < now() ' +
+                        'FROM game_profile  gp ' +
+                        'WHERE gp.id = ' + uid + '; '
+                    )
+                    .then(function (resultQuery) {
+
+                        if (!resultQuery.rows[0]['?column?']) {
 
                             err = new Error(RESPONSES.OUTDATED);
                             err.status = 400;
@@ -209,19 +224,7 @@ GameProfile = function (PostGre) {
 
                                 function(cb) {
 
-                                    if (games && games.length) {
-
-                                        gameProfHelper.syncGames(options, function (err) {
-
-                                            if(err) {
-                                                return cb(err)
-                                            }
-                                            cb()
-                                        })
-
-                                    } else {
-                                       cb()
-                                    }
+                                    gameProfHelper.syncGames(options, cb);
                                 },
 
                                 function (cb) {

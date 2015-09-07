@@ -184,7 +184,7 @@ GameProfile = function (PostGre) {
         var uid = options.uId;
         var gameDate = new Date(options.date);
         var gameList = options.games;
-        var games = _.pluck(gameList, 'stars');
+        var games = _.pluck(gameList, 'stars') || [];
         var boosters = _.flatten( _.pluck(gameList, 'boosters_id'));
         var updProf = {};
         var maxFlips;
