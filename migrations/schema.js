@@ -119,7 +119,7 @@ module.exports = function (knex) {
                     'CREATE OR REPLACE FUNCTION activate_booster(guid INT, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
                     '$$ ' +
                         'BEGIN ' +
-                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left + 100, is_active = true, quantity = quantity - 1 ' +
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true ' +
                             'WHERE game_profile_id = guid AND booster_id = booster; ' +
                             'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster;' +
                                 'IF (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster) < 0 THEN ' +
