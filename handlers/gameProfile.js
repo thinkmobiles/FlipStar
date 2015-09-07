@@ -179,7 +179,7 @@ GameProfile = function (PostGre) {
         var games = options.games;
         var open = options.open;
         var buy = options.buy;
-        var gameDate = new Date(options.date).toISOString();
+        var gameDate = new Date(options.date);
         var curDate = new Date();
         var err;
 
@@ -191,18 +191,11 @@ GameProfile = function (PostGre) {
             'WHERE gp.id = ' + uid + '; '
         )*/
 
-                /*PostGre.knex(TABLES.GAME_PROFILE)
-                    .where('id', uid)*/
-                PostGre.knex
-                    .raw(
-                        'SELECT   gp.last_seen_date < to_timestamp(\'' + gameDate + '\', \'YYYY MM DD HH MI ss\') AND  ' +
-                        'to_timestamp(\'' + gameDate + '\', \'YYYY MM DD HH MI ss\') < now() ' +
-                        'FROM game_profile  gp ' +
-                        'WHERE gp.id = ' + uid + '; '
-                    )
-                    .then(function (resultQuery) {
+                PostGre.knex(TABLES.GAME_PROFILE)
+                    .where('id', uid)
+                    .then(function (profile) {
 
-                        if (!resultQuery.rows[0]['?column?']) {
+                        if (profile[0].last_seen_date > gameDate && gameDate < curDate) {
 
                             err = new Error(RESPONSES.OUTDATED);
                             err.status = 400;
@@ -223,8 +216,7 @@ GameProfile = function (PostGre) {
                                 },
 
                                 function(cb) {
-
-                                    gameProfHelper.syncGames(options, cb);
+                                    gameProfHelper.syncGames(options, cb)
                                 },
 
                                 function (cb) {
@@ -478,7 +470,7 @@ GameProfile = function (PostGre) {
          */
         var data = {
             uid: req.session.uId,
-            quantity: req.body.flips || CONSTANTS.FLIPS_PER_HOUR,
+            quantity: req.body.flips,
             actionType: CONSTANTS.FLIPS_ACTION.TIMER
         };
 

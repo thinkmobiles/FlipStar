@@ -445,7 +445,8 @@ GameProfile = function (PostGre) {
                                     'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                                     'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid
+                            'WHERE id = ' + uid + ' ' +
+                            'RETURNING stars_number'
                         )
                         .then(function () {
                             cb()
