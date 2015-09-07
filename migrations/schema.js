@@ -61,7 +61,7 @@ module.exports = function (knex) {
                     'CREATE OR REPLACE FUNCTION desactivate_booster() ' +
                     'RETURNS TRIGGER AS $$ ' +
                         'BEGIN ' +
-                            'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = false, quantity = quantity -1, flips_left = 100  WHERE flips_left = 0; ' +
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = false WHERE flips_left = 0 AND is_active = true; ' +
                             'RETURN NULL; ' +
                         'END; ' +
                     '$$ language plpgsql;'
@@ -119,7 +119,7 @@ module.exports = function (knex) {
                     'CREATE OR REPLACE FUNCTION activate_booster(guid INT, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
                     '$$ ' +
                         'BEGIN ' +
-                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true ' +
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true, quantity = quantity -1, flips_left = 100 ' +
                             'WHERE game_profile_id = guid AND booster_id = booster; ' +
                             'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster;' +
                                 'IF (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster) < 0 THEN ' +
