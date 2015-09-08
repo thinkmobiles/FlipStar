@@ -186,7 +186,7 @@ GameProfile = function (PostGre) {
         /*PostGre.knex
             .raw(
             'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate + '\' AND  ' +
-            'TIMESTAMP \'' + gameDate + '\' < now() ' +
+            'TIMESTAMP \'' + gameDate + '\' < \'' + curDate.toISOString() + '\' ' +
             'FROM game_profile  gp ' +
             'WHERE gp.id = ' + uid + '; '
         )*/
@@ -416,16 +416,14 @@ GameProfile = function (PostGre) {
         var err;
         var data;
 
-        function openOrBuyCallback (err) {
-            var response;
+        function openOrBuyCallback (err, profile) {
 
             if (err) {
                 return next(err)
             }
 
-            options.action ? response = {success: RESPONSES.BUY_SMASHES} : response = {success: RESPONSES.OPEN_SMASHES};
 
-            res.status(200).send(response)
+            res.status(200).send(profile)
         }
 
         if (!options || typeof options.action !== 'number' || typeof options.smash_id !== 'number') {

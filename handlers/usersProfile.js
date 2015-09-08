@@ -25,7 +25,7 @@ Users = function (PostGre) {
         var fbId = options.facebook_id;
 
         var GUEST = !!(uid !== -1 && !fbId);
-        var FB_USER = !!(uid && fbId);
+        var FB_USER = !!(uid !== -1 && fbId);
         
         if (options && options.device_id) {
 
@@ -50,7 +50,7 @@ Users = function (PostGre) {
                         return next(err)
                     }
 
-                    if(exist && exist !== uid) {
+                    if(exist && exist !== uid && uid !== -1) {
 
                         userProfHelper.mergeProfiles(exist, options, function (err, profile) {
                             if (err) {

@@ -182,7 +182,7 @@ GameProfile = function (PostGre) {
 
     this.syncGames = function (options, callback) {
         var uid = options.uId;
-        var gameDate = new Date(options.date);
+        var gameDate = new Date();
         var gameList = options.games;
         var games = _.pluck(gameList, 'stars') || [];
         var boosters = _.flatten( _.pluck(gameList, 'boosters_id'));
@@ -446,10 +446,10 @@ GameProfile = function (PostGre) {
                                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                                     'WHERE gp.id = ' + uid + ') ' +
                             'WHERE id = ' + uid + ' ' +
-                            'RETURNING stars_number'
+                            'RETURNING stars_number, points_number'
                         )
-                        .then(function () {
-                            cb()
+                        .then(function (profile) {
+                            cb(null, profile.rows[0])
                         })
                         .catch(function (err) {
                             cb(err)
@@ -465,10 +465,11 @@ GameProfile = function (PostGre) {
                                 'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                                 'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                                 'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid
+                            'WHERE id = ' + uid + ' ' +
+                            'RETURNING stars_number, points_number'
                         )
-                        .then(function () {
-                            cb()
+                        .then(function (profile) {
+                            cb(null, profile.rows[0])
                         })
                         .catch(function (err) {
                             cb(err)
@@ -476,13 +477,13 @@ GameProfile = function (PostGre) {
                 }
             }
 
-        ], function (err) {
+        ], function (err, result) {
 
             if (err) {
                 return callback(err)
             }
 
-            callback(null, CONSTANTS.ACTION.OPEN);
+            callback(null, result[2]);
         })
 
 
@@ -558,10 +559,11 @@ GameProfile = function (PostGre) {
                             'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                             'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                             'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid
+                            'WHERE id = ' + uid + ' ' +
+                            'RETURNING stars_number, points_number'
                         )
-                        .then(function () {
-                            cb()
+                        .then(function (profile) {
+                            cb(null, profile.rows[0])
                         })
                         .catch(function (err) {
                             cb(err)
@@ -577,10 +579,11 @@ GameProfile = function (PostGre) {
                             'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                             'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
                             'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid
+                            'WHERE id = ' + uid + ' ' +
+                            'RETURNING stars_number, points_number'
                         )
-                        .then(function () {
-                            cb()
+                        .then(function (profile) {
+                            cb(null, profile.rows[0])
                         })
                         .catch(function (err) {
                             cb(err)
@@ -588,12 +591,12 @@ GameProfile = function (PostGre) {
                 }
             }
 
-        ], function (err) {
+        ], function (err, result) {
             if (err) {
                 return callback(err)
             }
 
-            callback();
+            callback(null, result[2]);
         })
 
     };

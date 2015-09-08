@@ -492,8 +492,13 @@ UserProfile = function (PostGre) {
             .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
             .where(function () {
-                this.where(TABLES.DEVICE + '.device_id', options.device_id)
-                    .whereNull(TABLES.USERS_PROFILE + '.facebook_id')
+                if (options && options.facebook_id) {
+                    this.where(TABLES.USERS_PROFILE + '.facebook_id', options.facebook_id)
+                } else {
+                    this.where(TABLES.DEVICE + '.device_id', options.device_id)
+                        .whereNull(TABLES.USERS_PROFILE + '.facebook_id')
+                }
+
             })
             .then(function (profile) {
                 callback(null, profile)
