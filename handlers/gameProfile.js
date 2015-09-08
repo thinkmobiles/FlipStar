@@ -185,17 +185,18 @@ GameProfile = function (PostGre) {
 
         /*PostGre.knex
             .raw(
-            'SELECT   gp.last_seen_date < to_timestamp(' + gameDate + ', \'YYYY MM DD HH MI ss\') AND  ' +
-            'to_timestamp(' + gameDate + ', \'YYYY MM DD HH MI ss\') < now() ' +
+            'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate + '\' AND  ' +
+            'TIMESTAMP \'' + gameDate + '\' < now() ' +
             'FROM game_profile  gp ' +
             'WHERE gp.id = ' + uid + '; '
         )*/
 
                 PostGre.knex(TABLES.GAME_PROFILE)
-                    .where('id', uid)
-                    .then(function (profile) {
+                        .where('id', uid)
+                    .then(function (profile/*queryResult*/) {
 
                         if (profile[0].last_seen_date > gameDate && gameDate < curDate) {
+                        //if (!queryResult.rows[0]['?column?']) {
 
                             err = new Error(RESPONSES.OUTDATED);
                             err.status = 400;
