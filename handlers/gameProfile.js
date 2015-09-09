@@ -81,7 +81,7 @@ GameProfile = function (PostGre) {
                     quantity: result[i].quantity || result[i].quantity === 0 ? result[i].quantity : -1
                 })
             }
-            
+
 
             res.status(200).send(responseObj)
         })

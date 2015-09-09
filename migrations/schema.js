@@ -147,7 +147,7 @@ module.exports = function (knex) {
                 knex.raw(
                         'CREATE OR REPLACE FUNCTION open_smash(guid INT, sid INT) RETURNS VOID AS ' +
                             '$$ ' +
-                                'BEGIN' +
+                                'BEGIN ' +
                                     'LOOP ' +
                                         'UPDATE  ' + TABLES.USERS_SMASHES + ' SET is_open = true   WHERE game_profile_id = guid  AND smash_id = sid ; ' +
                                         'IF found THEN ' +
