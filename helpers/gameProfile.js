@@ -87,7 +87,9 @@ GameProfile = function (PostGre) {
         var insertObj = [];
         var queryStr = '';
         var price = 0;
-        var updProf = {};
+        var updProf = {
+            last_seen_date: new Date()
+        };
 
         for (var i = smashes.length; i--;) {
             queryStr += '\'' + smashes[i] + '\'' + ','
@@ -135,7 +137,6 @@ GameProfile = function (PostGre) {
                         if (price < profile[0].stars_number) {
 
                             updProf.stars_number = profile[0].stars_number - price;
-                            updProf.last_seen_date = new Date();
 
                             if (insertObj.length) {
 
@@ -182,7 +183,7 @@ GameProfile = function (PostGre) {
 
     this.syncGames = function (options, callback) {
         var uid = options.uId;
-        var gameDate = new Date();
+        var curDate = new Date();
         var gameList = options.games;
         var games = _.pluck(gameList, 'stars') || [];
         var boosters = _.flatten( _.pluck(gameList, 'boosters_id'));
@@ -194,11 +195,11 @@ GameProfile = function (PostGre) {
             .where('id', uid)
             .then(function (profile) {
 
-                updProf.last_seen_date = new Date();
+                updProf.last_seen_date = curDate;
                 updProf.id = profile[0].id;
                 updProf.stars_number = profile[0].stars_number;
 
-                maxFlips = parseInt((gameDate - profile[0].last_seen_date)/(1000*60*60)) * CONSTANTS.FLIPS_PER_HOUR + profile[0].flips_number;
+                maxFlips = parseInt((curDate - profile[0].last_seen_date)/(1000*60*60)) * CONSTANTS.FLIPS_PER_HOUR + profile[0].flips_number;
                 updProf.flips_number = maxFlips;
 
                 games = games.slice(0, maxFlips);

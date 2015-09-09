@@ -403,7 +403,7 @@ module.exports = function (knex) {
                     row.integer('fb_friends_number');
                     row.integer('shares');
                     row.integer('tools_used');
-                    row.timestamp('last_seen_date');
+                    row.timestamp('last_seen_date', true).defaultTo(knex.raw('now()'));
                     row.timestamp('last_purchase_date');
                     row.timestamp('first_purchase_date');
                     row.integer('offers_seen');
