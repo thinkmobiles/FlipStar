@@ -76,7 +76,7 @@ GameProfile = function (PostGre) {
             for (var i = result.length; i--;) {
                 responseObj.boosters.push({
                     booster: result[i].booster_id ? result[i].booster_id : -1,
-                    activated: result[i].is_active,
+                    activated: result[i].is_active ? result[i].is_active : false,
                     remainder: result[i].flips_left ? result[i].flips_left : -1,
                     quantity: result[i].quantity || result[i].quantity === 0 ? result[i].quantity : -1
                 })
