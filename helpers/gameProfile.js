@@ -251,8 +251,11 @@ GameProfile = function (PostGre) {
     this.syncBoughtSmashes = function (uid, smashes, callback) {
         var setId;
         var price;
-        var updProf = {};
         var totalPrice = 0;
+        var updProf = {
+            last_seen_date: new Date()
+        };
+
 
         PostGre.knex(TABLES.GAME_PROFILE)
             .where('id', uid)
@@ -272,7 +275,6 @@ GameProfile = function (PostGre) {
                 } else {
 
                     updProf.stars_number = profile[0].stars_number - totalPrice;
-                    updProf.last_seen_date = new Date();
 
                     async.each(smashes, function (smash, cb) {
 
