@@ -9,6 +9,7 @@ module.exports = function () {
     var bodyParser = require('body-parser');
     var app = express();
     var http = require('http');
+    var https = require('https');
     var session = require('express-session');
     var RedisStore = require('connect-redis')(session);
     var logger = require('./helpers/logger');
@@ -16,6 +17,7 @@ module.exports = function () {
     /*var clientOptions = process.env.KAFKA_HOST + ':' + process.env.KAFKA_PORT;*/
     /*var client = new kafka.Client(clientOptions);*/
     /*var producer = new kafka.HighLevelProducer(client);*/
+    var fs = require('fs');
     var eventQueueHandler = require('./helpers/eventQueue/kafkaServer');
     var eventQueue;
     var producer;
@@ -27,11 +29,23 @@ module.exports = function () {
     var sessionStore;
     var uploaderConfig;
     var imagesUploader;
+    var httpServer;
+    var httpsServer;
+    var certificate;
+    var credentials;
+    var privateKey;
+    var io;
 
 
     app.use( morgan('dev'));
-    app.use(bodyParser.json({strict: false, inflate: false, limit: 1024 * 1024 * 200}));
-    app.use(bodyParser.urlencoded({extended: false}));
+    app.use( bodyParser.json({
+        strict: false,
+        inflate: false,
+        limit: 1024 * 1024 * 200
+    }));
+    app.use (bodyParser.urlencoded({
+        extended: false
+    }));
     app.use(cookieParser());
     app.use(express.static(path.join(__dirname, 'public')));
 
@@ -137,23 +151,6 @@ module.exports = function () {
             res.status(200).send({message: 'unAuthorized'});
         });
 
-        /*app.get('/testKnex', function( req, res, next ) {
-         /!* remove *!/
-         if ( process.env.NODE_ENV === 'development') {
-         knex('users_profile up').
-         update({facebook_id:'fbUser10'}).
-         where('up.id', )/!*.
-         join(
-         'game_profile as gp',
-         function() {
-         this.on('gp.user_id', 'up.id').
-         andOn('gp.id', knex.raw('?', ['3']))
-         }
-         )*!/.then( function(result) {
-         res.status(200).send(result);
-         })
-         }
-         })*/
     }
 
     eventQueue = eventQueueHandler(app);
@@ -169,6 +166,24 @@ module.exports = function () {
     /*producer.on('error', function(err){
         console.log(err);
     });*/
+
+    httpServer = http.createServer(app);
+    privateKey  = fs.readFileSync('config/server.key', 'utf8');
+    certificate = fs.readFileSync('config/server.crt', 'utf8');
+
+    credentials = {key: privateKey, cert: certificate};
+    httpsServer = https.createServer(credentials, app);
+
+    io = require('./handlers/socket')( httpServer );
+
+    httpServer.listen( process.env.PORT, function () {
+        console.log(
+            '====', new Date().toISOString(), '====','\n',
+            'http server listen', '\n',
+            'port: ', process.env.PORT, '\n',
+            'environment: ', process.env.NODE_ENV, '\n'
+        );
+    } );
 
     return app;
 };
