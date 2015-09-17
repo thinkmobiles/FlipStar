@@ -390,10 +390,11 @@ GameProfile = function (PostGre) {
         var err;
         var uid = data.uid;
         var sid = data.smash_id;
+        var smashInSet = CONSTANTS.SMASH_IN_SET;
         var setId;
         var price;
 
-        (sid%15) ? setId = 1 + (sid/15) | 0 : setId = (sid/15) | 0;
+        (sid%smashInSet) ? setId = 1 + (sid/smashInSet) | 0 : setId = (sid/smashInSet) | 0;
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
 
         if (typeof callback !== 'function') {
