@@ -1,15 +1,41 @@
 var logger = require('../helpers/logger');
-var sharedSession = require("express-socket.io-session");
-var redis = require( 'socket.io-redis' );
-var onlineGame = require('./onlineGame')();
+var redis = require( 'redis' );
+var debug = require('debug')('handlers:socket');
 
 var io;
 
-var Socket = function( server, app ) {
+function onError( err ) {
+    "use strict";
+    if ( err ) {
+        return console.log( err.message || err );
+    }
+}
+
+module.exports = function ( server ) {
+    "use strict";
+
     if ( io ) {
+        debug('Return cached socket.io');
         return io;
     }
-    var sessionStore = app.get('sessionStore');
+
+    debug('Initialize socket.io');
+
+    var adapter = require('socket.io-redis');
+    var pub = redis.createClient(
+        parseInt( process.env.SOCKET_DB_PORT ),
+        process.env.SOCKET_DB_HOST,
+        {
+            return_buffers: true
+        }
+    );
+    var sub = redis.createClient(
+        parseInt( process.env.SOCKET_DB_PORT ),
+        process.env.SOCKET_DB_HOST,
+        {
+            return_buffers: true
+        }
+    );
 
     io = require('socket.io')(
         server,
@@ -18,174 +44,23 @@ var Socket = function( server, app ) {
         }
     );
 
-    io.adapter( redis({
-        /*host: process.env.REDIS_HOST,
-        port: process.env.REDIS_PORT*/
-    }) );
+    pub.select( parseInt( process.env.SOCKET_DB ) );
+    sub.select( parseInt( process.env.SOCKET_DB ) );
 
-    io.use( sharedSession( sessionStore, { autoSave: true } ) );
-    io.use( function( socket, next ) {
-        var err;
-
-        if ( ! socket.handshake.session.uId ) {
-            err = new Error({ message: 'unAuthorized', socketId: socket.id });
-            err.status = 401;
-
-            if ( process.env.NODE_ENV === 'development') {
-                console.log('Socket: ', socket.id, ' unAuthorized','\n', 'session: ', socket.handshake);
-            }
-            socket.emit('newMessage', { message: 'unAuthorized', socketId: 'system'});
-
-            return next( err );
-        }
-
-        if ( process.env.NODE_ENV === 'development') {
-            console.log('Socket: ', socket.id, ' isAuthorized, UserId: ', socket.handshake.session.uId);
-        }
-
-        next();
-    });
-
-    io.on('connection', function( socket ) {
-        socket.join( socket.handshake.session.uId );
-        socket.emit('newMessage', { message: 'you are connected', socketId: socket.id });
-        console.log(
-            'Socket connected: ', socket.id, '\n',
-            'session: ', socket.handshake
-        );
-
-        socket.on('data', function( data ) {
-            socket.broadcast.to('gameRoom').emit('data', data );
-        });
-
-        socket.on('newMessage', function( data ) {
-            if ( data.room ) {
-                console.log( data.room );
-                socket.broadcast.to( data.room ).emit('newMessage', { message: data.message, socketId: socket.handshake.session.user ||socket.id } );
-                console.log( 'New message\n', 'from: ', socket.id, '\n', 'to room: ', data.room );
-            } else {
-                socket.emit('newMessage', { message: 'your test msg resived', data: data, socketId:socket.handshake.session.user || socket.id });
-            }
-
-        });
-
-        socket.on('user:login', function( data ) {
-            if ( data.room ) {
-                console.log( data.room );
-                socket.broadcast.to( data.room ).emit('newMessage', { message: data.message, socketId: socket.handshake.session.user ||socket.id } );
-                console.log( 'New message\n', 'from: ', socket.id, '\n', 'to room: ', data.room );
-            } else {
-                console.log('Socket IN: ', socket.id, ' Data: ', data);
-                socket.emit('newMessage', { message: 'your test msg resived', data: data, socketId:socket.handshake.session.user || socket.id });
-            }
-
-        });
-
-        socket.on('join', function( data ) {
-
-            socket.join( data.room );
-            socket.handshake.session.user = data.room;
-            socket.emit('newMessage', {message: 'You are joined', room: data.room, socketId: 'ROOM-' + data.room + ': ' });
-            io.sockets.to( data.room ).emit('newMessage', {message: 'New user connected: ' + socket.id, socketId: 'ROOM-' + data.room + ': '});
-
-        });
-
-        socket.on('disconnect', function() {
-
-            socket.broadcast.emit('newMessage', { message: 'user disconnected ', socketId: socket.id } );
-            console.log('Socket disconnected: ', socket.id );
-
-        });
-
-
-        /* production */
-        socket.on('connectGame', function( data ) {
-            var gameId = socket.uId;
-
-            async.waterfall(
-                [
-                    function( cb ) {
-                        onlineGame.getOnlineGameStatus( gameId, function( err, result ) {
-
-                            if ( err ) {
-                                cb( err );
-                                return console.error( err );
-                            }
-
-                            if ( ! result ) {
-                                err = new Error( 'no game record' );
-                                return cb( err );
-
-                            }
-
-                            if ( ! result.userId ) {
-                                cb( err );
-                                return console.log('socket.io:connectGame - user: ', userId, ' is not part of game');
-                            }
-
-                            cb( null, result );
-
-                        })
-                    }
-
-                ],
-
-                function( err, result ) {
-                    if ( err ) {
-                        socket.emit( err );
-                        return console.error( err )
-                    }
-
-                    socket.join( gameId );
-                    socket.emit( 'gameData', result );
-
-                }
-            );
-
-        });
-
-        socket.on('turnData', function( data ) {
-            var gameId = data.gameId;
-            var sendData = {
-                userId: socket.uId,
-                data: data.data
-            };
-
-            socket.broadcast.to( gameId ).emit( sendData );
-
-        });
-
-        socket.on('endTour', function() {});
-
-        socket.on('getGameList', function () {});
-
-        socket.on('isOnline', function ( uId ) {
-
-            io.in( uId).clients( function( err, clients ) {
-                if ( err ) {
-                    return console.error( err );
-                }
-
-
-            })
-
+    io.adapter(
+        adapter({
+            pubClient: pub,
+            subClient: sub
         })
+    );
 
-    });
+    /* Work only with engine.io source after commit df4331dd1a0a6c7f2c19ca13e6675e74fc431464*/
+    /*io.engine.generateId = function( req ) {
+     return (req._query.userId + (( Math.random() * 10 ) | 0 )) ;
+     };*/
 
-    io.isOnline = function ( uId, callback  ) {
-
-        io.in( uId).clients( function( err, clients ) {
-            if ( err ) {
-                return console.error( err );
-            }
-
-            callback( null, !!clients.length );
-        });
-
-    };
+    pub.on('error', onError );
+    sub.on('error', onError );
 
     return io;
 };
-
-module.exports = Socket;
