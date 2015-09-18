@@ -55,8 +55,6 @@ module.exports = {
     SMASHES_PER_SET: 20,
     FLIPS_PER_HOUR: 5,
 
-    SMASH_IN_SET: 20,
-
     FLIPS_ACTION: {
         TIMER: 0,
         BUY:1
