@@ -14,6 +14,7 @@ module.exports = {
 
     BAD_INCOMING_PARAMS: 'Not enough incoming parameters',
     FORBIDDEN: 'No permission to view this page',
+    UNATHORIZED: 'UnAuthorized',
     OUTDATED: 'Outdated information for saving',
     DATABASE_ERROR: 'Database error',
     NOT_VALID_RECEIPT: 'Receipt not valid',
