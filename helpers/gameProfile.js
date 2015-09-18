@@ -523,7 +523,7 @@ GameProfile = function (PostGre) {
                             err = new Error(RESPONSES.NOT_ENOUGH_STARS);
                             err.status = 400;
 
-                            (result && result[0].stars_number - price) < 0 ? cb(err) : cb();
+                            (result[0].stars_number - price) < 0 ? cb(err) : cb();
                         })
                         .catch(function (err) {
                             cb(err)
