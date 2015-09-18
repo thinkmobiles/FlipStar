@@ -52,6 +52,7 @@ module.exports = {
 
     SMASH_DEFAULT_PRICE: 100,
     DEFAULT_FLIPS_LIMIT: 50,
+    SMASHES_PER_SET: 20,
     FLIPS_PER_HOUR: 5,
 
     FLIPS_ACTION: {

@@ -423,7 +423,6 @@ GameProfile = function (PostGre) {
                 return next(err)
             }
 
-
             res.status(200).send(profile)
         }
 

@@ -392,8 +392,9 @@ GameProfile = function (PostGre) {
         var sid = data.smash_id;
         var setId;
         var price;
+        var setSize = CONSTANTS.SMASHES_PER_SET;
 
-        (sid%15) ? setId = 1 + (sid/15) | 0 : setId = (sid/15) | 0;
+        setId = (sid%setSize) ? 1 + (sid/setSize) | 0 :  (sid/setSize) | 0;
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
 
         if (typeof callback !== 'function') {
@@ -498,8 +499,9 @@ GameProfile = function (PostGre) {
         var setId;
         var price;
         var err;
+        var setSize = CONSTANTS.SMASHES_PER_SET;
 
-        (sid%15) ? setId = 1 + (sid/15) | 0 : setId = (sid/15) | 0;
+        setId = (sid%setSize) ? 1 + (sid/setSize) | 0 :  (sid/setSize) | 0;
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
 
         if (typeof callback !== 'function') {
@@ -520,7 +522,7 @@ GameProfile = function (PostGre) {
                             err = new Error(RESPONSES.NOT_ENOUGH_STARS);
                             err.status = 400;
 
-                            (result[0].stars_number - price) < 0 ? cb(err) : cb();
+                            (result && result[0].stars_number - price) < 0 ? cb(err) : cb();
                         })
                         .catch(function (err) {
                             cb(err)
