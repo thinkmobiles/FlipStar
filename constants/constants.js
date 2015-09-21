@@ -26,6 +26,7 @@ module.exports = {
         LEVEL_11: 3200000,
         GROWTH_11: parseInt(32000000/7)
     },
+
     FB_NOTIFICATION_MESSAGES: [
         'Message for group B',
         'Message for group C',
@@ -53,6 +54,7 @@ module.exports = {
     SMASH_DEFAULT_PRICE: 100,
     DEFAULT_FLIPS_LIMIT: 50,
     SMASHES_PER_SET: 20,
+    SMASHES_LIMIT: 300,
     FLIPS_PER_HOUR: 5,
 
     FLIPS_ACTION: {

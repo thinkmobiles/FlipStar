@@ -866,10 +866,11 @@ module.exports = function (knex) {
 
     function fillSmashes (cb){
         var sqlString = "CREATE OR REPLACE FUNCTION fillSmashes() RETURNS VOID AS $$ " +
-                            " declare counter int := 1; " +
+                            " DECLARE counter;" +
+                            " counter int := 1; " +
                             " BEGIN " +
-                                " WHILE (counter <= 300) LOOP " +
-                                    " INSERT INTO smashes (name, set) VALUES ('AAA', (((counter - 1) / 15) | 0) + 1); " +
+                                " WHILE (counter <= " + CONSTANTS.SMASHES_LIMIT + ") LOOP " +
+                                    " INSERT INTO " + TABLES.SMASHES + " (name, set) VALUES ('SMASH ' || counter, (((counter - 1) / " + CONSTANTS.SMASHES_PER_SET + " ) | 0) + 1); " +
                                         " counter := counter + 1; " +
                                 " END LOOP; " +
                             " END; " +
