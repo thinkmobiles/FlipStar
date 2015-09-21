@@ -323,7 +323,7 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT * FROM game(' + uid + ', ' + options.stars + ');'
+                'SELECT * FROM game(\'' + uid + '\', ' + options.stars + ');'
             )
             .then(function (profile) {
                 responseObj = {

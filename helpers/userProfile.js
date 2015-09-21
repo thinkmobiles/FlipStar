@@ -516,7 +516,7 @@ UserProfile = function (PostGre) {
 
         var mergeGid;
         var fbGid;
-        var ids = [mergeGid, fbGid];
+        var ids;
 
         var maxPointProf;
         var minPointProf;
@@ -535,6 +535,7 @@ UserProfile = function (PostGre) {
 
                         mergeGid = (profiles[0].uuid === fbProfUid) ? profiles[1].id : profiles[0].id;
                         fbGid = (profiles[0].uuid === fbProfUid) ? profiles[0].id : profiles[1].id;
+                        ids = [mergeGid, fbGid];
 
                         maxPointProf =  (profiles[0].points_number > profiles[1].points_number) ? profiles[0].id : profiles[1].id;
                         minPointProf =  (profiles[0].points_number < profiles[1].points_number) ? profiles[0].id : profiles[1].id;
@@ -686,6 +687,18 @@ UserProfile = function (PostGre) {
                 function (cb) {
                     PostGre.knex(TABLES.USERS_PROFILE)
                         .where('id', userId)
+                        .delete()
+                        .then(function () {
+                            cb()
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
+                },
+
+                function (cb) {
+                    PostGre.knex(TABLES.USERS_BOOSTERS)
+                        .whereIn('game_profile_id', ids)
                         .delete()
                         .then(function () {
                             cb()
