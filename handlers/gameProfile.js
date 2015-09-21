@@ -134,7 +134,8 @@ GameProfile = function (PostGre) {
       var uid = req.session.uId;
 
         PostGre.knex(TABLES.USERS_SMASHES)
-            .where('game_profile_id', uid)
+            .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id' )
+            .where('uuid', uid)
             .select('smash_id', 'quantity', 'is_open')
             .then(function (collection) {
                 res.status(200).send(collection)
@@ -193,7 +194,7 @@ GameProfile = function (PostGre) {
         )*/
 
                 PostGre.knex(TABLES.GAME_PROFILE)
-                        .where('id', uid)
+                        .where('uuid', uid)
                     .then(function (profile/*queryResult*/) {
 
                         if (profile[0].last_seen_date > gameDate && gameDate < curDate) {

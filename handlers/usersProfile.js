@@ -24,8 +24,8 @@ Users = function (PostGre) {
         var uid = options.uId;
         var fbId = options.facebook_id;
 
-        var GUEST = !!(uid !== -1 && !fbId);
-        var FB_USER = !!(uid !== -1 && fbId);
+        var GUEST = !!(uid !== '-1' && !fbId);
+        var FB_USER = !!(uid !== '-1' && fbId);
         
         if (options && options.device_id) {
 
@@ -36,10 +36,10 @@ Users = function (PostGre) {
                         return next(err)
                     }
                     req.session.loggedIn = true;
-                    req.session.uId = profile.id;
+                    req.session.uId = profile.uuid;
 
                     res.status(200).send({
-                        uId: profile.id,
+                        uId: profile.uuid,
                         date: profile.updated_at.toLocaleString()
                     });
                 })
@@ -50,17 +50,17 @@ Users = function (PostGre) {
                         return next(err)
                     }
 
-                    if(exist && exist !== uid && uid !== -1) {
+                    if(exist && exist !== uid && uid !== '-1') {
 
                         userProfHelper.mergeProfiles(exist, options, function (err, profile) {
                             if (err) {
                                 return next(err)
                             }
                             req.session.loggedIn = true;
-                            req.session.uId = profile.id;
+                            req.session.uId = profile.uuid;
 
                             res.status(200).send({
-                                uId: profile.id,
+                                uId: profile.uuid,
                                 date: profile.updated_at.toLocaleString()
                             });
                         })
@@ -71,10 +71,10 @@ Users = function (PostGre) {
                                 return next(err)
                             }
                             req.session.loggedIn = true;
-                            req.session.uId = profile.id;
+                            req.session.uId = profile.uuid;
 
                             res.status(200).send({
-                                uId: profile.id,
+                                uId: profile.uuid,
                                 date: profile.updated_at.toLocaleString()
                             });
                         })
@@ -90,12 +90,12 @@ Users = function (PostGre) {
                         return next(err)
                     }
 
-                    if (profile[0] && profile[0].id) {
+                    if (profile[0] && profile[0].uuid) {
                         req.session.loggedIn = true;
-                        req.session.uId = profile[0].id;
+                        req.session.uId = profile[0].uuid;
 
                         res.status(200).send({
-                            uId: profile[0].id,
+                            uId: profile[0].uuid,
                             date: profile[0].updated_at.toLocaleString()
                         })
 
@@ -106,10 +106,10 @@ Users = function (PostGre) {
                                 return next(err)
                             }
                             req.session.loggedIn = true;
-                            req.session.uId = profile[0].id;
+                            req.session.uId = profile[0].uuid;
 
                             res.status(201).send({
-                                uId: profile[0].id,
+                                uId: profile[0].uuid,
                                 date: profile[0].updated_at.toLocaleString()
                             });
                         })
@@ -216,7 +216,8 @@ Users = function (PostGre) {
                 .raw(
                     'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
                     'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
-                    'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS+ ' WHERE game_profile_id = ' + uid +') ' +
+                    'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = (' +
+                    '   SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) ' +
                     'ORDER BY g.points_number DESC ' +
                     'LIMIT 25'
                 )
@@ -251,7 +252,8 @@ Users = function (PostGre) {
             .raw(
                 'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
                 'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
-                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ' + uid +')'
+                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = (' +
+                '   SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) '
             )
             .then(function (friends) {
                 res.status(200).send(friends.rows)

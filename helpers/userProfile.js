@@ -221,7 +221,7 @@ UserProfile = function (PostGre) {
             } else {
 
                 PostGre.knex(TABLES.USERS_PROFILE)
-                    .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id as id')
+                    .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id as id', TABLES.GAME_PROFILE + '.uuid')
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
                     .where(TABLES.GAME_PROFILE + '.id', profile.id)
@@ -240,7 +240,7 @@ UserProfile = function (PostGre) {
 
         PostGre.knex(TABLES.GAME_PROFILE)
             .select('user_id')
-            .where('id', uid)
+            .where('uuid', uid)
             .then(function (id) {
 
                 PostGre.knex(TABLES.USERS_PROFILE)
@@ -273,7 +273,7 @@ UserProfile = function (PostGre) {
                     .raw(
                         'UPDATE  ' + TABLES.DEVICE + ' d SET user_id = u.id ' +
                         'FROM ' + TABLES.GAME_PROFILE + ' g, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'WHERE   u.id = g.user_id and g.id = ' + uId + ' AND d.device_id = \'' + deviceId + '\' ' +
+                        'WHERE   u.id = g.user_id and g.uuid = \'' + uId + '\'  AND d.device_id = \'' + deviceId + '\' ' +
                         'RETURNING d.id'
                     )
                     .then(function (result){
@@ -302,8 +302,8 @@ UserProfile = function (PostGre) {
                             'ELSE session_max_length ' +
                             'END ) ' +
                         'FROM ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
-                        'WHERE   u.id = g.user_id and d.id = g.device_id and g.id =' + uId + ' AND d.device_id = \'' + deviceId + '\' ' +
-                        'RETURNING  g.updated_at, g.id as id'
+                        'WHERE   u.id = g.user_id and d.id = g.device_id and g.uuid =\'' + uId + '\' AND d.device_id = \'' + deviceId + '\' ' +
+                        'RETURNING  g.updated_at, g.id as id, g.uuid'
                     )
                     .then(function (profile) {
 
@@ -344,7 +344,7 @@ UserProfile = function (PostGre) {
 
                 PostGre.knex(TABLES.GAME_PROFILE)
                     .select('user_id')
-                    .where('id', options.uId)
+                    .where('uuid', options.uId)
                     .then(function (result) {
 
                         PostGre.knex(TABLES.USERS_PROFILE)
@@ -446,7 +446,7 @@ UserProfile = function (PostGre) {
                             'end ) ' +
                         'from ' + TABLES.DEVICE + ' d, ' + TABLES.USERS_PROFILE + ' u ' +
                         'where   u.id = g.user_id and d.id = g.device_id and u.facebook_id =  \'' + fbId + '\' ' +
-                        'RETURNING g.updated_at , g.id as id, g.user_id'
+                        'RETURNING g.updated_at , g.id as id, g.user_id, g.uuid'
                     )
                     .exec(function (err, result) {
                         if (err) {
@@ -468,13 +468,13 @@ UserProfile = function (PostGre) {
     this.isExistingFBUser = function (FBid, callback) {
 
         PostGre.knex(TABLES.USERS_PROFILE)
-            .select(TABLES.GAME_PROFILE + '.id')
+            .select(TABLES.GAME_PROFILE + '.uuid')
             .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.user_id', TABLES.USERS_PROFILE + '.id')
             .where('facebook_id', FBid)
             .then(function (result) {
 
-                if (result[0] && result[0].id) {
-                    callback(null, result[0].id)
+                if (result[0] && result[0].uuid) {
+                    callback(null, result[0].uuid)
 
                 } else {
                     callback(null, false)
@@ -488,7 +488,7 @@ UserProfile = function (PostGre) {
     this.getExistingUser = function (options, callback) {
 
         PostGre.knex(TABLES.GAME_PROFILE)
-            .select(TABLES.GAME_PROFILE + '.updated_at',TABLES.GAME_PROFILE + '.id' + ' as id')
+            .select(TABLES.GAME_PROFILE + '.updated_at',TABLES.GAME_PROFILE + '.id' + ' as id', TABLES.GAME_PROFILE + '.uuid')
             .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
             .where(function () {
@@ -510,9 +510,13 @@ UserProfile = function (PostGre) {
 
     this.mergeProfiles = function (fbProfUid, options, callback) {
         var mergeuid = options.uId;
-        var ids = [fbProfUid, mergeuid];
+        var uids = [fbProfUid, mergeuid];
         var userId;
         var fbUserId;
+
+        var mergeGid;
+        var fbGid;
+        var ids = [mergeGid, fbGid];
 
         var maxPointProf;
         var minPointProf;
@@ -520,14 +524,18 @@ UserProfile = function (PostGre) {
         var mergedProfile;
         var mergedBoosters;
 
-        async.parallel([
+        async.series([
             function (cb) {
                 PostGre.knex(TABLES.GAME_PROFILE)
                     .select('*')
-                    .whereIn('id', ids)
+                    .whereIn('uuid', uids)
                     .then(function (profiles) {
-                        userId = (profiles[0].id === fbProfUid) ? profiles[1].user_id : profiles[0].user_id;
-                        fbUserId = (profiles[0].id === fbProfUid) ? profiles[0].user_id : profiles[1].user_id;
+                        userId = (profiles[0].uuid === fbProfUid) ? profiles[1].user_id : profiles[0].user_id;
+                        fbUserId = (profiles[0].uuid === fbProfUid) ? profiles[0].user_id : profiles[1].user_id;
+
+                        mergeGid = (profiles[0].uuid === fbProfUid) ? profiles[1].id : profiles[0].id;
+                        fbGid = (profiles[0].uuid === fbProfUid) ? profiles[0].id : profiles[1].id;
+
                         maxPointProf =  (profiles[0].points_number > profiles[1].points_number) ? profiles[0].id : profiles[1].id;
                         minPointProf =  (profiles[0].points_number < profiles[1].points_number) ? profiles[0].id : profiles[1].id;
 
@@ -563,9 +571,9 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'SELECT booster_id, sum(quantity) as quantity, sum(flips_left) as flips_left, bool_or(is_active) as is_active, ' + fbProfUid + ' as game_profile_id ' +
+                        'SELECT booster_id, sum(quantity) as quantity, sum(flips_left) as flips_left, bool_or(is_active) as is_active, ' + fbGid + ' as game_profile_id ' +
                         'FROM ' + TABLES.USERS_BOOSTERS + ' ' +
-                        'WHERE game_profile_id in (\'' + mergeuid + '\', \'' + fbProfUid + '\') ' +
+                        'WHERE game_profile_id in (\'' + mergeGid + '\', \'' + fbGid + '\') ' +
                         'GROUP BY booster_id'
                     )
                     .then(function (boosters) {
@@ -623,9 +631,9 @@ UserProfile = function (PostGre) {
 
                 function (cb) {
                     PostGre.knex(TABLES.USERS_PURCHASES)
-                        .where('game_profile_id', mergeuid)
+                        .where('game_profile_id', mergeGid)
                         .update({
-                            game_profile_id: fbProfUid
+                            game_profile_id: fbGid
                         })
                         .then(function () {
                             cb()
@@ -639,7 +647,7 @@ UserProfile = function (PostGre) {
                     PostGre.knex(TABLES.USERS_SMASHES)
                         .where('game_profile_id', maxPointProf)
                         .update({
-                            game_profile_id: fbProfUid
+                            game_profile_id: fbGid
                         })
                         .then(function () {
                             cb()
@@ -653,7 +661,7 @@ UserProfile = function (PostGre) {
                     PostGre.knex(TABLES.USERS_ACHIEVEMENTS)
                         .where('game_profile_id', maxPointProf)
                         .update({
-                            game_profile_id: fbProfUid
+                            game_profile_id: fbGid
                         })
                         .then(function () {
                             cb()
@@ -665,7 +673,7 @@ UserProfile = function (PostGre) {
 
                 function (cb) {
                     PostGre.knex(TABLES.GAME_PROFILE)
-                        .where('id', mergeuid)
+                        .where('id', mergeGid)
                         .delete()
                         .then(function () {
                             cb()
@@ -715,7 +723,7 @@ UserProfile = function (PostGre) {
 
                 function (cb) {
                         PostGre.knex(TABLES.GAME_PROFILE)
-                            .where('id', fbProfUid)
+                            .where('id', fbGid)
                             .update(mergedProfile)
                             .returning('*')
                             .then(function (profile) {

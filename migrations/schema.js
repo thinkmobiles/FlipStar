@@ -82,18 +82,20 @@ module.exports = function (knex) {
 
             function (cb) {
                 knex.raw(
-                        'CREATE OR REPLACE FUNCTION game(guid INT, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
+                        'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
                         '$$ ' +
                             'BEGIN ' +
                                 'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.id = guid; ' +
                                 'IF found THEN ' +
-                                    'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = guid AND is_active = true; ' +
+                                    'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
+                                        'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
+                                        ' AND is_active = true; ' +
                                     'RETURN QUERY ' +
                                         'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                         'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
                                         'WHERE gp.id = guid; ' +
                                 'END IF; ' +
-                                    'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.id = guid) < 0 THEN ' +
+                                    'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.uuid = guid) < 0 THEN ' +
                                     'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
                                 'END IF; ' +
                             'END; ' +
@@ -116,13 +118,20 @@ module.exports = function (knex) {
 
             function (cb) {
                 knex.raw(
-                    'CREATE OR REPLACE FUNCTION activate_booster(guid INT, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
+                    'CREATE OR REPLACE FUNCTION activate_booster(guid uuid, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
                     '$$ ' +
+                        'DECLARE quan INT;' +
                         'BEGIN ' +
-                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true, quantity = quantity -1, flips_left = 100 ' +
-                            'WHERE game_profile_id = guid AND booster_id = booster; ' +
-                            'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster;' +
-                                'IF (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster) < 0 THEN ' +
+                            'quan := (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster);' +
+
+                            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true, quantity = quantity -1, flips_left = flips_left + 100 ' +
+                            'WHERE game_profile_id = ( ' +
+                                'SELECT g.id FROM game_profile g WHERE g.uuid = guid ' +
+                                ') AND booster_id = booster; ' +
+                            'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = ( ' +
+                                    'SELECT g.id FROM game_profile g WHERE g.uuid = guid' +
+                                    ' ) AND booster_id = booster;' +
+                                'IF  quan < 0 OR quan ISNULL THEN ' +
                                     'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
                                 'END IF; ' +
                         'END; ' +
@@ -213,23 +222,23 @@ module.exports = function (knex) {
 
             function (cb) {
                 knex.raw(
-                        'CREATE OR REPLACE FUNCTION add_flips(guid INT,  quan INT, action_type INT) RETURNS VOID AS '  +
+                        'CREATE OR REPLACE FUNCTION add_flips(guid uuid,  quan INT, action_type INT) RETURNS VOID AS '  +
                             '$$ ' +
                                 'BEGIN ' +
                                     'IF action_type <> 0 ' +
                                     'THEN ' +
                                         'UPDATE game_profile SET flips_number = flips_number + quan ' +
-                                        'WHERE id = guid; ' +
+                                        'WHERE uuid = guid; ' +
 
                                     'ELSE ' +
                                         'UPDATE game_profile SET flips_number = ( ' +
                                             'CASE ' +
-                                            'WHEN flips_number + quan > 50 AND flips_number < ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + ' ' +
-                                            'WHEN flips_number + quan > 50 AND flips_number >= ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN flips_number ' +
+                                            'WHEN flips_number + quan > ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + ' AND flips_number < ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + ' ' +
+                                            'WHEN flips_number + quan > ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + ' AND flips_number >= ' + CONSTANTS.DEFAULT_FLIPS_LIMIT + '  THEN flips_number ' +
                                             'ELSE flips_number + quan ' +
                                             'END ' +
                                             ') ' +
-                                        'WHERE id = guid; ' +
+                                        'WHERE uuid = guid; ' +
 
                                     'END IF; ' +
                                 'END; ' +
@@ -248,6 +257,14 @@ module.exports = function (knex) {
                         }
                         cb()
                     })
+            },
+
+            function (cb) {
+                knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";')
+                    .then(function () {
+                        cb()
+                    })
+                    .catch(cb)
             },
 
             function (cb) {
@@ -379,6 +396,7 @@ module.exports = function (knex) {
             function (cb) {
                 createTable(TABLES.GAME_PROFILE, function (row) {
                     row.increments('id').primary();
+                    row.uuid('uuid').defaultTo(knex.raw('uuid_generate_v4()')).index();
                     row.integer('user_id').references('id').inTable(TABLES.USERS_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('device_id').references('id').inTable(TABLES.DEVICE).onDelete('SET NULL').onUpdate('CASCADE');
                     row.string('app_platform');
@@ -445,8 +463,8 @@ module.exports = function (knex) {
                     row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
                     row.integer('booster_id').references('id').inTable(TABLES.BOOSTERS).onDelete('CASCADE').onUpdate('CASCADE');
                     row.boolean('is_active').defaultTo(false);
-                    row.integer('flips_left');
-                    row.integer('quantity').defaultTo(0);
+                    row.integer('flips_left').defaultTo(0);
+                    row.integer('quantity').defaultTo(1);
 
                     row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
                     row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
