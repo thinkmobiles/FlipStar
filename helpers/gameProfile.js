@@ -84,18 +84,10 @@ GameProfile = function (PostGre) {
 
     this.syncOpenSmashes = function (uid, smashes, callback) {
         var insertObj = [];
-        var queryStr = '';
         var price = 0;
         var updProf = {
             last_seen_date: new Date()
         };
-
-        for (var i = smashes.length; i--;) {
-            queryStr += '\'' + smashes[i] + '\'' + ','
-        }
-
-        queryStr = queryStr.slice(0, -1);
-        queryStr ='('  + queryStr + ')';
 
         PostGre.knex(TABLES.GAME_PROFILE)
             .where('uuid', uid)
@@ -107,7 +99,7 @@ GameProfile = function (PostGre) {
                         PostGre.knex
                             .raw(
                                 'SELECT s.id, sum(set*' + CONSTANTS.SMASH_DEFAULT_PRICE + ') as price FROM ' + TABLES.SMASHES + ' s ' +
-                                'WHERE id in ' + queryStr + ' AND id NOT IN (select s.id from smashes s ' +
+                                'WHERE id = ANY(ARRAY [' + smashes + '])  AND id NOT IN (select s.id from smashes s ' +
                                 'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us on s.id = us.smash_id ' +
                                 'WHERE game_profile_id = ' + profile[0].id + ')' +
                                 'GROUP BY s.id'
@@ -377,8 +369,8 @@ GameProfile = function (PostGre) {
                     'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                     'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                    'WHERE gp.uuid = ' + uid + ') ' +
-                'WHERE uuid = ' + uid
+                    'WHERE gp.uuid = \'' + uid + '\') ' +
+                'WHERE uuid =  \'' + uid + '\' '
             )
             .then(function () {
                 callback()
