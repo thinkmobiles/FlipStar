@@ -866,11 +866,11 @@ module.exports = function (knex) {
 
     function fillSmashes (cb){
         var sqlString = "CREATE OR REPLACE FUNCTION fillSmashes() RETURNS VOID AS $$ " +
-                            " DECLARE counter;" +
-                            " counter int := 1; " +
+                            " DECLARE counter INT := 1;" +
                             " BEGIN " +
+                            " DELETE FROM " + TABLES.SMASHES + ";" +
                                 " WHILE (counter <= " + CONSTANTS.SMASHES_LIMIT + ") LOOP " +
-                                    " INSERT INTO " + TABLES.SMASHES + " (name, set) VALUES ('SMASH ' || counter, (((counter - 1) / " + CONSTANTS.SMASHES_PER_SET + " ) | 0) + 1); " +
+                                    " INSERT INTO " + TABLES.SMASHES + " (id, name, set) VALUES (counter, 'SMASH ' || counter, (((counter - 1) / " + CONSTANTS.SMASHES_PER_SET + " ) | 0) + 1); " +
                                         " counter := counter + 1; " +
                                 " END LOOP; " +
                             " END; " +
@@ -894,10 +894,11 @@ module.exports = function (knex) {
     function fillBoosters (cb) {
         var sqlString = " CREATE OR REPLACE FUNCTION fillBoosters() RETURNS VOID AS $$ " +
                             " BEGIN " +
-                                " INSERT INTO boosters (name) VALUES " +
-                                " ('slow_strength_bar'), " +
-                                " ('slow_aiming_bar'), " +
-                                " ('double_gold_rewards'); " +
+                                " DELETE FROM " + TABLES.BOOSTERS + ";" +
+                                " INSERT INTO " + TABLES.BOOSTERS + " (id, name) VALUES " +
+                                " (1, 'slow_strength_bar'), " +
+                                " (2, 'slow_aiming_bar'), " +
+                                " (3, 'double_gold_rewards'); " +
                             " END; " +
                         " $$ LANGUAGE plpgsql; ";
 
@@ -934,13 +935,19 @@ module.exports = function (knex) {
 
                     function(cb){
                         knex
-                            .raw(" SELECT fillPacks('APPLE'); ")
+                            .raw(
+                                " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'APPLE'; " +
+                                " SELECT fillPacks('APPLE'); "
+                            )
                             .exec(cb);
                     },
 
                     function(cb){
                         knex
-                            .raw(" SELECT fillPacks('GOOGLE'); ")
+                            .raw(
+                                " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'GOOGLE'; " +
+                                " SELECT fillPacks('GOOGLE'); "
+                            )
                             .exec(cb);
                     },
 
