@@ -33,6 +33,7 @@
     "socket.io-redis": "0.1.4",
     "supertest": "^0.15.0",
     "underscore": "^1.7.0",
+    "uuid": "^2.0.1",
     "winston": "^1.0.1"
   },
   "devDependencies": {
