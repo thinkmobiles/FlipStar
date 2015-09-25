@@ -50,9 +50,8 @@ GameProfile = function (PostGre) {
 
         PostGre.knex(TABLES.USERS_PROFILE)
             .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
-            //.leftJoin(TABLES.USERS_SMASHES, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .leftJoin(TABLES.USERS_BOOSTERS, TABLES.GAME_PROFILE + '.id', TABLES.USERS_BOOSTERS + '.game_profile_id')
-            .where(TABLES.GAME_PROFILE + '.id', uid)
+            .where(TABLES.GAME_PROFILE + '.uuid', uid)
             .select('stars_number', 'points_number', 'flips_number', 'booster_id', 'flips_left', 'is_active', TABLES.USERS_BOOSTERS + '.quantity')
             .then(function (result) {
                 callback(null, result)
@@ -67,7 +66,7 @@ GameProfile = function (PostGre) {
 
         GameProfileModel
             .forge({
-                id: uid
+                uuid: uid
             })
             .save(
                 updatedObj,
@@ -85,21 +84,13 @@ GameProfile = function (PostGre) {
 
     this.syncOpenSmashes = function (uid, smashes, callback) {
         var insertObj = [];
-        var queryStr = '';
         var price = 0;
         var updProf = {
             last_seen_date: new Date()
         };
 
-        for (var i = smashes.length; i--;) {
-            queryStr += '\'' + smashes[i] + '\'' + ','
-        }
-
-        queryStr = queryStr.slice(0, -1);
-        queryStr ='('  + queryStr + ')';
-
         PostGre.knex(TABLES.GAME_PROFILE)
-            .where('id', uid)
+            .where('uuid', uid)
             .then(function (profile) {
 
                 async.waterfall([
@@ -108,7 +99,7 @@ GameProfile = function (PostGre) {
                         PostGre.knex
                             .raw(
                                 'SELECT s.id, sum(set*' + CONSTANTS.SMASH_DEFAULT_PRICE + ') as price FROM ' + TABLES.SMASHES + ' s ' +
-                                'WHERE id in ' + queryStr + ' AND id NOT IN (select s.id from smashes s ' +
+                                'WHERE id = ANY(ARRAY [' + smashes + '])  AND id NOT IN (select s.id from smashes s ' +
                                 'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us on s.id = us.smash_id ' +
                                 'WHERE game_profile_id = ' + profile[0].id + ')' +
                                 'GROUP BY s.id'
@@ -163,7 +154,7 @@ GameProfile = function (PostGre) {
                     }
 
                     PostGre.knex(TABLES.GAME_PROFILE)
-                        .where('id', uid)
+                        .where('uuid', uid)
                         .update(updProf)
                         .then(function () {
                             callback()
@@ -192,7 +183,7 @@ GameProfile = function (PostGre) {
         var gamesLength;
 
         PostGre.knex(TABLES.GAME_PROFILE)
-            .where('id', uid)
+            .where('uuid', uid)
             .then(function (profile) {
 
                 updProf.last_seen_date = curDate;
@@ -216,7 +207,7 @@ GameProfile = function (PostGre) {
                     PostGre.knex
                         .raw(
                             'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = true, flips_left = flips_left - 1 ' +
-                            'WHERE game_profile_id = ' + uid + ' AND booster_id = ' + booster
+                            'WHERE game_profile_id = ' + updProf.id + ' AND booster_id = ' + booster
                         )
                         .then(function () {
                             cb()
@@ -232,7 +223,7 @@ GameProfile = function (PostGre) {
                     }
 
                     PostGre.knex(TABLES.GAME_PROFILE)
-                        .where('id', uid)
+                        .where('uuid', uid)
                         .update(updProf)
                         .then(function () {
                             callback()
@@ -258,7 +249,7 @@ GameProfile = function (PostGre) {
 
 
         PostGre.knex(TABLES.GAME_PROFILE)
-            .where('id', uid)
+            .where('uuid', uid)
             .then(function (profile) {
 
                 for (var i = smashes.length; i--;) {
@@ -281,7 +272,7 @@ GameProfile = function (PostGre) {
                         PostGre.knex
                             .raw(
                                 'UPDATE users_smashes SET quantity = quantity + 1 ' +
-                                'WHERE smash_id = ' + smash + ' AND game_profile_id = ' + uid
+                                'WHERE smash_id = ' + smash + ' AND game_profile_id = ' + profile[0].id
                             )
                             .then(function () {
                                 cb()
@@ -297,7 +288,7 @@ GameProfile = function (PostGre) {
                         }
 
                         PostGre.knex(TABLES.GAME_PROFILE)
-                            .where('id', uid)
+                            .where('uuid', uid)
                             .update(updProf)
                             .then(function () {
                                 callback()
@@ -333,7 +324,9 @@ GameProfile = function (PostGre) {
             PostGre.knex
                 .raw(
                     'UPDATE ' + TABLES.USERS_SMASHES + ' set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
-                    'WHERE game_profile_id = ' + uid + ' AND smash_id = ' + smash +
+                    'WHERE game_profile_id = ( ' +
+                    'SELECT id FROM game_profile WHERE uuid = \'' + uid + '\' ' +
+                    ' ) AND smash_id = ' + smash +
                     'RETURNING users_smashes.id'
                 )
                 .then(function (result) {
@@ -372,11 +365,12 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw(
                 'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                'SET points_number = (SELECT COALESCE( SUM(quantity)*SUM(distinct set) , \'0\' ) + MIN(stars_number) AS points_number FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                'SET points_number = (SELECT COALESCE( SUM(quantity)*SUM(distinct set) , \'0\' ) + MIN(stars_number) AS points_number ' +
+                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                     'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                    'WHERE gp.id = ' + uid + ') ' +
-                'WHERE id = ' + uid
+                    'WHERE gp.uuid = \'' + uid + '\') ' +
+                'WHERE uuid =  \'' + uid + '\' '
             )
             .then(function () {
                 callback()
@@ -393,6 +387,7 @@ GameProfile = function (PostGre) {
         var setId;
         var price;
         var setSize = CONSTANTS.SMASHES_PER_SET;
+        var gid;
 
         setId = (sid%setSize) ? 1 + (sid/setSize) | 0 :  (sid/setSize) | 0;
 
@@ -410,9 +405,11 @@ GameProfile = function (PostGre) {
                 if (data.currency === CONSTANTS.CURRENCY_TYPE.SOFT) {
 
                     PostGre.knex(TABLES.GAME_PROFILE)
-                        .select('stars_number')
-                        .where('id', uid)
+                        .select('stars_number', 'id')
+                        .where('uuid', uid)
                         .then(function (result) {
+                            gid = result[0].id;
+
                             err = new Error(RESPONSES.NOT_ENOUGH_STARS);
                             err.status = 400;
 
@@ -428,7 +425,7 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT open_smash(' + uid + ', ' + sid + ')')
+                    .raw('SELECT open_smash(' + gid + ', ' + sid + ')')
                     .then(function () {
                         cb()
                     })
@@ -449,8 +446,8 @@ GameProfile = function (PostGre) {
                                     'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                     'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                                     'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                                    'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid + ' ' +
+                                    'WHERE gp.id = ' + gid + ') ' +
+                            'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
                         .then(function (profile) {
@@ -469,8 +466,8 @@ GameProfile = function (PostGre) {
                                 'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                 'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                                 'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                                'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid + ' ' +
+                                'WHERE gp.id = ' + gid + ') ' +
+                            'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
                         .then(function (profile) {
@@ -501,6 +498,7 @@ GameProfile = function (PostGre) {
         var price;
         var err;
         var setSize = CONSTANTS.SMASHES_PER_SET;
+        var gid;
 
         setId = (sid%setSize) ? 1 + (sid/setSize) | 0 :  (sid/setSize) | 0;
         price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
@@ -517,9 +515,11 @@ GameProfile = function (PostGre) {
                 if (data.currency === CONSTANTS.CURRENCY_TYPE.SOFT) {
 
                     PostGre.knex(TABLES.GAME_PROFILE)
-                        .select('stars_number')
-                        .where('id', uid)
+                        .select('stars_number', 'id')
+                        .where('uuid', uid)
                         .then(function (result) {
+                            gid = result[0].id;
+
                             err = new Error(RESPONSES.NOT_ENOUGH_STARS);
                             err.status = 400;
 
@@ -538,7 +538,7 @@ GameProfile = function (PostGre) {
                     .raw(
                         'UPDATE users_smashes ' +
                         'SET quantity = quantity + 1 ' +
-                        'WHERE is_open = true AND game_profile_id =  ' + uid + ' AND smash_id =  ' + sid
+                        'WHERE is_open = true AND game_profile_id =  ' + gid + ' AND smash_id =  ' + sid
                     )
                     .then(function (queryResult) {
                         err = new Error(RESPONSES.NOT_OPEN);
@@ -564,8 +564,8 @@ GameProfile = function (PostGre) {
                             'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                             'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                             'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                            'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid + ' ' +
+                            'WHERE gp.id = ' + gid + ') ' +
+                            'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
                         .then(function (profile) {
@@ -584,8 +584,8 @@ GameProfile = function (PostGre) {
                             'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                             'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
                             'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                            'WHERE gp.id = ' + uid + ') ' +
-                            'WHERE id = ' + uid + ' ' +
+                            'WHERE gp.id = ' + gid + ') ' +
+                            'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
                         .then(function (profile) {
@@ -619,7 +619,7 @@ GameProfile = function (PostGre) {
         }
 
         PostGre.knex
-            .raw('SELECT add_flips(' + uid + ', ' + quantity + ', ' + actionType + ');')
+            .raw('SELECT add_flips(\'' + uid + '\' , ' + quantity + ', ' + actionType + ');')
             .then(function () {
                 callback()
             })
