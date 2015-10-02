@@ -62,7 +62,13 @@ function getOpponent( uId, bet, callback ) {
     var isFind = false;
     var response;
 
-    async.doUntil(
+    async.until(
+        /*repeat until isFind*/
+        function() {
+            return isFind;
+        },
+
+        /*get */
         function( dCb ) {
             var queueKey = ':queue:'+bet+':';
 
@@ -81,7 +87,7 @@ function getOpponent( uId, bet, callback ) {
                         }
 
                         if ( searchData ) {
-                            isFind = true;
+
                             response = { uId: queueData };
                             try {
                                 _.forEach( searchData, function(value, key) {
@@ -92,23 +98,20 @@ function getOpponent( uId, bet, callback ) {
                                 return dCb(err);
                             }
 
+                            isFind = true;
+
                         }
 
-                        return dCb()
                     })
                 }
 
                 if ( !queueData ) {
                     isFind = true;
-                    return dCb();
                 }
 
                 dCb();
 
             })
-        },
-        function() {
-            return isFind;
         },
 
         function(err) {
