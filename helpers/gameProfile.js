@@ -306,58 +306,15 @@ GameProfile = function (PostGre) {
 
     this.addSmashes = function (options, callback) {
         var uid = options.uid;
-        var smashesId = _.pluck(options.smashes, 'id');
-        var quantities = _.pluck(options.smashes, 'quantity');
-        var curDate = new Date();
-        var insertObj;
+        var smashesIds = options.smashes;
 
-        async.eachSeries(smashesId, function (smash, cb){
-            insertObj = {
-                game_profile_id: uid,
-                smash_id: smash,
-                quantity: quantities[smashesId.indexOf(smash)],
-                updated_at: curDate,
-                created_at: curDate
-            };
+        PostGre.knex
+            .raw('SELECT add_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
+            .then(function () {
+                callback()
+            })
+            .catch(callback)
 
-
-            PostGre.knex
-                .raw(
-                    'UPDATE ' + TABLES.USERS_SMASHES + ' set updated_at = now(), quantity = quantity + ' + '\'' + quantities[smashesId.indexOf(smash)] + '\' '+
-                    'WHERE game_profile_id = ( ' +
-                    'SELECT id FROM game_profile WHERE uuid = \'' + uid + '\' ' +
-                    ' ) AND smash_id = ' + smash +
-                    'RETURNING users_smashes.id'
-                )
-                .then(function (result) {
-
-                    if (result.rows.length) {
-                        cb()
-
-                    } else {
-
-                        PostGre.knex(TABLES.USERS_SMASHES)
-                            .insert(insertObj)
-                            .then(function () {
-                                cb()
-                            })
-                            .catch(function (err) {
-                                cb(err)
-                            })
-                    }
-                })
-                .catch(function (err) {
-                    cb(err)
-                })
-
-        }, function (err) {
-
-            if (err) {
-                return callback(err)
-            }
-
-            callback()
-        })
     };
 
     this.calculatePoints = function (uid, callback) {
