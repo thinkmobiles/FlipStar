@@ -23,34 +23,58 @@
 <body>
     <ul id="messages"></ul>
     <div id="chatControl">
-        <input id="room" autocomplete="off" placeholder="room0" />
+        <input id="uId" autocomplete="off" placeholder="uId" />
         <input id="eventName" autocomplete="off" placeholder="newMessage" />
         <input id="message" autocomplete="off" />
         <button id="msgBtn">Send Msg</button>
-        <button id="msgToRoomBtn">Send Msg To Room</button>
+        <button id="connectBtn">connect</button>
     </div>
 
     <script>
-        var socket = io.connect(
-                {
-                    transports: ['websocket']/*,
-                    cookie: 'FlipStar',
-                    query: 'userId=testUser'*/
-                }
-        );
+        var socket;
+
+        $('#connectBtn').on('click',function(){
+
+            socket = io.connect(
+                    {
+                       /* transports: ['websocket'],*/
+                        query: 'uId=' + $('#uId').val()
+                    }
+            );
+            socket.on('disconnect', function() {
+                console.log('Socket <-- disconnect');
+            });
+
+            socket.on('connect', function() {
+                console.log('Socket --> connect')
+            });
+
+            socket.on('startGame', function(data) {
+                console.log(data);
+            });
+
+            socket.on('eventError', function(err){
+                console.log( err )
+            })
+
+            console.log('Socket: connect. uId:');
+            return false;
+
+        });
+
+        $('#disconnectBtn').on('click',function(){
+
+            console.log('Socket: disconnect. uId:', socket.uId);
+            socket.disconnect();
+            return false;
+
+        });
+
         $('#msgBtn').on('click',function(){
-            socket.emit( $('#eventName').val(), { message: $('#message').val(), room: $('#room').val() });
-            $('#message').val('');
+            socket.emit( $('#eventName').val(), JSON.parse($('#message').val()) );
             return false;
         });
-        $('#msgToRoomBtn').on('click',function(){
-            socket.emit( $('#eventName').val(), { message: $('#message').val(), room: $('#room').val() } );
-            $('#message').val('');
-            return false;
-        });
-        socket.on('newMessage', function( data ){
-            $('#messages').append($('<li>').text( data.socketId + ': ' + data.message ) );
-        });
+
     </script>
 </body>
 </html>

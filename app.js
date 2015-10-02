@@ -69,7 +69,7 @@ module.exports = function () {
     app.use(sessionStore);
 
     knex = require('knex')({
-        debug: true,
+        debug: /*process.env.NODE_ENV !== 'development'*/ false,
         client: 'pg',
         connection: {
             host: process.env.DB_HOST,
@@ -168,13 +168,13 @@ module.exports = function () {
     });*/
 
     httpServer = http.createServer(app);
-    privateKey  = fs.readFileSync('config/server.key', 'utf8');
-    certificate = fs.readFileSync('config/server.crt', 'utf8');
+    privateKey  = fs.readFileSync('config/privatKey.pem'/*, 'utf8'*/);
+    certificate = fs.readFileSync('config/cert.pem'/*, 'utf8'*/);
 
-    credentials = {key: privateKey, cert: certificate};
+    credentials = {key: privateKey, cert: certificate, passphrase: 'thinkmobiles'};
     httpsServer = https.createServer(credentials, app);
 
-    io = require('./handlers/socket')( httpServer );
+    io = require('./handlers/socket')( httpServer, PostGre );
 
     httpServer.listen( process.env.PORT, function () {
         console.log(
@@ -183,7 +183,16 @@ module.exports = function () {
             'port: ', process.env.PORT, '\n',
             'environment: ', process.env.NODE_ENV, '\n'
         );
-    } );
+    });
+
+    /*httpsServer.listen( process.env.PORT_HTTPS, function () {
+        console.log(
+            '====', new Date().toISOString(), '====','\n',
+            'https server listen', '\n',
+            'port: ', process.env.PORT_HTTPS, '\n',
+            'environment: ', process.env.NODE_ENV, '\n'
+        );
+    });*/
 
     return app;
 };

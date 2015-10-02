@@ -6,13 +6,14 @@
 
 var _ = require('lodash');
 var async = require('async');
-var store = require('../helpers/redisStore')();
+var store = new (require('../helpers/redisStore'));
+var client = store.client;
 
 var maxOffset = 0.2;
 
 function smashOffset() {
 
-    return Math.random() * maxOffset;
+    return ( 1-2*Math.random() ) * maxOffset;
 
 }
 
@@ -50,7 +51,7 @@ function createOnlineGameRecord( params, callback ) {
         stack: stack,
         currentStack: currentStack,
         users: users,
-        round: 1,
+        //round: 1,
         currentUser: getRandomUser( users )
     };
 

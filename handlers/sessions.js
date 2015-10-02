@@ -5,8 +5,9 @@ module.exports = function(PostGre) {
     this.isAuthorized = function( req, res, next ) {
         var err;
 
-        if (!req.session.uId) {
+        if (!req.session.loggedIn) {
             err = new Error(RESPONSES.UNATHORIZED);
+            err.status = 409;
             return next(err);
         }
 

@@ -3,7 +3,7 @@
  */
 
 /* Database Settings */
-process.env.DB_HOST = process.env.DB_HOST || 'localhost';
+process.env.DB_HOST = process.env.DB_HOST || '192.168.88.250';
 process.env.DB_NAME = process.env.DB_NAME || 'FlipStar';
 process.env.DB_PORT = process.env.DB_PORT || 5432;
 process.env.DB_USER = process.env.DB_USER || 'postgres';
@@ -11,6 +11,7 @@ process.env.DB_PASS = process.env.DB_PASS || 'postgres';
 
 /* App Settings */
 process.env.PORT = process.env.PORT || 8840;
+process.env.PORT_HTTPS = process.env.PORT_HTTPS || 8840;
 process.env.HOST = process.env.HOST || 'http://134.249.164.53:8840';
 
 /* Redis Settings*/
