@@ -176,23 +176,23 @@ module.exports = function () {
 
     io = require('./handlers/socket')( httpsServer, PostGre );
 
-    /*httpServer.listen( process.env.PORT, function () {
+    httpServer.listen( process.env.PORT, function () {
         console.log(
             '====', new Date().toISOString(), '====','\n',
             'http server listen', '\n',
             'port: ', process.env.PORT, '\n',
             'environment: ', process.env.NODE_ENV, '\n'
         );
-    });*/
+    });
 
-    httpsServer.listen( process.env.PORT_HTTPS, function () {
+    /*httpsServer.listen( process.env.PORT_HTTPS, function () {
         console.log(
             '====', new Date().toISOString(), '====','\n',
             'https server listen', '\n',
             'port: ', process.env.PORT_HTTPS, '\n',
             'environment: ', process.env.NODE_ENV, '\n'
         );
-    });
+    });*/
 
     return app;
 };
