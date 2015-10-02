@@ -174,7 +174,7 @@ module.exports = function () {
     credentials = {key: privateKey, cert: certificate, passphrase: 'thinkmobiles'};
     httpsServer = https.createServer(credentials, app);
 
-    io = require('./handlers/socket')( httpsServer, PostGre );
+    io = require('./handlers/socket')( httpServer, PostGre );
 
     httpServer.listen( process.env.PORT, function () {
         console.log(

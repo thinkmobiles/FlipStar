@@ -291,7 +291,7 @@ module.exports = function( httpServer, db ) {
         var uId = socket.handshake.query.uId;
 
         if ( ! uId ) {
-            debug('socket ' + socket.id + ' disconnected: no uId');
+            console.log('socket ' + socket.id + ' disconnected: no uId');
             return socket.disconnect();
         }
 
@@ -305,9 +305,10 @@ module.exports = function( httpServer, db ) {
             var uId = socket.uId;
             var bet = parseInt( data.bet ) | 0;
             var stack = data.stack;
+            var socketId = socket.id;
 
             /* add search record */
-            ( function( uId, bet, stack ) {
+            ( function( uId, bet, stack, socketId ) {
 
                 async.waterfall([
 
@@ -339,6 +340,7 @@ module.exports = function( httpServer, db ) {
                                 key,
                                 {
                                     stack: JSON.stringify( stack ),
+                                    socket: JSON.stringify( socketId ),
                                     bet: bet
                                 }
                             );
@@ -452,7 +454,7 @@ module.exports = function( httpServer, db ) {
                         socket.emit('message', {message: 'added to search queue'});
                     }
                 );*/
-            })( uId, bet, stack )
+            })( uId, bet, stack, socketId );
 
         });
 
