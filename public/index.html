@@ -37,7 +37,7 @@
 
             socket = io.connect(
                     {
-                        transports: ['websocket'],
+                       /* transports: ['websocket'],*/
                         query: 'uId=' + $('#uId').val()
                     }
             );
@@ -52,6 +52,10 @@
             socket.on('startGame', function(data) {
                 console.log(data);
             });
+
+            socket.on('eventError', function(err){
+                console.log( err )
+            })
 
             console.log('Socket: connect. uId:');
             return false;

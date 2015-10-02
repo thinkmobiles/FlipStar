@@ -16,9 +16,9 @@ module.exports = function (app, PostGre) {
     });
 
     app.use('/user', usersRouter);
-    app.use('/gameProfile', gameRouter);
-    app.use('/purchase', purchaseRouter);
-    app.use('/queue', queueRouter);
+    app.use('/gameProfile',session.isAuthorized, gameRouter);
+    app.use('/purchase',session.isAuthorized, purchaseRouter);
+    app.use('/queue',session.isAuthorized, queueRouter);
 
     function notFound(req, res, next) {
         res.status(404);
@@ -39,7 +39,7 @@ module.exports = function (app, PostGre) {
         var status = err.status || 500;
 
         if (process.env.NODE_ENV === 'production') {
-            if (status === 401) {
+            if (status === 401 || status === 409 ) {
                 /*logWriter*/console.log('', err.message + '\n' + err.stack);
             }
             res.status(status);

@@ -4,6 +4,7 @@ var _ = require('lodash');
 var uuid = require('uuid');
 var debug = require('debug')('custom:socket:events');
 var client = (new (require('../helpers/redisStore'))).client;
+var GameProfHelper = require('../helpers/gameProfile');
 /* CONSTANTS */
 var SEARCH_TTL = 300;
 var SMASH_STACK_MAX_OFFSET = 0.2;
@@ -21,15 +22,40 @@ function eventError( err, socket ) {
     );
 }
 
-function arrDiff( arr1, arr2 ) {
+function arrDiff( fromArray, removeArray ) {
     "use strict";
     var length;
 
-    for (length = arr2.length; length--;) {
-        arr1.splice( arr1.indexOf( arr2[length] ) , 1 );
+    for (length = removeArray.length; length--;) {
+        fromArray.splice( fromArray.indexOf( removeArray[length] ) , 1 );
     }
 
-    return arr1;
+    return fromArray;
+}
+
+function arrUniqCountGroup(arr) {
+    "use strict";
+    var resultObject = {};
+    var resultArray = [];
+    var i;
+
+    for (i = arr.length; i--;) {
+
+        if ( resultObject[arr[i]] ) {
+            resultObject[arr[i]] += 1;
+        } else {
+            resultObject[arr[i]] = 1;
+        }
+    }
+
+    _.forOwn(resultObject, function(val, key) {
+        return resultArray.push({
+            id: key,
+            quantity: val
+        })
+    });
+
+    return resultArray;
 }
 
 function getOpponent( uId, bet, callback ) {
@@ -77,6 +103,8 @@ function getOpponent( uId, bet, callback ) {
                     return dCb();
                 }
 
+                dCb();
+
             })
         },
         function() {
@@ -113,16 +141,7 @@ function createGameId( userIdArr ) {
 function createGame( user1Data, user2Data, callback ) {
     "use strict";
     var users = [ user1Data.uId, user2Data.uId ]; // [ userId ]
-    var stack = user1Data.stack.concat( user2Data.stack ); // [ smashId ]node
-
-    var currentStack = _.shuffle(_.map( stack, function( value ) {
-        return {
-            id: value,
-            x: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5),
-            y: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5)
-        }
-
-    } ));
+    var currentStack = user1Data.stack.concat( user2Data.stack ); // [ smashId ]node
 
     var gameData = {
         id: createGameId( users ),
@@ -131,7 +150,6 @@ function createGame( user1Data, user2Data, callback ) {
         currentUser: getRandomUser( users ),
         ttl: TURN_TTL
     };
-
 
     for (var i = gameData.users.length; i--;) {
         gameData[gameData.users[i]] = []; //TODO posible uid confilct with object keys
@@ -149,11 +167,48 @@ function createGame( user1Data, user2Data, callback ) {
         if (err) {
             return callback( err );
         }
-
+        console.log('createGame:NewGame:', gameData);
         callback( null, gameData );
     });
 
 }
+
+function getGame(gameId, callback) {
+    "use strict";
+    var gameKey = ':game:' + gameId + ':';
+
+    client.hgetall( gameKey, function( err, gData) {
+        var gameData = {};
+
+        if (err) {
+            return callback(err);
+        }
+
+        if (!gData) {
+            return callback()
+        }
+
+        try {
+            _.forEach(gData, function (val, key) {
+                gameData[key] = JSON.parse(val);
+            });
+        } catch (err) {
+            return callback(err);
+        }
+
+        callback(null, gameData);
+    });
+
+}
+
+function stopSearch(userId, callback) {
+    var searchKey = ':search:'+ userId + ':';
+
+    client.del(searchKey, callback);
+
+}
+
+
 
 /*function handShake( socket, next ) {
     "use strict";
@@ -170,12 +225,64 @@ function createGame( user1Data, user2Data, callback ) {
 
 }*/
 
-module.exports = function( httpServer ) {
+module.exports = function( httpServer, db ) {
     "use strict";
     var io = require('../helpers/socket')(httpServer);
+    var gameProfHelper = new GameProfHelper(db);
 
+    function endGame(gameData, callback) {
+        var gameId = gameData.id;
+        var leaver = gameData.leaver;
+        var gameKey = ':game:' + gameId + ':';
+        var endResponse;
 
+        if (leaver) {
+            gameData[leaver] = gameData[leaver].concat(gameData.stack);
+        }
+
+        endResponse = {
+            id:    gameId,
+            user1: gameData[gameData.users[0]],
+            user2: gameData[gameData.users[1]],
+            users: gameData.users,
+            timeToRevenge: TIME_TO_REVENGE
+        };
+
+        client.del(gameKey, ':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
+            console.log('multiplayer:endGame:Del:Game:', gameKey, '');
+        });
+
+        io.to( gameId ).emit(
+            'endGame',
+            endResponse
+        );
+
+        gameProfHelper.addSmashes({
+            uid: endResponse.users[0],
+            smashes: arrUniqCountGroup(endResponse['user1'])
+        }, function(err) {
+            if (err) {
+                console.log('multiplayer:endGame:error', err); //TODO: handle error
+            }
+        });
+
+        gameProfHelper.addSmashes({
+            uid: gameData.users[1],
+            smashes: arrUniqCountGroup(endResponse['user2'])
+        }, function(err) {
+            if (err) {
+                console.log('multiplayer:endGame:error', err); //TODO: handle error
+            }
+        });
+
+        callback();
+    }
+
+    /**
+     *
+     */
     io.on('connection', function( socket ) {
+
         var uId = socket.handshake.query.uId;
 
         if ( ! uId ) {
@@ -187,9 +294,8 @@ module.exports = function( httpServer ) {
 
         socket.uId = uId;
 
-        debug('socket ' + socket.id + ' connected. uId: ' + uId );
-
         socket.on('startSearch', function( data ) {
+            console.log('startSearch: START');
             /* TODO: add validation */
             var uId = socket.uId;
             var bet = parseInt( data.bet ) | 0;
@@ -198,14 +304,12 @@ module.exports = function( httpServer ) {
             /* add search record */
             ( function( uId, bet, stack ) {
 
-
-
                 async.waterfall([
 
                         function(wCb) {
-                            var key = ':search:'+ uId + ':';
+                            var searchKey = ':search:'+ uId + ':';
 
-                            client.hsetnx(key, 'socketId', JSON.stringify(socket.id), wCb);
+                            client.hsetnx(searchKey, 'socketId', JSON.stringify(socket.id), wCb);
                         },
 
                         function( data, wCb ) {
@@ -243,25 +347,28 @@ module.exports = function( httpServer ) {
 
                             getOpponent( uId, bet, function ( err, opponentData ) {
                                 var queueKey = ':queue:'+bet+':';
-
+                                console.log('Opponent:', opponentData);
                                 if (err) {
                                     return wCb( err );
                                 }
 
                                 if ( !opponentData ) {
+
                                     client.rpush( queueKey, uId, function( err, data) {
                                         if (err) {
-                                            return console.log(err);
+                                            return wCb(err);
                                         }
                                          console.log('Added to Queue: ', bet, ' uId: ', socket.uId );
                                     });
+
                                     socket.emit('addToQueue', { ttl: SEARCH_TTL });
+                                    socket.inSearch = true;
+
                                     return wCb();
 
                                 }
 
 
-                                console.log('CreateGame');
                                 createGame(
                                     { bet: bet, uId: uId, stack: stack },
                                     { bet: opponentData.bet, uId: opponentData.uId, stack: opponentData.stack },
@@ -269,37 +376,45 @@ module.exports = function( httpServer ) {
                                         var result;
 
                                         if (err) {
-                                            return console.log( err );
+                                            return wCb(err);
                                         }
 
-                                        if ( !gameData ) {
-                                            return console.log( 'No game data' );
-                                        }
+                                        /*if ( !gameData ) {
+                                            err = new Error('No game data');
+                                            err.status = 409;
+                                            return wCb(err);
+                                        }*/
+
+                                        var currentStack = _.shuffle(_.map( gameData.stack, function( value ) {
+                                            return {
+                                                id: value,
+                                                x: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5),
+                                                y: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5)
+                                            }
+
+                                        } ));
 
                                         result = {
                                             id: gameData.id,
-                                            stack: gameData.stack,
+                                            stack: currentStack,
                                             users: gameData.users,
                                             currentUser: gameData.currentUser,
                                             ttl: gameData.ttl
                                         };
 
                                         for (var i = result.users.length; i--;) {
-                                            console.log('st emit: ', result.users[i]);
-                                            io.to(result.users[i]).emit('startGame', JSON.stringify( result ) );
+                                            io.to(result.users[i]).emit('startGame', result );
                                         }
 
                                         wCb( null, result );
                                     }
                                 )
 
-
-
                             });
                         }
 
                     ],
-
+                    /*MAIN CALLBACK*/
                     function( err, result ) {
                         if ( err && err.custom ) {
                             return eventError(err, socket);
@@ -337,28 +452,30 @@ module.exports = function( httpServer ) {
         });
 
         socket.on('stopSearch', function( data ) {
+            var uId = socket.uId;
 
-            /*async.waterfall(
-                async.apply(client.get, ':search:'+ uId + ':'),
-                function( data, wCb ) {
-                    if ( data ) {}
+            stopSearch(uId, function(err){
+                if (err) {
+                    return console.log('ERROR:stopSearch: ', err);
                 }
-            );*/
+                socket.inSearch = false;
+                socket.emit('endSearch', {message: 'Success'});
+            });
 
-            /* del search record */
-            (function( uId ){
+            /*(function( uId ){
                 client.del(
                     ':search:'+ uId + ':',
                     function() {
+                        console.log('stopEnd: END');
                         socket.emit('endSearch', {message: 'Success'});
                     }
                 )
-            })(socket.uId);
+            })(socket.uId);*/
         });
 
         socket.on('trajectory', function(data) {
-            var gameId = data.gId;
-            var gameKey = ':game:' + gameId + ':';
+            var gameId = socket.gId;
+            /*var gameKey = ':game:' + gameId + ':';
 
             client.hget(gameKey, 'users', function(err,data) {
                 var users;
@@ -373,21 +490,25 @@ module.exports = function( httpServer ) {
                 }
 
 
-            });
+            });*/
 
             socket.to(gameId).emit( 'trajectory', data );
         });
 
-        socket.on('joinGame', function(){})
+        socket.on('joinGame', function( data ){
+            socket.gId = data.id ;
+            socket.inGame = true;
+            socket.join( socket.gId );
+        });
 
         socket.on('angle', function(data) {
-            var gameId = data.gId;
+            var gameId = socket.gId;
 
             socket.to(gameId).emit( 'angle', data );
         });
 
-        socket.on('strength', function() {
-            var gameId = data.gId;
+        socket.on('strength', function( data ) {
+            var gameId = socket.gId;
 
             socket.to(gameId).emit( 'strength', data );
 
@@ -395,55 +516,245 @@ module.exports = function( httpServer ) {
 
         socket.on('winStack', function( data ) {
             var uId = socket.uId;
-            var gameId = data.gId;
+            var gameId = socket.gId;
             var gameKey = ':game:' + gameId + ':';
-            var stack;
+            var stack = data.stack;
 
-            try {
-                stack = JSON.parse( data.stack );
-            } catch(err) {
-                 return console.log(err); //TODO
-            }
 
-            client.hgetall( gameKey, function( err, data) {
+            async.waterfall(
+                [
+                    /*get game data*/
+                    function (wCb) {
+                        getGame(gameId, function(err, gData) {
+                            if (err) {
+                                return wCb(err);
+                            }
+
+                            if (!gData) {
+                                err = new Error('Game dont exist');
+                                err.status = 404;
+                                return wCb(err);
+                            }
+
+                            wCb(null, gData);
+                        });
+                    },
+
+                    /*handle data*/
+                    function (gameData, wCb) {
+                        var curUser;
+                        var updateObject = {};
+
+                        gameData[uId] = gameData[uId].concat( stack );
+                        arrDiff( gameData.stack, stack );
+
+                        if ( !gameData.stack.length ) {
+
+                            return endGame(
+                                gameData,
+                                function(err, result) {
+                                    if (err) {
+                                        return wCb(err);
+                                    }
+
+                                    delete socket.gId;
+                                    wCb();
+                                }
+                            );
+
+                        } else {
+                            curUser = gameData.users[(gameData.users.indexOf(gameData.currentUser) + 1 ) % 2];
+                            updateObject.currentUser = JSON.stringify(curUser);
+                            updateObject.stack = JSON.stringify(gameData.stack);
+                            updateObject[socket.uId] = JSON.stringify( gameData[socket.uId] );
+
+                            client.hmset(gameKey, updateObject, function(err, data) {
+                                if (err) {
+                                    return wCb(err);
+                                }
+
+                                var currentStack = _.shuffle(_.map( gameData.stack, function( value ) {
+                                    return {
+                                        id: value,
+                                        x: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5),
+                                        y: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5)
+                                    }
+
+                                } ));
+
+                                io.to( gameId ).emit(
+                                    'turnEnd',
+                                    {
+                                        id:             gameData.id,
+                                        stack:          currentStack,
+                                        users:          gameData.users,
+                                        currentUser:    curUser,
+                                        ttl:            gameData.ttl
+                                    }
+                                );
+
+                                return wCb();
+                            });
+                        }
+
+
+                    }
+                ],
+                function(err) {
+                    if(err) {
+                        return console.log('Error:winStack: ', err);
+                    }
+
+
+                }
+            );
+
+            /*client.hgetall( gameKey, function( err, gData) {
                 var gameData = {};
-                var stack;
+                var curUser;
+                var updateObject = {};
 
                 if (err) {
                     return console.log( err );
                 }
 
                 try {
-                    _.forEach(data, function(val, key) {
+                    _.forEach(gData, function(val, key) {
                         gameData[key] = JSON.parse(val);
                     });
-                    stack = JSON.parse( data.stack );
                 } catch(err) {
                     console.log( err );
                 }
 
-                gameData[socket.uId].concat( stack );
+                gameData[socket.uId] = gameData[socket.uId].concat( stack );
+                console.log(gameData[socket.uId]);
 
                 arrDiff( gameData.stack, stack );
 
-                if ( !gameData.stack.length ) {
+                console.log( gameData.stack );
 
-                    socket.to(gameId).broadcast(
-                        'endGame',
-                        {
-                            user1: gameData[gameData.users[0]],
-                            user2: gameData[gameData.users[0]],
-                            users: gameData.users,
-                            timeToRevemge: TIME_TO_REVENGE
+                if ( !gameData.stack.length ) {
+                    return endGame(
+                        gameData,
+                        function(err, result) {
+                            console.log('EndGame:normal:' + gameData.id);
                         }
                     );
+
+                    /!*io.to( gameId ).emit(
+                        'endGame',
+                        {
+                            id:    socket.gId,
+                            user1: gameData[gameData.users[0]],
+                            user2: gameData[gameData.users[1]],
+                            users: gameData.users,
+                            timeToRevenge: TIME_TO_REVENGE
+                        }
+                    );
+
+                    client.del(gameKey,':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
+                        console.log('multiplayer:endGame:del game data');
+                    });
+
+                    gameProfHelper.addSmashes({
+                        uid: gameData.users[0],
+                        smashes: arrUniqCountGroup(gameData[gameData.users[0]])
+                    }, function(err) {
+                        if (err) {
+                            console.log('multiplayer:endGame:error', err); //TODO: handle error
+                        }
+                    });
+
+                    gameProfHelper.addSmashes({
+                        uid: gameData.users[1],
+                        smashes: arrUniqCountGroup(gameData[gameData.users[1]])
+                    }, function(err) {
+                        if (err) {
+                            console.log('multiplayer:endGame:error', err); //TODO: handle error
+                        }
+                    });*!/
+
+                    delete socket.gId;
+
+                } else {
+                    curUser = gameData.users[(gameData.users.indexOf(gameData.currentUser) + 1 ) % 2];
+                    updateObject.currentUser = JSON.stringify(curUser);
+                    updateObject.stack = JSON.stringify(gameData.stack);
+                    updateObject[socket.uId] = JSON.stringify( gameData[socket.uId] );
+                    client.hmset(gameKey, updateObject, function(err, data) {
+                        if (err) {
+                            return console.log(err);
+                        }
+
+                        var currentStack = _.shuffle(_.map( gameData.stack, function( value ) {
+                            return {
+                                id: value,
+                                x: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5),
+                                y: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5)
+                            }
+
+                        } ));
+
+                        io.to( gameId ).emit(
+                            'turnEnd',
+                            {
+                                id:             gameData.id,
+                                stack:          currentStack,
+                                users:          gameData.users,
+                                currentUser:    curUser,
+                                ttl:            gameData.ttl
+                            }
+                        );
+                    });
+
                 }
-            })
+
+            })*/
         });
 
-
         socket.on('disconnect', function() {
-            debug(socket.id + ', uId: '+ socket.id + 'disconnect');
+            var uId = socket.uId;
+            var socketId = socket.id;
+            var gameId = socket.gId;
+
+            async.parallel(
+                {
+                    /*stop Search*/
+                    searchStop: function (pCb) {
+                        if (socket.inSearch) {
+                            return stopSearch(uId, pCb);
+                        }
+                        pCb();
+                    },
+
+                    gameEnd: function (pCb) {
+                        var gameId = socket.gId;
+
+                        if (gameId) {
+                            getGame(gameId, function (err, gameData) {
+                                if (err) {
+                                    return pCb(err);
+                                }
+
+                                if (!gameData) {
+                                    return pCb();
+                                }
+
+                                gameData.leaver = uId;
+
+                                endGame(gameData, pCb);
+                            })
+                        }
+                    }
+                },
+                function (err, results) {
+                    if (err) {
+                        return console.log('ERROR:disconnect:'+socket.id+': ', err);
+                    }
+
+                    console.log('Socket:Disconnect:', socketId, ':',uId);
+                }
+            );
 
         });
 
