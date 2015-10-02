@@ -11,6 +11,7 @@ process.env.DB_PASS = process.env.DB_PASS || 'postgres';
 
 /* App Settings */
 process.env.PORT = process.env.PORT || 8840;
+process.env.PORT_HTTPS = process.env.PORT_HTTPS || 8840;
 process.env.HOST = process.env.HOST || 'http://134.249.164.53:8840';
 
 /* Redis Settings*/

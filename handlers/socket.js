@@ -283,6 +283,8 @@ module.exports = function( httpServer, db ) {
      */
     io.on('connection', function( socket ) {
 
+        console.log('Socket:Connect: ', socket.id);
+
         var uId = socket.handshake.query.uId;
 
         if ( ! uId ) {

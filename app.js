@@ -168,28 +168,28 @@ module.exports = function () {
     });*/
 
     httpServer = http.createServer(app);
-    privateKey  = fs.readFileSync('config/server.key', 'utf8');
-    certificate = fs.readFileSync('config/server.crt', 'utf8');
+    privateKey  = fs.readFileSync('config/privatKey.pem'/*, 'utf8'*/);
+    certificate = fs.readFileSync('config/cert.pem'/*, 'utf8'*/);
 
-    credentials = {key: privateKey, cert: certificate};
+    credentials = {key: privateKey, cert: certificate, passphrase: 'thinkmobiles'};
     httpsServer = https.createServer(credentials, app);
 
-    io = require('./handlers/socket')( httpServer, PostGre );
+    io = require('./handlers/socket')( httpsServer, PostGre );
 
-    httpServer.listen( process.env.PORT, function () {
+    /*httpServer.listen( process.env.PORT, function () {
         console.log(
             '====', new Date().toISOString(), '====','\n',
             'http server listen', '\n',
             'port: ', process.env.PORT, '\n',
             'environment: ', process.env.NODE_ENV, '\n'
         );
-    });
+    });*/
 
     httpsServer.listen( process.env.PORT_HTTPS, function () {
         console.log(
             '====', new Date().toISOString(), '====','\n',
-            'http server listen', '\n',
-            'port: ', process.env.PORT, '\n',
+            'https server listen', '\n',
+            'port: ', process.env.PORT_HTTPS, '\n',
             'environment: ', process.env.NODE_ENV, '\n'
         );
     });
