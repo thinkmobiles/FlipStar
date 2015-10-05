@@ -317,6 +317,19 @@ GameProfile = function (PostGre) {
 
     };
 
+    this.removeSmashes = function (options, callback) {
+        var uid = options.uid;
+        var smashesIds = options.smashes;
+
+        PostGre.knex
+            .raw('SELECT remove_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
+            .then(function () {
+                callback()
+            })
+            .catch(callback)
+
+    };
+
     this.calculatePoints = function (uid, callback) {
 
         PostGre.knex
