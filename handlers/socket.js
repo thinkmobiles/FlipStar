@@ -239,48 +239,77 @@ module.exports = function( httpServer, db ) {
         var gameKey = ':game:' + gameId + ':';
         var endResponse;
 
-        client.del(gameKey, ':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
-            console.log('multiplayer:endGame:Del:Game:', gameKey, '');
-        });
-
         if (leaver) {
             gameData[leaver] = gameData[leaver].concat(gameData.stack);
         }
 
-        endResponse = {
-            id:    gameId,
-            user1: gameData[gameData.users[0]],
-            user2: gameData[gameData.users[1]],
-            users: gameData.users,
-            timeToRevenge: TIME_TO_REVENGE
-        };
+        async.parallel(
+            {
+                delGameRecord: function(pCb) {
+                    var serchKeys = [
+                        ':search:'+ gameData.users[0] + ':',
+                        ':search:'+ gameData.users[1] + ':'
+                    ];
 
+                    client.del(gameKey, serchKeys[0], serchKeys[1], function(err) {
+                        if (err) {
+                            return pCb(err);
+                        }
 
+                        debug('delGameRecord: ' + gameKey + ' :searchKey0 - ' + serchKeys[0] + ' :searchKey1 - ' + serchKeys[1] );
+                        pCb();
+                    });
+                },
 
-        io.to( gameId ).emit(
-            'endGame',
-            endResponse
+                addWinStacks: function (pCb) {
+                    endResponse = {
+                        id:    gameId,
+                        user1: gameData[gameData.users[0]],
+                        user2: gameData[gameData.users[1]],
+                        users: gameData.users,
+                        timeToRevenge: TIME_TO_REVENGE
+                    };
+
+                    async.each(
+                        endResponse.users,
+                        function(user, eCb) {
+                            gameProfHelper.addSmashes({
+                                uid: user,
+                                smashes: endResponse['user' + (endResponse.users.indexOf(user) + 1) ]
+                            }, function(err) {
+                                if (err) {
+                                    return eCb(err);
+                                }
+
+                                debug('addWinStacks: ' + gameKey + ' :' + user + ' - ' + endResponse['user' + (endResponse.users.indexOf(user) + 1)] );
+                                eCb();
+                            });
+                        },
+                        function(err) {
+                            if (err) {
+                                return pCb(err);
+                            }
+
+                            debug('addWinStacks: ' + gameKey + ' :Success');
+                            pCb();
+                        }
+                    )
+                }
+
+            },
+            function(err) {
+                if (err) {
+                    return callback(err);
+                }
+
+                /*io.to( gameId ).emit(
+                    'endGame',
+                    endResponse
+                );*/
+
+                callback(null, endResponse);
+            }
         );
-
-        gameProfHelper.addSmashes({
-            uid: endResponse.users[0],
-            smashes: /*arrUniqCountGroup(endResponse['user1'])*/endResponse['user1']
-        }, function(err) {
-            if (err) {
-                console.log('multiplayer:endGame:error', err); //TODO: handle error
-            }
-        });
-
-        gameProfHelper.addSmashes({
-            uid: gameData.users[1],
-            smashes: /*arrUniqCountGroup(endResponse['user2'])*/endResponse['user1']
-        }, function(err) {
-            if (err) {
-                console.log('multiplayer:endGame:error', err); //TODO: handle error
-            }
-        });
-
-        callback();
     }
 
     /**
@@ -439,23 +468,6 @@ module.exports = function( httpServer, db ) {
                     }
                 );
 
-                /*client.setnx(
-                    ':search:'+ uId + ':',
-                    JSON.stringify({ bet: bet, stack: stack }),
-                    function( err, result ){
-                        if (err) {
-                            return debug( err.message || err );
-                        }
-
-                        if ( !result) {
-                            return socket.emit('err', { message: 'other devise search'});
-                        };
-
-                        /!* set search record expiration  *!/
-                        client.expire(':search:'+ uId + ':', 30);
-                        socket.emit('message', {message: 'added to search queue'});
-                    }
-                );*/
             })( uId, bet, stack, socketId );
 
         });
@@ -471,15 +483,6 @@ module.exports = function( httpServer, db ) {
                 socket.emit('endSearch', {message: 'Success'});
             });
 
-            /*(function( uId ){
-                client.del(
-                    ':search:'+ uId + ':',
-                    function() {
-                        console.log('stopEnd: END');
-                        socket.emit('endSearch', {message: 'Success'});
-                    }
-                )
-            })(socket.uId);*/
         });
 
         socket.on('trajectory', function(data) {
@@ -561,10 +564,15 @@ module.exports = function( httpServer, db ) {
 
                             return endGame(
                                 gameData,
-                                function(err, result) {
+                                function(err, response) {
                                     if (err) {
                                         return wCb(err);
                                     }
+
+                                    io.to( gameId ).emit(
+                                        'endGame',
+                                        response
+                                    );
 
                                     delete socket.gId;
                                     wCb();
@@ -617,108 +625,6 @@ module.exports = function( httpServer, db ) {
 
                 }
             );
-
-            /*client.hgetall( gameKey, function( err, gData) {
-                var gameData = {};
-                var curUser;
-                var updateObject = {};
-
-                if (err) {
-                    return console.log( err );
-                }
-
-                try {
-                    _.forEach(gData, function(val, key) {
-                        gameData[key] = JSON.parse(val);
-                    });
-                } catch(err) {
-                    console.log( err );
-                }
-
-                gameData[socket.uId] = gameData[socket.uId].concat( stack );
-                console.log(gameData[socket.uId]);
-
-                arrDiff( gameData.stack, stack );
-
-                console.log( gameData.stack );
-
-                if ( !gameData.stack.length ) {
-                    return endGame(
-                        gameData,
-                        function(err, result) {
-                            console.log('EndGame:normal:' + gameData.id);
-                        }
-                    );
-
-                    /!*io.to( gameId ).emit(
-                        'endGame',
-                        {
-                            id:    socket.gId,
-                            user1: gameData[gameData.users[0]],
-                            user2: gameData[gameData.users[1]],
-                            users: gameData.users,
-                            timeToRevenge: TIME_TO_REVENGE
-                        }
-                    );
-
-                    client.del(gameKey,':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
-                        console.log('multiplayer:endGame:del game data');
-                    });
-
-                    gameProfHelper.addSmashes({
-                        uid: gameData.users[0],
-                        smashes: arrUniqCountGroup(gameData[gameData.users[0]])
-                    }, function(err) {
-                        if (err) {
-                            console.log('multiplayer:endGame:error', err); //TODO: handle error
-                        }
-                    });
-
-                    gameProfHelper.addSmashes({
-                        uid: gameData.users[1],
-                        smashes: arrUniqCountGroup(gameData[gameData.users[1]])
-                    }, function(err) {
-                        if (err) {
-                            console.log('multiplayer:endGame:error', err); //TODO: handle error
-                        }
-                    });*!/
-
-                    delete socket.gId;
-
-                } else {
-                    curUser = gameData.users[(gameData.users.indexOf(gameData.currentUser) + 1 ) % 2];
-                    updateObject.currentUser = JSON.stringify(curUser);
-                    updateObject.stack = JSON.stringify(gameData.stack);
-                    updateObject[socket.uId] = JSON.stringify( gameData[socket.uId] );
-                    client.hmset(gameKey, updateObject, function(err, data) {
-                        if (err) {
-                            return console.log(err);
-                        }
-
-                        var currentStack = _.shuffle(_.map( gameData.stack, function( value ) {
-                            return {
-                                id: value,
-                                x: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5),
-                                y: ( smashOffset( SMASH_STACK_MAX_OFFSET )).toFixed(5)
-                            }
-
-                        } ));
-
-                        io.to( gameId ).emit(
-                            'turnEnd',
-                            {
-                                id:             gameData.id,
-                                stack:          currentStack,
-                                users:          gameData.users,
-                                currentUser:    curUser,
-                                ttl:            gameData.ttl
-                            }
-                        );
-                    });
-
-                }
-
-            })*/
         });
 
         socket.on('disconnect', function() {
@@ -751,8 +657,21 @@ module.exports = function( httpServer, db ) {
 
                                 gameData.leaver = uId;
 
-                                endGame(gameData, pCb);
+                                endGame(gameData, function(err, response) {
+                                    if (err) {
+                                        return pCb(err);
+                                    }
+
+                                    io.to( gameId ).emit(
+                                        'endGame',
+                                        response
+                                    );
+
+                                    pCb();
+                                });
                             })
+                        } else {
+                            pCb();
                         }
                     }
                 },
