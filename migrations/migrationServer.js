@@ -77,6 +77,7 @@ app.get('/', function (req, res) {
     html += '<h2>Database Operations</h2><hr/>';
 
     html += '<a href="/databases/create">Create Tables</a><br/>';
+    html += '<a href="/databases/createFunctions">Create Functions</a><br/>';
     html += '<a href="/databases/drop">Drop Tables</a><br/>';
     html += '<a href="/databases/default">Set default data</a><br/>';
     //html += '<a href="/databases/default">Set Defult Date</a><br/>';
@@ -85,6 +86,12 @@ app.get('/', function (req, res) {
     //html+='<a href="/seed/fake">Seed Fake</a><br/>';
 
     res.send(html);
+});
+
+
+app.get('/databases/createFunctions', function (req, res) {
+    schema.createFunctions();
+    res.send('<b>Create Take Success</b>');
 });
 
 app.get('/databases/create', function (req, res) {

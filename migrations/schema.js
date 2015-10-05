@@ -784,19 +784,39 @@ module.exports = function (knex) {
         }, cb)
     }
 
-    function createTables() {
+    function createFunctions () {
+
         async.series([
-            UUIDExtension,
-            triggerUpdateDate,
-            triggerDeleteExpBooster,
-            triggerDesactivateBooster,
             singleGame,
             activateBooster,
             openSmash,
             buyBooster,
             addFlips,
             removeSmashes,
-            addSmashes,
+            addSmashes
+
+        ], function (errors) {
+
+            if (errors) {
+                console.log('===============================');
+                console.log(errors);
+                console.log('===============================');
+
+            } else {
+                console.log('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<');
+                console.log('Functions Created!');
+                console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
+
+            }
+        })
+    }
+
+    function createTables() {
+        async.series([
+            UUIDExtension,
+            triggerUpdateDate,
+            triggerDeleteExpBooster,
+            triggerDesactivateBooster,
             countriesTable,
             languageTable,
             userTable,
@@ -1085,6 +1105,7 @@ module.exports = function (knex) {
 
     return {
         create: createTables,
+        createFunctions: createFunctions,
         drop: drop,
         setDefaultData: setDefaultOptions
     }
