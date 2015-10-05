@@ -634,7 +634,8 @@ module.exports = function (knex) {
     function achivementsTable(cb) {
         createTable(TABLES.ACHIEVEMENTS, function (row) {
             row.increments('id').primary();
-            row.integer('name').notNullable();
+            row.string('name').notNullable();
+            row.integer('type').notNullable();
             row.integer('prize').notNullable();
 
             row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
@@ -663,6 +664,7 @@ module.exports = function (knex) {
             row.increments('id').primary();
             row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('CASCADE').onUpdate('CASCADE');
+            row.integer('count');
 
             row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
             row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
@@ -1037,12 +1039,45 @@ module.exports = function (knex) {
             })
     }
 
+    function fillAchievements (cb) {
+        var sqlString = " CREATE OR REPLACE FUNCTION fillAchievements() RETURNS VOID AS $$ " +
+            " BEGIN " +
+            " DELETE FROM " + TABLES.ACHIEVEMENTS + ";" +
+            " INSERT INTO " + TABLES.ACHIEVEMENTS + " (id, name, type, prize) VALUES " +
+            " (1, \'" + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.POINTS + "), " +
+            " (2, \'" + CONSTANTS.ACHIEVEMENTS.PURCHASE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.PURCHASE.POINTS + "), " +
+            " (3, \'" + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.POINTS + "), " +
+            " (4, \'" + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.POINTS + "), " +
+            " (5, \'" + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.POINTS + "), " +
+            " (6, \'" + CONSTANTS.ACHIEVEMENTS.WIN.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WIN.POINTS + "), " +
+            " (7, \'" + CONSTANTS.ACHIEVEMENTS.WINS_3.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WINS_3.POINTS + "), " +
+            " (8, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.POINTS + "), " +
+            " (9, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.POINTS + "), " +
+            " (10, \'" + CONSTANTS.ACHIEVEMENTS.INVITE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.INVITE.POINTS + "), " +
+            " (11, \'" + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.POINTS + "); " +
+            " END; " +
+            " $$ LANGUAGE plpgsql; ";
+
+        knex
+            .raw(sqlString)
+            .exec(function(err){
+                if (err){
+                    return cb(err);
+                }
+
+                cb(null);
+            })
+    }
+
+
     function setDefaultOptions () {
 
         async.parallel([
             fillPurchasePack,
             fillSmashes,
-            fillBoosters
+            fillBoosters,
+            fillAchievements
+
         ],function(err){
             if (err) {
                 console.log('===============================');
@@ -1078,6 +1113,12 @@ module.exports = function (knex) {
                     function(cb){
                         knex
                             .raw(" SELECT fillBoosters(); ")
+                            .exec(cb)
+                    },
+
+                    function(cb){
+                        knex
+                            .raw(" SELECT fillAchievements(); ")
                             .exec(cb)
                     }
 

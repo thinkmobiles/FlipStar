@@ -66,5 +66,57 @@ module.exports = {
         USER: 'user',
         DEVICE: 'device',
         PROFILE: 'profile'
+    },
+
+    ACHIEVEMENTS_TYPES: {
+        ONE_TIME: 0,
+        MULTIPLE: 1
+    },
+
+    ACHIEVEMENTS: {
+        SUPER_FLIP: {
+            NAME: 'Full stack flip',
+            POINTS: 50
+        },
+        PURCHASE: {
+            NAME: 'Purchasing an item',
+            POINTS: 300
+        },
+        FB_CONNECT: {
+            NAME: 'Connection to Facebook',
+            POINTS: 300
+        },
+        SMASH_UNLOCK: {
+            NAME: 'Smash unlocked',
+            POINTS: 10
+        },
+        FRIEND_CHALLENGE: {
+            NAME: 'Challenge a friend',
+            POINTS: 10
+        },
+        WIN: {
+            NAME: 'Win a game',
+            POINTS: 50
+        },
+        WINS_3: {
+            NAME: 'Win 3 game in a row',
+            POINTS: 100
+        },
+        COME_BACK_1_DAY: {
+            NAME: 'Come back and play 1 day later',
+            POINTS: 200
+        },
+        COME_BACK_1_WEEK: {
+            NAME: 'Come back and play 1 week later',
+            POINTS: 1000
+        },
+        INVITE: {
+            NAME: 'Invite friend',
+            POINTS: 100
+        },
+        SET_UNLOCK: {
+            NAME: 'Set unlocked',
+            POINTS: 150
+        }
     }
 };
