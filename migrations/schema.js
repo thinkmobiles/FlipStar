@@ -261,24 +261,18 @@ module.exports = function (knex) {
 
             function (cb) {
                 knex.raw(
-                    'CREATE OR REPLACE FUNCTION add_smashes(guid UUID, sids INT[] ) RETURNS VOID AS ' +
+                    'CREATE OR REPLACE FUNCTION remove_smashes(guid UUID, sids INT[] ) RETURNS VOID AS ' +
                     '$$ ' +
                         'DECLARE smash RECORD; ' +
                         'DECLARE gid INT := (SELECT id FROM game_profile WHERE uuid = guid); ' +
                         'BEGIN ' +
                             'FOR smash IN SELECT * FROM smashes WHERE id = ANY (sids) LOOP ' +
                                 'BEGIN ' +
-                                    'LOOP ' +
-                                        'UPDATE users_smashes SET quantity = quantity + 1   WHERE game_profile_id = gid AND smash_id = smash.id; ' +
-                                        'IF found THEN ' +
-                                            'EXIT; ' +
-                                        'END IF; ' +
-                                        'BEGIN ' +
-                                            'INSERT INTO users_smashes(is_open, game_profile_id, smash_id, quantity) VALUES (false, gid, smash.id, 1); ' +
-                                                'EXIT; ' +
-                                            'EXCEPTION WHEN unique_violation THEN ' +
-                                        'END; ' +
-                                    'END LOOP; ' +
+                                    'IF (SELECT quantity FROM users_smashes WHERE game_profile_id = gid AND smash_id = smash.id) = 0 ' +
+                                        'THEN RAISE EXCEPTION \'YOU CAN NOT REMOVE THIS SMASH\'; ' +
+                                        'ELSE UPDATE users_smashes SET quantity = quantity - 1 ' +
+                                        'WHERE game_profile_id = gid AND smash_id = smash.id; ' +
+                                    'END IF; ' +
                                 'END; ' +
                             'END LOOP; ' +
                             'RETURN; ' +
@@ -286,6 +280,47 @@ module.exports = function (knex) {
                     '$$ ' +
                     'LANGUAGE plpgsql;'
                     )
+                    .exec(function (err) {
+                        if (err) {
+                            console.log('!!!!!!!!!');
+                            console.log(err);
+                            console.log('!!!!!!!!!');
+                        } else {
+                            console.log('##########');
+                            console.log('Create function');
+                            console.log('###########');
+                        }
+                        cb()
+                    })
+            },
+
+            function (cb) {
+                knex.raw(
+                    'CREATE OR REPLACE FUNCTION add_smashes(guid UUID, sids INT[] ) RETURNS VOID AS ' +
+                    '$$ ' +
+                    'DECLARE smash RECORD; ' +
+                    'DECLARE gid INT := (SELECT id FROM game_profile WHERE uuid = guid); ' +
+                    'BEGIN ' +
+                    'FOR smash IN SELECT * FROM smashes WHERE id = ANY (sids) LOOP ' +
+                    'BEGIN ' +
+                    'LOOP ' +
+                    'UPDATE users_smashes SET quantity = quantity + 1   WHERE game_profile_id = gid AND smash_id = smash.id; ' +
+                    'IF found THEN ' +
+                    'EXIT; ' +
+                    'END IF; ' +
+                    'BEGIN ' +
+                    'INSERT INTO users_smashes(is_open, game_profile_id, smash_id, quantity) VALUES (false, gid, smash.id, 1); ' +
+                    'EXIT; ' +
+                    'EXCEPTION WHEN unique_violation THEN ' +
+                    'END; ' +
+                    'END LOOP; ' +
+                    'END; ' +
+                    'END LOOP; ' +
+                    'RETURN; ' +
+                    'END; ' +
+                    '$$ ' +
+                    'LANGUAGE plpgsql;'
+                )
                     .exec(function (err) {
                         if (err) {
                             console.log('!!!!!!!!!');
