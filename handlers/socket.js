@@ -239,6 +239,10 @@ module.exports = function( httpServer, db ) {
         var gameKey = ':game:' + gameId + ':';
         var endResponse;
 
+        client.del(gameKey, ':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
+            console.log('multiplayer:endGame:Del:Game:', gameKey, '');
+        });
+
         if (leaver) {
             gameData[leaver] = gameData[leaver].concat(gameData.stack);
         }
@@ -251,9 +255,7 @@ module.exports = function( httpServer, db ) {
             timeToRevenge: TIME_TO_REVENGE
         };
 
-        client.del(gameKey, ':search:'+ gameData.users[0] + ':', ':search:'+ gameData.users[1] + ':', function(err) {
-            console.log('multiplayer:endGame:Del:Game:', gameKey, '');
-        });
+
 
         io.to( gameId ).emit(
             'endGame',
@@ -262,7 +264,7 @@ module.exports = function( httpServer, db ) {
 
         gameProfHelper.addSmashes({
             uid: endResponse.users[0],
-            smashes: arrUniqCountGroup(endResponse['user1'])
+            smashes: /*arrUniqCountGroup(endResponse['user1'])*/endResponse['user1']
         }, function(err) {
             if (err) {
                 console.log('multiplayer:endGame:error', err); //TODO: handle error
@@ -271,7 +273,7 @@ module.exports = function( httpServer, db ) {
 
         gameProfHelper.addSmashes({
             uid: gameData.users[1],
-            smashes: arrUniqCountGroup(endResponse['user2'])
+            smashes: /*arrUniqCountGroup(endResponse['user2'])*/endResponse['user1']
         }, function(err) {
             if (err) {
                 console.log('multiplayer:endGame:error', err); //TODO: handle error
