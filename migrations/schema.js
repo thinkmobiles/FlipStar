@@ -90,7 +90,7 @@ module.exports = function (knex) {
                                 'RETURN QUERY ' +
                                 'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                 'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
-                                'WHERE gp.id = guid; ' +
+                                'WHERE gp.uuid = guid; ' +
                             'END IF; ' +
                         'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.uuid = guid) < 0 THEN ' +
                             'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
