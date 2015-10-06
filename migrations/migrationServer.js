@@ -20,14 +20,14 @@ var crypto = require("crypto");
 //var CONSTANTS = require('../constants/constants');
 
 Knex.knex = Knex.initialize({
-    debug: true,
+    //debug: true,
     client: 'pg',
     connection: {
         host: process.env.DB_HOST,
         user: process.env.DB_USER,
         password: process.env.DB_PASS,
         port: process.env.DB_PORT,
-        database: 'FlipStar'
+        database: process.env.DB_NAME
     }
 });
 
@@ -39,19 +39,19 @@ var app = express();
 var server = http.createServer(app);
 
 /*app.configure(function () {
-    app.set('port', 8081);
-    app.use(express.favicon());
-    app.use(express.logger('dev'));
-    app.use(express.bodyParser());
-    app.use(express.methodOverride());
-    app.use(app.router);
-    app.use(express.static(__dirname, '/public'));
-    app.use(express.errorHandler());
-});
+ app.set('port', 8081);
+ app.use(express.favicon());
+ app.use(express.logger('dev'));
+ app.use(express.bodyParser());
+ app.use(express.methodOverride());
+ app.use(app.router);
+ app.use(express.static(__dirname, '/public'));
+ app.use(express.errorHandler());
+ });
 
-app.configure('development', function () {
-    app.use(express.errorHandler());
-});*/
+ app.configure('development', function () {
+ app.use(express.errorHandler());
+ });*/
 
 String.prototype.getBytes = function () {
     var bytes = [];
@@ -65,7 +65,7 @@ String.prototype.convertToBigCamelCase = function () {
     var splitArray = this.split('_');
     var newStr = '';
 
-    splitArray.forEach(function(item){
+    splitArray.forEach(function (item) {
         newStr += item[0].toUpperCase() + item.substring(1)
     });
 
@@ -77,6 +77,7 @@ app.get('/', function (req, res) {
     html += '<h2>Database Operations</h2><hr/>';
 
     html += '<a href="/databases/create">Create Tables</a><br/>';
+    html += '<a href="/databases/createFunctions">Create Functions</a><br/>';
     html += '<a href="/databases/drop">Drop Tables</a><br/>';
     html += '<a href="/databases/default">Set default data</a><br/>';
     //html += '<a href="/databases/default">Set Defult Date</a><br/>';
@@ -87,6 +88,11 @@ app.get('/', function (req, res) {
     res.send(html);
 });
 
+
+app.get('/databases/createFunctions', function (req, res) {
+    schema.createFunctions();
+    res.send('<b>Create Take Success</b>');
+});
 
 app.get('/databases/create', function (req, res) {
     schema.create();
@@ -102,32 +108,6 @@ app.get('/databases/default', function (req, res) {
     schema.setDefaultData();
     res.send('<b>Defaults data filled successfully</b>');
 });
-
-/*app.get('/add_admin', function (req, res) {
-    var admin = bookshelf.Model.extend({
-        tableName: 'users',
-        hasTimestamps: true
-    });
-    var shaSum = crypto.createHash('sha256');
-
-    shaSum.update("admin");
-    var pass = shaSum.digest('hex');
-    admin.forge({
-            password: pass,
-            email: "admin@admin.com",
-            first_name: "Admin",
-            last_name: "Admin",
-            role: CONSTANTS.USERS_ROLES.ADMIN
-        })
-        .save()
-        .then(function () {
-            res.status(201).send('<b>Admin was created successful</b>');
-        })
-        .catch(function (error) {
-            res.status(500).send(error);
-    });
-
-});*/
 
 
 server.listen(3000, function () {
