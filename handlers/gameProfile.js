@@ -262,19 +262,21 @@ GameProfile = function (PostGre) {
                                     return next(err)
                                 }
 
-                                gameProfHelper.calculatePoints(uid, function (err) {
+                                req.session.loggedIn = true;
+                                req.session.uId = uid;
+
+                                res.status(200).send({
+                                    success: RESPONSES.SYNCRONIZED
+                                })
+
+                               /* gameProfHelper.calculatePoints(uid, function (err) {
 
                                     if (err) {
                                         return next(err)
                                     }
 
-                                    req.session.loggedIn = true;
-                                    req.session.uId = uid;
 
-                                    res.status(200).send({
-                                        success: RESPONSES.SYNCRONIZED
-                                    })
-                                })
+                                })*/
                             })
 
                     })

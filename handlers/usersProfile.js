@@ -16,6 +16,7 @@ var Users;
 
 Users = function (PostGre) {
     var userProfHelper = new UserProfHelper(PostGre);
+    var gameProfHelper = new GameProfHelper(PostGre);
     var session = new Session(PostGre);
 
     this.signIn = function (req, res, next) {
@@ -26,7 +27,7 @@ Users = function (PostGre) {
 
         var GUEST = !!(uid !== '-1' && !fbId);
         var FB_USER = !!(uid !== '-1' && fbId);
-        
+
         if (options && options.device_id) {
 
             if (GUEST) {
@@ -40,7 +41,8 @@ Users = function (PostGre) {
 
                     res.status(200).send({
                         uId: profile.uuid,
-                        date: profile.updated_at.toLocaleString()
+                        date: profile.updated_at.toLocaleString(),
+                        achievement: req.achievement || 'none'
                     });
                 })
 
@@ -61,7 +63,8 @@ Users = function (PostGre) {
 
                             res.status(200).send({
                                 uId: profile.uuid,
-                                date: profile.updated_at.toLocaleString()
+                                date: profile.updated_at.toLocaleString(),
+                                achievement: req.achievement || 'none'
                             });
                         })
                     } else {
@@ -76,7 +79,8 @@ Users = function (PostGre) {
 
                             res.status(200).send({
                                 uId: profile.uuid,
-                                date: profile.updated_at.toLocaleString()
+                                date: profile.updated_at.toLocaleString(),
+                                achievement: req.achievement || 'none'
                             });
                         })
                     }
@@ -97,7 +101,8 @@ Users = function (PostGre) {
 
                         res.status(200).send({
                             uId: profile[0].uuid,
-                            date: profile[0].updated_at.toLocaleString()
+                            date: profile[0].updated_at.toLocaleString(),
+                            achievement: req.achievement || 'none'
                         })
 
                     } else {
@@ -111,7 +116,8 @@ Users = function (PostGre) {
 
                             res.status(201).send({
                                 uId: profile[0].uuid,
-                                date: profile[0].updated_at.toLocaleString()
+                                date: profile[0].updated_at.toLocaleString(),
+                                achievement: req.achievement || 'none'
                             });
                         })
                     }
@@ -215,12 +221,16 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                    'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
-                    'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
-                    'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = (' +
+                'SELECT COALESCE( SUM(quantity)*SUM(distinct set) , 0) + MIN(stars_number/2) AS rating, gp.id, u.first_name  AS name ' +
+                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on u.id = gp.user_id ' +
+                    'WHERE gp.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = (' +
                     '   SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) ' +
-                    'ORDER BY g.points_number DESC ' +
-                    'LIMIT 25'
+                'GROUP BY gp.id, u.first_name, u.last_name ' +
+                'ORDER BY rating DESC ' +
+                'LIMIT 25'
                 )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
@@ -231,13 +241,19 @@ Users = function (PostGre) {
 
         } else {
 
-            PostGre.knex(TABLES.USERS_PROFILE)
-                .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
-                .select('first_name', 'last_name', 'points_number')
-                .orderBy('points_number', 'desc')
-                .limit(25)
+            PostGre.knex
+                .raw(
+                    'SELECT COALESCE( SUM(quantity)*SUM(distinct set) , 0) + MIN(stars_number/2) AS rating, gp.id, u.first_name  AS name ' +
+                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
+                    'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
+                    'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u on u.id = gp.user_id ' +
+                    'GROUP BY gp.id, u.first_name, u.last_name ' +
+                    'ORDER BY rating DESC ' +
+                    'LIMIT 25'
+                )
                 .then(function (profiles) {
-                    res.status(200).send(profiles)
+                    res.status(200).send(profiles.rows)
                 })
                 .catch(function (err) {
                     next(err)
@@ -262,6 +278,50 @@ Users = function (PostGre) {
             .catch(function (err) {
                 next(err)
             })
+    };
+
+    this.checkEnterAchievement = function (req, res, next) {
+        var uuid = req.body.uId;
+        var missedDays;
+        var achievName;
+        var REQ = req;
+
+        if (uuid === '-1') {
+            return next();
+        }
+
+        PostGre.knex
+            .raw(
+                'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM ' + TABLES.GAME_PROFILE + ' ' +
+                'WHERE uuid = \'' + uuid + '\''
+            )
+            .then(function (queryResult) {
+
+                if (queryResult && queryResult.rows && queryResult.rows[0] && queryResult.rows[0].missed_days && queryResult.rows[0].missed_days > 0) {
+                    missedDays = queryResult.rows[0].missed_days;
+                    achievName = missedDays < 7 ? CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.NAME : CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.NAME;
+                    REQ.achievement = achievName;
+
+                    gameProfHelper.achievementsTrigger({
+                        uuid: uuid,
+                        name: achievName
+
+                    }, function (err) {
+
+                        if (err) {
+                            return next(err);
+                        }
+
+                        next();
+                    })
+
+                } else {
+                    next();
+                }
+
+            })
+            .catch(next)
+
     };
 
 };

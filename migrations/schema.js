@@ -82,7 +82,7 @@ module.exports = function (knex) {
                 'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
                 '$$ ' +
                     'BEGIN ' +
-                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
+                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
                             'IF found THEN ' +
                                 'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
                                 'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +

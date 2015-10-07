@@ -9,6 +9,7 @@ var Users;
 
 GameProfile = function (PostGre) {
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
+    var self = this;
 
     function prepareGameProfSaveInfo (options) {
         var gameProfile = {};
@@ -85,6 +86,8 @@ GameProfile = function (PostGre) {
     this.syncOpenSmashes = function (uid, smashes, callback) {
         var insertObj = [];
         var price = 0;
+        var setId;
+        var setSize = CONSTANTS.SMASHES_PER_SET;
         var updProf = {
             last_seen_date: new Date()
         };
@@ -134,7 +137,15 @@ GameProfile = function (PostGre) {
                                 PostGre.knex(TABLES.USERS_SMASHES)
                                     .insert(insertObj)
                                     .then(function () {
-                                        cb()
+                                        async.eachSeries(data, function (smash, eachCallback) {
+                                            setId = (smash.id%setSize) ? 1 + (smash.id/setSize) | 0 :  (smash.id/setSize) | 0;
+
+                                            self.achievementsTrigger({
+                                                uuid: uid,
+                                                name: CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME,
+                                                set: setId
+                                            }, eachCallback)
+                                        }, cb);
                                     })
                                     .catch(function (err) {
                                         cb(err)
@@ -397,7 +408,19 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT open_smash(' + gid + ', ' + sid + ')')
                     .then(function () {
-                        cb()
+
+                        self.achievementsTrigger({
+                            uuid: uid,
+                            name: CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME,
+                            set: setId
+                        }, function (err) {
+
+                            if (err) {
+                                cb(err);
+                            }
+
+                            cb();
+                        });
                     })
                     .catch(function (err) {
                         cb(err)
@@ -411,12 +434,7 @@ GameProfile = function (PostGre) {
                     PostGre.knex
                         .raw(
                             'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                            'SET  stars_number = stars_number - ' + price + ', ' +
-                                'points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
-                                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
-                                    'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                                    'WHERE gp.id = ' + gid + ') ' +
+                            'SET  stars_number = stars_number - ' + price + ' ' +
                             'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
@@ -431,14 +449,8 @@ GameProfile = function (PostGre) {
 
                     PostGre.knex
                         .raw(
-                            'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                            'SET  points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
-                                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                                'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
-                                'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                                'WHERE gp.id = ' + gid + ') ' +
-                            'WHERE id = ' + gid + ' ' +
-                            'RETURNING stars_number, points_number'
+                            'SELECT stars_number, points_number FROM ' + TABLES.GAME_PROFILE + ' ' +
+                            'WHERE id = ' + gid
                         )
                         .then(function (profile) {
                             cb(null, profile.rows[0])
@@ -529,12 +541,7 @@ GameProfile = function (PostGre) {
                     PostGre.knex
                         .raw(
                             'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                            'SET  stars_number = stars_number - ' + price + ', ' +
-                            'points_number = (select sum(quantity)*sum(distinct set) + min(stars_number - ' + price + ')  AS points_number ' +
-                            'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                            'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
-                            'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                            'WHERE gp.id = ' + gid + ') ' +
+                            'SET  stars_number = stars_number - ' + price + ' ' +
                             'WHERE id = ' + gid + ' ' +
                             'RETURNING stars_number, points_number'
                         )
@@ -549,14 +556,8 @@ GameProfile = function (PostGre) {
 
                     PostGre.knex
                         .raw(
-                            'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                            'SET  points_number = (select sum(quantity)*sum(distinct set) + min(stars_number)  AS points_number ' +
-                            'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                            'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON us.game_profile_id = gp.id ' +
-                            'LEFT JOIN ' + TABLES.SMASHES + ' s on us.smash_id = s.id ' +
-                            'WHERE gp.id = ' + gid + ') ' +
-                            'WHERE id = ' + gid + ' ' +
-                            'RETURNING stars_number, points_number'
+                            'SELECT stars_number, points_number FROM ' + TABLES.GAME_PROFILE + ' ' +
+                            'WHERE id = ' + gid
                         )
                         .then(function (profile) {
                             cb(null, profile.rows[0])
