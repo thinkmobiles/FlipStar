@@ -597,6 +597,19 @@ GameProfile = function (PostGre) {
                 callback(err)
             })
     };
+
+    this.achievementsTrigger = function (options, callback) {
+        options.set = options.set || 1;
+
+        PostGre.knex
+            .raw('SELECT achievement(\'' + options.uuid + '\', \'' + options.name + '\', ' + options.set + ');')
+            .then(function () {
+                callback();
+            })
+            .catch(function (err) {
+                callback(err);
+            })
+    };
 };
 
 module.exports = GameProfile;

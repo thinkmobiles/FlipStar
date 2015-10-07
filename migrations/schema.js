@@ -82,7 +82,7 @@ module.exports = function (knex) {
                 'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
                 '$$ ' +
                     'BEGIN ' +
-                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.id = guid; ' +
+                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
                             'IF found THEN ' +
                                 'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
                                 'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
@@ -90,7 +90,7 @@ module.exports = function (knex) {
                                 'RETURN QUERY ' +
                                 'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                                 'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
-                                'WHERE gp.id = guid; ' +
+                                'WHERE gp.uuid = guid; ' +
                             'END IF; ' +
                         'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.uuid = guid) < 0 THEN ' +
                             'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
@@ -98,6 +98,74 @@ module.exports = function (knex) {
                     'END; ' +
                 '$$ ' +
                 'LANGUAGE plpgsql;'
+            )
+            .exec(function (err) {
+                if (err) {
+                    console.log('!!!!!!!!!');
+                    console.log(err);
+                    console.log('!!!!!!!!!');
+                } else {
+                    console.log('##########');
+                    console.log('Create function');
+                    console.log('###########');
+                }
+                cb()
+            })
+    }
+
+    function achievementFunc(cb) {
+        knex.raw(
+            'CREATE OR REPLACE FUNCTION achievement(guid UUID, ach_name TEXT, set INT) RETURNS VOID AS ' +
+        '$$ ' +
+        'DECLARE gid INT := (SELECT id FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid); ' +
+        'DECLARE aid INT  := (SELECT id FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name); ' +
+        'DECLARE type INT  := (SELECT type FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name); ' +
+        'BEGIN ' +
+        'IF NOT EXISTS (SELECT id FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name) ' +
+        'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
+        'END IF; ' +
+
+        'IF NOT EXISTS (SELECT id FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid) ' +
+        'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
+        'END IF; ' +
+
+        'IF type <> 0 ' +
+        'THEN ' +
+        'LOOP ' +
+        'UPDATE ' + TABLES.USERS_ACHIEVEMENTS + ' SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
+        'IF found THEN ' +
+        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set ' +
+        'WHERE id = gid; ' +
+        'RETURN; ' +
+        'END IF; ' +
+        'BEGIN ' +
+        'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
+        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set ' +
+        'WHERE id = gid; ' +
+        'RETURN; ' +
+        'EXCEPTION WHEN unique_violation THEN ' +
+        'END; ' +
+        'END LOOP; ' +
+        'ELSE ' +
+
+        'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) ' +
+        'SELECT gid, aid, 1 ' +
+        'WHERE ' +
+        'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND  achievements_id = aid); ' +
+        'IF found THEN ' +
+        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set, ' +
+            'stars_number = ( ' +
+            'CASE WHEN ach_name = \'Connection to Facebook\' ' +
+        'THEN stars_number + 500 ' +
+        'ELSE stars_number ' +
+        'END) ' +
+        'WHERE id = gid; ' +
+        'END IF; ' +
+        'END IF; ' +
+
+        'END; ' +
+        '$$ ' +
+        'LANGUAGE plpgsql;'
             )
             .exec(function (err) {
                 if (err) {
@@ -790,6 +858,7 @@ module.exports = function (knex) {
 
         async.series([
             singleGame,
+            achievementFunc,
             activateBooster,
             openSmash,
             buyBooster,

@@ -65,6 +65,7 @@ Users = function (PostGre) {
                             });
                         })
                     } else {
+
                         userProfHelper.enterFBUser(options, function (err, profile) {
 
                             if (err) {

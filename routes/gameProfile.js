@@ -11,6 +11,7 @@ module.exports = function (PostGre, app) {
         router.post('/game', gameHandler.singleGame);
         router.post('/smash', gameHandler.openOrBuySmashes);
         router.post('/flip', gameHandler.addFlips);
+        router.post('/achievement', gameHandler.addAchievement);
 
         router.get('/collection', gameHandler.getMyCollection);
         router.get('/booster/:id', gameHandler.activateBooster);

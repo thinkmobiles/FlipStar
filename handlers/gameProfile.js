@@ -485,6 +485,32 @@ GameProfile = function (PostGre) {
             })
         });
     };
+
+    this.addAchievement = function (req, res, next) {
+        var options = req.body;
+        var error;
+
+       if (!options && !options.name) {
+           error = new Error(RESPONSES.INVALID_PARAMETERS);
+           error.status = 400;
+
+           return next(error);
+       }
+
+        gameProfHelper.achievementsTrigger({
+            uuid:  req.session.uId,
+            name: options.name
+        }, function (err) {
+
+            if (err) {
+                return next(err)
+            }
+
+            res.status(200).send({
+                success: RESPONSES.CREATED
+            })
+        })
+    };
 };
 
 module.exports = GameProfile;
