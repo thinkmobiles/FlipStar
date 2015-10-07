@@ -294,7 +294,44 @@ module.exports = function( httpServer, db ) {
                             pCb();
                         }
                     )
-                }
+                }/*,
+
+                createRevengeRecord: function (pCb) {
+                    async.each(
+                        [
+                            {
+                                uId:        gameData.users[0],
+                                opponent:   gameData.users[1],
+                                bet:        gameData.bet
+                            },
+                            {
+                                uId:        gameData.users[1],
+                                opponent:   gameData.users[0],
+                                bet:        gameData.bet
+                            }
+                        ],
+                        function (user,eCb) {
+                            var searchKey = ':revenge:' + user.uId + ':';
+
+                            client.hmset(
+                                searchKey,
+                                {
+                                    opponent: user.opponent,
+                                    bet: user.bet
+                                },
+
+                                eCb
+                            )
+                        },
+                        function (err) {
+                            if (err) {
+                                return pCb(err);
+                            }
+
+                            pCb();
+                        }
+                    )
+                }*/
 
             },
             function(err) {
@@ -378,10 +415,31 @@ module.exports = function( httpServer, db ) {
 
                             multi.expire( key, SEARCH_TTL );
 
-                            multi.exec( wCb );
+                            multi.exec( function(err) {
+                                if (err) {
+                                    return wCb(err);
+                                }
+
+                                wCb()
+                            });
                         },
 
-                        function(data, wCb) {
+                        /*remove stack from user smashes*/
+                        function (wCb) {
+                            gameProfHelper.removeSmashes({
+                                uid: uId,
+                                smashes: stack
+                            },function (err) {
+                                if (err) {
+                                    return wCb(err);
+                                }
+                                debug('removeSmash:uId - ', uId, ':smashes - ', stack);
+                                wCb();
+                            });
+                        },
+
+                        /*get opponent if exist, else add to search queue*/
+                        function (wCb) {
 
                             getOpponent( uId, bet, function ( err, opponentData ) {
                                 var queueKey = ':queue:'+bet+':';
@@ -683,6 +741,13 @@ module.exports = function( httpServer, db ) {
                     console.log('Socket:Disconnect:', socketId, ':',uId);
                 }
             );
+
+        });
+
+        socket.on('startRevenge', function(data) {
+            var uId     = socket.uId;
+            var stack   = data.stack;
+
 
         });
 

@@ -69,7 +69,7 @@ module.exports = function () {
     app.use(sessionStore);
 
     knex = require('knex')({
-        debug: /*process.env.NODE_ENV !== 'development'*/ false,
+        debug: /*process.env.NODE_ENV !== 'development'*/ true,
         client: 'pg',
         connection: {
             host: process.env.DB_HOST,
