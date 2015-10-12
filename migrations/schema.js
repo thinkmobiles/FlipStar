@@ -217,40 +217,6 @@ module.exports = function (knex) {
             })
     }
 
-    function openSmash(cb) {
-        knex.raw(
-                'CREATE OR REPLACE FUNCTION open_smash(guid INT, sid INT) RETURNS VOID AS ' +
-                '$$ ' +
-                'BEGIN ' +
-                'LOOP ' +
-                'UPDATE  ' + TABLES.USERS_SMASHES + ' SET is_open = true   WHERE game_profile_id = guid  AND smash_id = sid ; ' +
-                'IF found THEN ' +
-                'RETURN; ' +
-                'END IF; ' +
-                'BEGIN ' +
-                'INSERT INTO  ' + TABLES.USERS_SMASHES + ' (game_profile_id, smash_id, is_open, quantity) VALUES (guid, sid, true, 0); ' +
-                'RETURN; ' +
-                'EXCEPTION WHEN unique_violation THEN ' +
-                'END; ' +
-                'END LOOP; ' +
-                'END; ' +
-                '$$ ' +
-                'LANGUAGE plpgsql;'
-            )
-            .exec(function (err) {
-                if (err) {
-                    console.log('!!!!!!!!!');
-                    console.log(err);
-                    console.log('!!!!!!!!!');
-                } else {
-                    console.log('##########');
-                    console.log('Create function');
-                    console.log('###########');
-                }
-                cb()
-            })
-    }
-
     function buyBooster(cb) {
         knex.raw(
                 'CREATE OR REPLACE FUNCTION buy_booster(guid INT, bid INT) RETURNS VOID AS ' +
@@ -374,7 +340,7 @@ module.exports = function (knex) {
             'EXIT; ' +
             'END IF; ' +
             'BEGIN ' +
-            'INSERT INTO users_smashes(is_open, game_profile_id, smash_id, quantity) VALUES (false, gid, smash.id, 1); ' +
+            'INSERT INTO users_smashes(game_profile_id, smash_id, quantity) VALUES (gid, smash.id, 1); ' +
             'EXIT; ' +
             'EXCEPTION WHEN unique_violation THEN ' +
             'END; ' +
@@ -671,7 +637,6 @@ module.exports = function (knex) {
     function usersSmashestable(cb) {
         createTable(TABLES.USERS_SMASHES, function (row) {
             row.increments('id').primary();
-            row.boolean('is_open').defaultTo('false');
             row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('quantity').defaultTo(0);
@@ -860,7 +825,6 @@ module.exports = function (knex) {
             singleGame,
             achievementFunc,
             activateBooster,
-            openSmash,
             buyBooster,
             addFlips,
             removeSmashes,

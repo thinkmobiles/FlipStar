@@ -178,8 +178,6 @@ GameProfile = function (PostGre) {
          */
         var options = req.body;
         var uid = options.uId;
-        var games = options.games;
-        var open = options.open;
         var buy = options.buy;
         var gameDate = new Date(options.date);
         var curDate = new Date();
@@ -220,23 +218,6 @@ GameProfile = function (PostGre) {
 
                                 function(cb) {
                                     gameProfHelper.syncGames(options, cb)
-                                },
-
-                                function (cb) {
-
-                                    if (open && open.length) {
-
-                                        gameProfHelper.syncOpenSmashes(uid, open, function (err) {
-
-                                            if(err) {
-                                                return cb(err)
-                                            }
-                                            cb()
-                                        })
-
-                                    } else {
-                                        cb()
-                                    }
                                 },
 
                                 function (cb) {
@@ -386,7 +367,7 @@ GameProfile = function (PostGre) {
             })
     };
 
-    this.openOrBuySmashes = function (req, res, next) {
+    this.buySmashes = function (req, res, next) {
         /**
          * __Type__ `POST`
          * __Content-Type__ `application/json`
@@ -420,16 +401,7 @@ GameProfile = function (PostGre) {
         var err;
         var data;
 
-        function openOrBuyCallback (err, profile) {
-
-            if (err) {
-                return next(err)
-            }
-
-            res.status(200).send(profile)
-        }
-
-        if (!options || typeof options.action !== 'number' || typeof options.smash_id !== 'number') {
+        if (!options) {
 
             err = new Error(RESPONSES.INVALID_PARAMETERS);
             err.status = 400;
@@ -443,7 +415,14 @@ GameProfile = function (PostGre) {
             currency: CONSTANTS.CURRENCY_TYPE.SOFT
         };
 
-        options.action ? gameProfHelper.buySmashes(data, openOrBuyCallback) : gameProfHelper.openSmashes(data, openOrBuyCallback);
+        gameProfHelper.buySmashes(data, function (err, profile) {
+
+            if (err) {
+                return next(err);
+            }
+
+            res.status(200).send(profile);
+        });
     };
 
     this.addFlips = function (req, res, next) {
