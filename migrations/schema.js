@@ -697,6 +697,7 @@ module.exports = function (knex) {
             row.increments('id').primary();
             row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('CASCADE').onUpdate('CASCADE');
+            row.integer('item_id');
             row.integer('count');
 
             row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
