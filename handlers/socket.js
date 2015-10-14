@@ -1,15 +1,15 @@
-
 var async = require('async');
 var _ = require('lodash');
 var uuid = require('uuid');
 var debug = require('debug')('custom:socket:events');
 var client = (new (require('../helpers/redisStore'))).client;
 var GameProfHelper = require('../helpers/gameProfile');
+
 /* CONSTANTS */
-var SEARCH_TTL = 300;
+var SEARCH_TTL = 30;
 var SMASH_STACK_MAX_OFFSET = 0.2;
-var TURN_TTL = 300;
-var TIME_TO_REVENGE = 300;
+var TURN_TTL = 30;
+var TIME_TO_REVENGE = 30;
 
 function eventError( err, socket ) {
     "use strict";
@@ -166,8 +166,12 @@ function createGame( user1Data, user2Data, callback ) {
         users: users,
         currentUser: getRandomUser( users ),
         timeOutDate: Date.now() + 1000 * TURN_TTL,
+        turn: 0,
         ttl: TURN_TTL
     };
+
+    gameData[user1Data.uId + ':bet'] = user1Data.stack;
+    gameData[user2Data.uId + ':bet'] = user2Data.stack;
 
     for (var i = gameData.users.length; i--;) {
         gameData[gameData.users[i]] = []; //TODO posible uid confilct with object keys
@@ -463,35 +467,24 @@ function cleanGameData(data, callback) {
 
 }
 
-/*function handShake( socket, next ) {
-    "use strict";
-
-    var uId = socket.handshake.query.userId;
-
-    if ( uId ) {
-        socket.uId = uId;
-    } else {
-        socket.disconnect();
-    }
-
-    next();
-
-}*/
-
 module.exports = function( httpServer, db ) {
     "use strict";
     var io = require('../helpers/socket')(httpServer);
     var gameProfHelper = new GameProfHelper(db);
 
     function endGame(gameData, callback) {
-        var gameId  = gameData.id;
-        var leaver  = gameData.leaver;
-        var gameKey = getKey({keyType: 'game', keyData: gameId});
-        var users   = gameData.users;
+        /*TODO: remove game record*/
+        var gameId      = gameData.id;
+        var leaver      = gameData.leaver;
+        var winUser     = gameData.users[(gameData.users.indexOf(leaver) +1) % 2];
+        var turnNumber  = gameData.turn;
+        var gameKey     = getKey({keyType: 'game', keyData: gameId});
+        var users       = gameData.users;
         var endResponse;
 
+
         if (leaver) {
-            gameData[leaver] = gameData[leaver].concat(gameData.stack);
+            gameData[winUser] = gameData[winUser].concat(gameData.stack);
         }
 
         async.parallel(
@@ -509,10 +502,10 @@ module.exports = function( httpServer, db ) {
                 addWinStacks: function (pCb) {
                     endResponse = {
                         id:    gameId,
-                        user1: gameData[gameData.users[0]],
-                        user2: gameData[gameData.users[1]],
+                        user1: turnNumber ? gameData[gameData.users[0]] : gameData[gameData.users[0] + ':bet'],
+                        user2: turnNumber ? gameData[gameData.users[1]] : gameData[gameData.users[1] + ':bet'],
                         users: gameData.users,
-                        /*timeToRevenge*/ttl: TIME_TO_REVENGE
+                        /*timeToRevenge*/ttl: leaver ? 0 : TIME_TO_REVENGE
                     };
 
                     async.each(
@@ -549,6 +542,10 @@ module.exports = function( httpServer, db ) {
                         timeOutDate:    JSON.stringify(Date.now() + TIME_TO_REVENGE * 1000)
                     };
 
+                    if (leaver) {
+                        return pCb();
+                    }
+
                     client.hmset(
                         revengeKey,
                         revengeObject,
@@ -584,8 +581,6 @@ module.exports = function( httpServer, db ) {
      */
     io.on('connection', function( socket ) {
 
-        console.log('Socket:Connect: ', socket.id);
-
         var uId = socket.handshake.query.uId;
 
         if ( ! uId ) {
@@ -597,6 +592,8 @@ module.exports = function( httpServer, db ) {
 
         socket.uId = uId;
 
+        debug('connect: uId - ' + uId + ': socketId - ' + socket.id);
+
         socket.on('startSearch', function( data ) {
             /* TODO: add validation */
             var uId = socket.uId;
@@ -604,6 +601,9 @@ module.exports = function( httpServer, db ) {
             var stack = data.stack;
             var socketId = socket.id;
             var now = Date.now();
+
+            debug('startSearch: Start: uId - ' + socket.uId + ': socketId - ' + socket.id + ':bet - ' + bet);
+            debug('stack: ' + JSON.stringify(stack));
 
             async.waterfall(
                 [
@@ -718,6 +718,8 @@ module.exports = function( httpServer, db ) {
                                     }
                                     socket.status = 'search';
                                     socket.emit('addToQueue', { ttl: SEARCH_TTL });
+
+                                    debug('startSearch: addToQueue: uId - ' + socket.uId + ': socketId - ' + socket.id);
                                 }
                             );
 
@@ -797,6 +799,7 @@ module.exports = function( httpServer, db ) {
 
                                             for (var i = result.users.length; i--;) {
                                                 io.to(result.users[i]).emit('startGame', result );
+                                                debug('startSearch: startGame: uId - ' + result.users[i] );
                                             }
 
                                             socket.status   = 'game';
@@ -908,7 +911,7 @@ module.exports = function( httpServer, db ) {
                                 err.status = 404;
                                 return wCb(err);
                             }
-
+                            gData.turn = gData.turn + 1;
                             wCb(null, gData);
                         });
                     },
@@ -945,6 +948,7 @@ module.exports = function( httpServer, db ) {
                             updateObject.currentUser = JSON.stringify(curUser);
                             updateObject.stack = JSON.stringify(gameData.stack);
                             updateObject[socket.uId] = JSON.stringify( gameData[socket.uId] );
+                            updateObject.turn = JSON.stringify( gameData.turn );
                             updateObject.timeOutDate = JSON.stringify(Date.now() + 1000 * TURN_TTL);
 
                             client.hmset(gameKey, updateObject, function(err, data) {
@@ -1079,67 +1083,6 @@ module.exports = function( httpServer, db ) {
 
         });
 
-        socket.on('disconnect', function() {
-            var uId = socket.uId;
-            var socketId = socket.id;
-            var gameId = socket.gId;
-
-            async.parallel(
-                {
-                    /*stop Search*/
-                    searchStop: function (pCb) {
-                        if (socket.status && socket.status === 'search' ) {
-                            return stopSearch(uId, pCb);
-                        }
-                        pCb();
-                    },
-
-                    gameEnd: function (pCb) {
-                        var gameId = socket.gId;
-
-                        if (gameId) {
-                            getGame(gameId, function (err, gameData) {
-                                if (err) {
-                                    return pCb(err);
-                                }
-
-                                if (!gameData) {
-                                    return pCb();
-                                }
-
-                                gameData.leaver = uId;
-
-                                endGame(gameData, function(err, response) {
-                                    if (err) {
-                                        return pCb(err);
-                                    }
-
-                                    io.to( gameId ).emit(
-                                        'endGame',
-                                        response
-                                    );
-
-                                    delete socket.gId;
-
-                                    pCb();
-                                });
-                            });
-                        } else {
-                            pCb();
-                        }
-                    }
-                },
-                function (err, results) {
-                    if (err) {
-                        return console.log('ERROR:disconnect:'+socket.id+': ', err);
-                    }
-
-                    console.log('Socket:Disconnect:', socketId, ':',uId);
-                }
-            );
-
-        });
-
         socket.on('startRevenge', function(data) {
             var uId     = socket.uId;
             var bet     = data.bet;
@@ -1195,30 +1138,6 @@ module.exports = function( httpServer, db ) {
 
                                 wCb()
                             });
-
-                            /*return client.hmset(revengeKey, updateObject, function(err) {
-                                if (err) {
-                                    return wCb(err);
-                                }
-                                var opponent = revengeData.users[(revengeData.users.indexOf(uId) + 1) % 2];
-                                io.to(opponent).emit(
-                                    'revenge',
-                                    {
-                                        bet:        revengeData.bet,
-                                        id:         oldGameId,
-                                        ttl:        ((revengeData.timeOutDate - now) /1000 )|0
-                                    }
-                                );
-
-                                socket.emit(
-                                    'queueRevenge',
-                                    {
-                                        ttl: ((revengeData.timeOutDate - now) /1000 )|0
-                                    }
-                                );
-
-                                wCb()
-                            })*/
                         }
 
                         if ( revengeData.aprovedUsers && revengeData.aprovedUsers.length) {
@@ -1307,7 +1226,68 @@ module.exports = function( httpServer, db ) {
 
             });
 
-        })
+        });
+
+        socket.on('disconnect', function() {
+            var uId = socket.uId;
+            var socketId = socket.id;
+            var gameId = socket.gId;
+
+            async.parallel(
+                {
+                    /*stop Search*/
+                    searchStop: function (pCb) {
+                        if (socket.status && socket.status === 'search' ) {
+                            return stopSearch(uId, pCb);
+                        }
+                        pCb();
+                    },
+
+                    gameEnd: function (pCb) {
+                        var gameId = socket.gId;
+
+                        if (gameId) {
+                            getGame(gameId, function (err, gameData) {
+                                if (err) {
+                                    return pCb(err);
+                                }
+
+                                if (!gameData) {
+                                    return pCb();
+                                }
+
+                                gameData.leaver = uId;
+
+                                endGame(gameData, function(err, response) {
+                                    if (err) {
+                                        return pCb(err);
+                                    }
+
+                                    io.to( gameId ).emit(
+                                        'endGame',
+                                        response
+                                    );
+
+                                    delete socket.gId;
+
+                                    pCb();
+                                });
+                            });
+                        } else {
+                            pCb();
+                        }
+                    }
+                },
+                function (err, results) {
+                    if (err) {
+                        return console.log('ERROR:disconnect:'+socket.id+': ', err);
+                    }
+
+                    console.log('Socket:Disconnect:', socketId, ':',uId);
+                }
+            );
+
+        });
 
     });
 };
