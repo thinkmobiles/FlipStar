@@ -6,7 +6,6 @@
 
 var RESPONSES = require('../constants/responseMessages');
 var TABLES = require('../constants/tables');
-var MODELS = require('../constants/models');
 var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('lodash');
@@ -55,13 +54,8 @@ GameProfile = function (PostGre) {
 
         gameProfHelper.getProfileById(uid, function (err, result) {
 
-            if (err) {
-                return next(err)
-            }
-
-            if (!result.length) {
-                err = new Error(RESPONSES.UNDEFINED_PLAYER);
-                err.status = 500;
+            if (err || !result.length) {
+                err = err || new Error(RESPONSES.UNDEFINED_PLAYER);
                 return next(err);
             }
 
@@ -83,7 +77,7 @@ GameProfile = function (PostGre) {
             }
 
 
-            res.status(200).send(responseObj)
+            res.status(200).send(responseObj);
         })
     };
 
@@ -91,10 +85,10 @@ GameProfile = function (PostGre) {
         var uid = req.params.id;
         var options = req.body;
 
-        gameProfHelper.updateProfile(uid, options, function (err, result) {
+        gameProfHelper.updateProfile(uid, options, function (err) {
 
             if (err) {
-                return next(err)
+                return next(err);
             }
 
             res.status(200).send({
@@ -131,10 +125,10 @@ GameProfile = function (PostGre) {
          * @method getMyCollection
          * @instance
          */
-      var uid = req.session.uId;
+        var uid = req.session.uId;
 
         PostGre.knex(TABLES.USERS_SMASHES)
-            .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id' )
+            .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .where('uuid', uid)
             .select('smash_id', 'quantity', 'is_open')
             .then(function (collection) {
@@ -180,90 +174,86 @@ GameProfile = function (PostGre) {
         var uid = options.uId;
         var buy = options.buy;
         var gameDate = new Date(options.date);
-        var curDate = new Date();
         var err;
 
-        /*PostGre.knex
+        PostGre.knex
             .raw(
-            'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate + '\' AND  ' +
-            'TIMESTAMP \'' + gameDate + '\' < \'' + curDate.toISOString() + '\' ' +
-            'FROM game_profile  gp ' +
-            'WHERE gp.id = ' + uid + '; '
-        )*/
+                'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate.toISOString() + '\' AND  ' +
+                'TIMESTAMP \'' + gameDate.toISOString() + '\' < now() AS sync ' +
+                'FROM ' + TABLES.GAME_PROFILE + '  gp ' +
+                'WHERE gp.uuid = \'' + uid + '\'; '
+            )
+            .then(function (queryResult) {
 
-                PostGre.knex(TABLES.GAME_PROFILE)
-                        .where('uuid', uid)
-                    .then(function (profile/*queryResult*/) {
+                if (!queryResult && !queryResult.rows[0]) {
+                    err = RESPONSES.INVALID_PARAMETERS;
+                    err = 400;
 
-                        if (profile[0].last_seen_date > gameDate && gameDate < curDate) {
-                        //if (!queryResult.rows[0]['?column?']) {
+                    return next(err);
+                }
 
-                            err = new Error(RESPONSES.OUTDATED);
-                            err.status = 400;
+                if (!queryResult.rows[0].sync) {
+                    err = new Error(RESPONSES.OUTDATED);
+                    err.status = 400;
 
-                            return next(err);
+                    return next(err);
+                }
+
+                async.series([
+
+                    function (cb) {
+
+                        if (options.first_name) {
+                            userProfHelper.updateUser(uid, options, cb);
+
+                        } else {
+                            cb();
                         }
+                    },
 
-                            async.series([
+                    function (cb) {
+                        gameProfHelper.syncGames(options, cb);
+                    },
 
-                                function (cb) {
+                    function (cb) {
+                        gameProfHelper.syncAchievements(options, cb);
+                    },
 
-                                    if (options.first_name) {
-                                        userProfHelper.updateUser(uid, options, cb)
+                    function (cb) {
 
-                                    } else {
-                                        cb()
-                                    }
-                                },
+                        if (buy && buy.length) {
 
-                                function(cb) {
-                                    gameProfHelper.syncGames(options, cb)
-                                },
-
-                                function (cb) {
-
-                                    if (buy && buy.length) {
-
-                                        gameProfHelper.syncBoughtSmashes(uid, buy, function (err) {
-
-                                            if(err) {
-                                                return cb(err)
-                                            }
-                                            cb()
-                                        })
-
-                                    } else {
-                                        cb()
-                                    }
-                                }
-
-                            ], function (err) {
+                            gameProfHelper.syncBoughtSmashes(uid, buy, function (err) {
 
                                 if (err) {
-                                    return next(err)
+                                    return cb(err);
                                 }
-
-                                req.session.loggedIn = true;
-                                req.session.uId = uid;
-
-                                res.status(200).send({
-                                    success: RESPONSES.SYNCRONIZED
-                                })
-
-                               /* gameProfHelper.calculatePoints(uid, function (err) {
-
-                                    if (err) {
-                                        return next(err)
-                                    }
-
-
-                                })*/
+                                cb()
                             })
 
-                    })
-                    .catch(function (err) {
-                        next(err)
-                    })
+                        } else {
+                            cb()
+                        }
+                    }
+
+                ], function (err) {
+
+                    if (err) {
+                        return next(err);
+                    }
+
+                    req.session.loggedIn = true;
+                    req.session.uId = uid;
+
+                    res.status(200).send({
+                        success: RESPONSES.SYNCRONIZED
+                    });
+                })
+
+            })
+            .catch(function (err) {
+                next(err);
+            })
 
 
     };
@@ -306,8 +296,8 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT * FROM game(\'' + uid + '\', ' + options.stars + ');'
-            )
+            'SELECT * FROM game(\'' + uid + '\', ' + options.stars + ');'
+        )
             .then(function (profile) {
                 responseObj = {
                     flips: profile.rows[0].flips,
@@ -317,7 +307,10 @@ GameProfile = function (PostGre) {
                 };
 
                 for (var i = profile.rows.length; i--;) {
-                    responseObj.boosters.push({booster_id: profile.rows[i].boosters ? profile.rows[i].boosters : 0, remainder: profile.rows[i].left_flips ? profile.rows[i].left_flips : 0});
+                    responseObj.boosters.push({
+                        booster_id: profile.rows[i].boosters ? profile.rows[i].boosters : 0,
+                        remainder: profile.rows[i].left_flips ? profile.rows[i].left_flips : 0
+                    });
                 }
 
                 res.status(200).send(responseObj)
@@ -354,12 +347,12 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT * FROM activate_booster(' + uid + ', ' + boosterId + ');'
-            )
+            'SELECT * FROM activate_booster(' + uid + ', ' + boosterId + ');'
+        )
             .then(function (booster) {
                 res.status(200).send({
                     booster: booster.rows[0].id,
-                    remainder:  booster.rows[0].flips
+                    remainder: booster.rows[0].flips
                 })
             })
             .catch(function (err) {
@@ -471,25 +464,27 @@ GameProfile = function (PostGre) {
         var options = req.body;
         var error;
 
-       if (!options && !options.name) {
-           error = new Error(RESPONSES.INVALID_PARAMETERS);
-           error.status = 400;
+        if (!options && !options.name) {
+            error = new Error(RESPONSES.INVALID_PARAMETERS);
+            error.status = 400;
 
-           return next(error);
-       }
+            return next(error);
+        }
 
         gameProfHelper.achievementsTrigger({
-            uuid:  req.session.uId,
-            name: options.name
+            uuid: req.session.uId,
+            name: options.name,
+            set: options.set,
+            item: options.item
         }, function (err) {
 
             if (err) {
-                return next(err)
+                return next(err);
             }
 
             res.status(200).send({
                 success: RESPONSES.CREATED
-            })
+            });
         })
     };
 };

@@ -115,57 +115,73 @@ module.exports = function (knex) {
 
     function achievementFunc(cb) {
         knex.raw(
-            'CREATE OR REPLACE FUNCTION achievement(guid UUID, ach_name TEXT, set INT) RETURNS VOID AS ' +
-        '$$ ' +
-        'DECLARE gid INT := (SELECT id FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid); ' +
-        'DECLARE aid INT  := (SELECT id FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name); ' +
-        'DECLARE type INT  := (SELECT type FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name); ' +
-        'BEGIN ' +
-        'IF NOT EXISTS (SELECT id FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name) ' +
-        'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
-        'END IF; ' +
-
-        'IF NOT EXISTS (SELECT id FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid) ' +
-        'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
-        'END IF; ' +
-
-        'IF type <> 0 ' +
-        'THEN ' +
-        'LOOP ' +
-        'UPDATE ' + TABLES.USERS_ACHIEVEMENTS + ' SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
-        'IF found THEN ' +
-        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set ' +
-        'WHERE id = gid; ' +
-        'RETURN; ' +
-        'END IF; ' +
-        'BEGIN ' +
-        'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
-        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set ' +
-        'WHERE id = gid; ' +
-        'RETURN; ' +
-        'EXCEPTION WHEN unique_violation THEN ' +
-        'END; ' +
-        'END LOOP; ' +
-        'ELSE ' +
-
-        'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) ' +
-        'SELECT gid, aid, 1 ' +
-        'WHERE ' +
-        'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND  achievements_id = aid); ' +
-        'IF found THEN ' +
-        'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + (SELECT prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE id = aid)*set, ' +
+            'CREATE OR REPLACE FUNCTION achievement(guid UUID, ach_name TEXT, set INT, item INT) RETURNS VOID AS ' +
+            '$$ ' +
+            'DECLARE gid INT := (SELECT id FROM game_profile WHERE uuid = guid); ' +
+            'DECLARE aid INT  := (SELECT id FROM achievements WHERE name = ach_name); ' +
+            'DECLARE type INT  := (SELECT type FROM achievements WHERE name = ach_name); ' +
+            'BEGIN ' +
+            'IF NOT EXISTS (SELECT id FROM achievements WHERE name = ach_name) ' +
+            'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
+            'END IF; ' +
+            'IF NOT EXISTS (SELECT id FROM game_profile WHERE uuid = guid) ' +
+            'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
+            'END IF; ' +
+            'IF type <> 0 ' +
+            'THEN ' +
+            'LOOP ' +
+            'UPDATE users_achievements SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'RETURN; ' +
+            'END IF; ' +
+            'BEGIN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'RETURN; ' +
+            'EXCEPTION WHEN unique_violation THEN ' +
+            'END; ' +
+            'END LOOP; ' +
+            'ELSIF ach_name = \'Set unlocked\' ' +
+            'THEN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'SELECT gid, aid, item, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'ELSIF ach_name = \'Smash unlocked\' ' +
+            'THEN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'SELECT gid, aid, item, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'ELSE ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) ' +
+            'SELECT gid, aid, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND  achievements_id = aid); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set, ' +
             'stars_number = ( ' +
             'CASE WHEN ach_name = \'Connection to Facebook\' ' +
-        'THEN stars_number + 500 ' +
-        'ELSE stars_number ' +
-        'END) ' +
-        'WHERE id = gid; ' +
-        'END IF; ' +
-        'END IF; ' +
-
-        'END; ' +
-        '$$ ' +
-        'LANGUAGE plpgsql;'
+            'THEN stars_number + 500 ' +
+            'ELSE stars_number ' +
+            'END) ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'END IF; ' +
+            'END; ' +
+            '$$ ' +
+            'LANGUAGE plpgsql;'
             )
             .exec(function (err) {
                 if (err) {
@@ -1081,14 +1097,14 @@ module.exports = function (knex) {
             " (1, \'" + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.POINTS + "), " +
             " (2, \'" + CONSTANTS.ACHIEVEMENTS.PURCHASE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.PURCHASE.POINTS + "), " +
             " (3, \'" + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.POINTS + "), " +
-            " (4, \'" + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.POINTS + "), " +
+            " (4, \'" + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.POINTS + "), " +
             " (5, \'" + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.POINTS + "), " +
             " (6, \'" + CONSTANTS.ACHIEVEMENTS.WIN.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WIN.POINTS + "), " +
             " (7, \'" + CONSTANTS.ACHIEVEMENTS.WINS_3.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WINS_3.POINTS + "), " +
             " (8, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.POINTS + "), " +
             " (9, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.POINTS + "), " +
             " (10, \'" + CONSTANTS.ACHIEVEMENTS.INVITE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.INVITE.POINTS + "), " +
-            " (11, \'" + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.POINTS + "); " +
+            " (11, \'" + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.POINTS + "); " +
             " END; " +
             " $$ LANGUAGE plpgsql; ";
 
