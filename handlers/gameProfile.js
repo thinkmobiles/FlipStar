@@ -487,6 +487,33 @@ GameProfile = function (PostGre) {
             });
         })
     };
+
+    this.getAchievementList = function (req, res, next) {
+        var uid = req.session.uId;
+
+        PostGre.knex
+            .raw(
+            'SELECT a.name, ua.count, ( ' +
+            'CASE WHEN a.name = \'' + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + '\' ' +
+            'THEN item_id ' +
+            'ELSE 0 ' +
+            'END ' +
+            ') AS smash_id, ' +
+            '(CASE WHEN a.name = \'' + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + '\' ' +
+            'THEN item_id ' +
+            'ELSE 0 ' +
+            'END ' +
+            ') AS set_id ' +
+            'FROM users_achievements ua ' +
+            'LEFT JOIN game_profile gp ON gp.id = ua.game_profile_id ' +
+            'LEFT JOIN achievements a ON a.id = ua.achievements_id ' +
+            'WHERE gp.uuid = \'' + uid + '\' '
+            )
+            .then(function (queryResult) {
+                res.status(200).send(queryResult.rows)
+            })
+            .catch(next)
+    };
 };
 
 module.exports = GameProfile;

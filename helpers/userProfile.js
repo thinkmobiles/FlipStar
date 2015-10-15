@@ -5,12 +5,14 @@ var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('lodash');
 var Session = require('../handlers/sessions');
+var GameProfHelper = require('../helpers/gameProfile');
 var Users;
 
 UserProfile = function (PostGre) {
     var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
     var DeviceModel = PostGre.Models[MODELS.DEVICE];
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
+    var gameProfHelper = new GameProfHelper(PostGre);
 
     function getWeekNumber () {
         var curDate = new Date();
@@ -350,15 +352,14 @@ UserProfile = function (PostGre) {
                             .where('id', result[0].user_id)
                             .then(function (user) {
 
-                                PostGre.knex
-                                    .raw('SELECT achievement(\'' + options.uId + '\', \'' + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME + '\', 1);')
-                                    .then(function () {
-                                        cb(null, user)
-                                    })
-                                    .catch(function (err) {
-                                        cb(err)
-                                    })
+                                gameProfHelper.achievementsTrigger({
+                                    uuid: options.uId,
+                                    name: CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME
 
+                                }, function (err) {
+
+                                    err ? cb(err) :  cb(null, user);
+                                });
                             })
                             .catch(function (err) {
                                 cb(err)
