@@ -181,6 +181,16 @@ GameProfile = function (PostGre) {
 
         gameDate = new Date(gameDate + delatDate);
 
+        if (process.env.NODE_ENV === 'development') {
+            console.log(
+                'Game Sync\n',
+                'deltaDate: ', delatDate, '\n',
+                'gameDate: ', gameDate, '\n',
+                'cDate: ', clientCurrentDate, '\n',
+                'sDate: ', serverCurrentDate, '\n'
+            );
+        }
+
         PostGre.knex
             .raw(
                 'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate.toISOString() + '\' AND  ' +
