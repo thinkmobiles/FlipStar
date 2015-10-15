@@ -161,13 +161,14 @@ function createGame( user1Data, user2Data, callback ) {
     var currentStack = user1Data.stack.concat( user2Data.stack ); // [ smashId ]node
 
     var gameData = {
-        id: createGameId( users ),
-        stack: currentStack,
-        users: users,
-        currentUser: getRandomUser( users ),
-        timeOutDate: Date.now() + 1000 * TURN_TTL,
-        turn: 0,
-        ttl: TURN_TTL
+        id:             createGameId( users ),
+        stack:          currentStack,
+        users:          users,
+        bet:            user1Data.bet,
+        currentUser:    getRandomUser( users ),
+        timeOutDate:    Date.now() + 1000 * TURN_TTL,
+        turn:           0,
+        ttl:            TURN_TTL
     };
 
     gameData[user1Data.uId + ':bet'] = user1Data.stack;
@@ -235,12 +236,16 @@ function getHashData(key, callback) {
             }
 
             if (!result) {
-                return callback()
+                return callback(null, null)
             }
 
             try {
                 _.forEach(result, function (val, key) {
-                    parsedData[key] = JSON.parse(val);
+                    if (val === "undefined") {
+                        parsedData[key] = null;
+                    } else {
+                        parsedData[key] = JSON.parse(val);
+                    }
                 });
             } catch (err) {
                 return callback(err);
@@ -505,7 +510,7 @@ module.exports = function( httpServer, db ) {
                         user1: turnNumber ? gameData[gameData.users[0]] : gameData[gameData.users[0] + ':bet'],
                         user2: turnNumber ? gameData[gameData.users[1]] : gameData[gameData.users[1] + ':bet'],
                         users: gameData.users,
-                        /*timeToRevenge*/ttl: leaver ? 0 : TIME_TO_REVENGE
+                        ttl: leaver ? 0 : TIME_TO_REVENGE
                     };
 
                     async.each(
@@ -554,7 +559,8 @@ module.exports = function( httpServer, db ) {
                                 return pCb(err);
                             }
 
-                            client.expire(revengeKey, TIME_TO_REVENGE, pCb)
+                            /*client.expire(revengeKey, TIME_TO_REVENGE, pCb)*/
+                            pCb();
                         }
                     );
 
@@ -1086,7 +1092,7 @@ module.exports = function( httpServer, db ) {
         socket.on('startRevenge', function(data) {
             var uId     = socket.uId;
             var bet     = data.bet;
-            var oldGameId = data.gId;
+            var oldGameId = data.id;
             var stack   = data.stack;
             var revengeKey  = getKey({keyType: 'revenge', keyData: oldGameId});
 
@@ -1101,13 +1107,13 @@ module.exports = function( httpServer, db ) {
                         var updateObject = {};
                         var now = Date.now();
 
-                        if ( revengeData.users.indexOf(uId) < 0 ) {
-                            err = new Error('Bad game data');
+                        if ( !revengeData ) {
+                            err = new Error('No revenge data');
                             return wCb(err);
                         }
 
-                        if ( !revengeData ) {
-                            err = new Error('No revenge data');
+                        if ( revengeData.users.indexOf(uId) < 0 ) {
+                            err = new Error('Bad game data');
                             return wCb(err);
                         }
 
@@ -1140,7 +1146,7 @@ module.exports = function( httpServer, db ) {
                             });
                         }
 
-                        if ( revengeData.aprovedUsers && revengeData.aprovedUsers.length) {
+                        if ( revengeData.aprovedUsers /*&& revengeData.aprovedUsers.length*/) {
 
                             return createGame(
                                 { bet: bet, uId: uId, stack: stack },
@@ -1201,6 +1207,8 @@ module.exports = function( httpServer, db ) {
         socket.on('refuseRevenge', function(data) {
             var oldGameId = data.id;
             var revengeKey  = getKey({keyType: 'revenge', keyData: oldGameId});
+
+            debug('refuseRevenge: game - ' + oldGameId + ' :uId - ' + socket.uId);
 
             getHashData(revengeKey, function(err, revengeData) {
                 if (err) {
