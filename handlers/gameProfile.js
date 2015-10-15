@@ -179,7 +179,7 @@ GameProfile = function (PostGre) {
         var delatDate = serverCurrentDate - clientCurrentDate;
         var err;
 
-        gameDate = new Date(gameDate + delatDate);
+        gameDate = new Date(gameDate.getTime() + delatDate);
 
         if (process.env.NODE_ENV === 'development') {
             console.log(
