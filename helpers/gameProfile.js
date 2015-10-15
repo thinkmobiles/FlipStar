@@ -101,7 +101,7 @@ GameProfile = function (PostGre) {
                 updProf.id = profile[0].id;
                 updProf.stars_number = profile[0].stars_number;
 
-                maxFlips = parseInt((curDate.getUTCMilliseconds() - profile[0].last_seen_date.getUTCMilliseconds()) / (1000 * 60 * 60)) * CONSTANTS.FLIPS_PER_HOUR + profile[0].flips_number;
+                maxFlips = parseInt((curDate.getTime() - profile[0].last_seen_date.getTime() ) / (1000 * 60 * 60)) * CONSTANTS.FLIPS_PER_HOUR + profile[0].flips_number;
                 updProf.flips_number = maxFlips;
 
                 games = games.slice(0, maxFlips);
