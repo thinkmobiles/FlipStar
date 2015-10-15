@@ -51,7 +51,7 @@ module.exports = {
         BUY: 1
     },
 
-    SMASH_DEFAULT_PRICE: 100,
+    SMASH_DEFAULT_PRICE: 1250,
     DEFAULT_FLIPS_LIMIT: 50,
     SMASHES_PER_SET: 20,
     SMASHES_LIMIT: 300,

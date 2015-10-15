@@ -130,7 +130,7 @@ GameProfile = function (PostGre) {
         PostGre.knex(TABLES.USERS_SMASHES)
             .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.id', TABLES.USERS_SMASHES + '.game_profile_id')
             .where('uuid', uid)
-            .select('smash_id', 'quantity', 'is_open')
+            .select('smash_id', 'quantity')
             .then(function (collection) {
                 res.status(200).send(collection)
             })
