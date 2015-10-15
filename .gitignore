@@ -77,7 +77,7 @@ build/Release
 # Dependency directory
 # https://docs.npmjs.com/misc/faq#should-i-check-my-node-modules-folder-into-git
 node_modules
-#config/development.js
+config/development.js
 migrations/node_modules
 
 

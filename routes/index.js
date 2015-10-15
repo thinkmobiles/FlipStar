@@ -16,7 +16,7 @@ module.exports = function (app, PostGre) {
     });
 
     app.use('/user', usersRouter);
-    app.use('/gameProfile',session.isAuthorized, gameRouter);
+    app.use('/gameProfile', gameRouter);
     app.use('/purchase',session.isAuthorized, purchaseRouter);
     app.use('/queue',session.isAuthorized, queueRouter);
 

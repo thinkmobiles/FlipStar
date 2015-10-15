@@ -5,11 +5,9 @@ var CONSTANTS = require('../constants/constants');
 var async = require('async');
 var _ = require('lodash');
 var Session = require('../handlers/sessions');
-var GameProfHelper = require('../helpers/gameProfile');
 var Users;
 
 UserProfile = function (PostGre) {
-    var gameProfHelper = new GameProfHelper(PostGre);
     var UserModel = PostGre.Models[MODELS.USERS_PROFILE];
     var DeviceModel = PostGre.Models[MODELS.DEVICE];
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
@@ -144,7 +142,7 @@ UserProfile = function (PostGre) {
                         .insert({
                             facebook_id: options.facebook_id
                         })
-                        .then(function (result) {
+                        .then(function () {
                             cb(null, user)
                         })
                         .catch(function (err) {
@@ -262,7 +260,7 @@ UserProfile = function (PostGre) {
     this.enterGuest = function (options, callback) {
         var uId = options.uId;
         var deviceId = options.device_id;
-        var sessionLength = options.session_length;
+        var sessionLength = options['session_length'];
         var curDate = new Date().toISOString();
         var deviceObj = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
         var err;
@@ -334,7 +332,7 @@ UserProfile = function (PostGre) {
     this.enterFBUser = function (options, callback) {
         var deviceId = options.device_id;
         var fbId = options.facebook_id;
-        var sessionLength = options.session_length;
+        var sessionLength = options['session_length'];
         var curDate = new Date().toISOString();
         var userSaveInfo = prepareSaveInfo(CONSTANTS.INFO_TYPES.USER, options);
         var deviceInfo = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
@@ -351,7 +349,16 @@ UserProfile = function (PostGre) {
                             .update(userSaveInfo)
                             .where('id', result[0].user_id)
                             .then(function (user) {
-                                cb(null, user)
+
+                                PostGre.knex
+                                    .raw('SELECT achievement(\'' + options.uId + '\', \'' + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME + '\', 1);')
+                                    .then(function () {
+                                        cb(null, user)
+                                    })
+                                    .catch(function (err) {
+                                        cb(err)
+                                    })
+
                             })
                             .catch(function (err) {
                                 cb(err)
@@ -371,6 +378,7 @@ UserProfile = function (PostGre) {
                         'RETURNING d.id'
                     )
                     .then(function (result) {
+
                         if (result.rows.length && result.rows[0]) {
 
                             PostGre.knex(TABLES.DEVICE)
@@ -426,7 +434,7 @@ UserProfile = function (PostGre) {
                         'from ' + TABLES.USERS_PROFILE + ' up, ' + TABLES.GAME_PROFILE + ' gp ' +
                         'where fb.facebook_id = \'' + fbId + '\'  and up.facebook_id = \'' + fbId + '\'  and up.id = gp.user_id '
                     )
-                    .exec(function (err, result) {
+                    .exec(function (err) {
                         if (err) {
                             cb(err)
                         } else {

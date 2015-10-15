@@ -9,7 +9,7 @@ module.exports = function (PostGre, app) {
     var usersHandler = new UsersHandler(PostGre, app);
     var fbHandler = new FBNotificationsHandler(app);
 
-    router.post('/signIn', usersHandler.signIn);
+    router.post('/signIn', usersHandler.checkEnterAchievement, usersHandler.signIn);
     //router.post('/addFriends', usersHandler.addFBFriends);
 
 

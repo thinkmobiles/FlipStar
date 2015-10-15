@@ -82,7 +82,7 @@ module.exports = function (knex) {
                 'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
                 '$$ ' +
                     'BEGIN ' +
-                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, points_number = points_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.id = guid; ' +
+                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
                             'IF found THEN ' +
                                 'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
                                 'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
@@ -98,6 +98,90 @@ module.exports = function (knex) {
                     'END; ' +
                 '$$ ' +
                 'LANGUAGE plpgsql;'
+            )
+            .exec(function (err) {
+                if (err) {
+                    console.log('!!!!!!!!!');
+                    console.log(err);
+                    console.log('!!!!!!!!!');
+                } else {
+                    console.log('##########');
+                    console.log('Create function');
+                    console.log('###########');
+                }
+                cb()
+            })
+    }
+
+    function achievementFunc(cb) {
+        knex.raw(
+            'CREATE OR REPLACE FUNCTION achievement(guid UUID, ach_name TEXT, set INT, item INT) RETURNS VOID AS ' +
+            '$$ ' +
+            'DECLARE gid INT := (SELECT id FROM game_profile WHERE uuid = guid); ' +
+            'DECLARE aid INT  := (SELECT id FROM achievements WHERE name = ach_name); ' +
+            'DECLARE type INT  := (SELECT type FROM achievements WHERE name = ach_name); ' +
+            'BEGIN ' +
+            'IF NOT EXISTS (SELECT id FROM achievements WHERE name = ach_name) ' +
+            'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
+            'END IF; ' +
+            'IF NOT EXISTS (SELECT id FROM game_profile WHERE uuid = guid) ' +
+            'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
+            'END IF; ' +
+            'IF type <> 0 ' +
+            'THEN ' +
+            'LOOP ' +
+            'UPDATE users_achievements SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'RETURN; ' +
+            'END IF; ' +
+            'BEGIN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'RETURN; ' +
+            'EXCEPTION WHEN unique_violation THEN ' +
+            'END; ' +
+            'END LOOP; ' +
+            'ELSIF ach_name = \'Set unlocked\' ' +
+            'THEN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'SELECT gid, aid, item, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'ELSIF ach_name = \'Smash unlocked\' ' +
+            'THEN ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'SELECT gid, aid, item, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'ELSE ' +
+            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) ' +
+            'SELECT gid, aid, 1 ' +
+            'WHERE ' +
+            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND  achievements_id = aid); ' +
+            'IF found THEN ' +
+            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set, ' +
+            'stars_number = ( ' +
+            'CASE WHEN ach_name = \'Connection to Facebook\' ' +
+            'THEN stars_number + 500 ' +
+            'ELSE stars_number ' +
+            'END) ' +
+            'WHERE id = gid; ' +
+            'END IF; ' +
+            'END IF; ' +
+            'END; ' +
+            '$$ ' +
+            'LANGUAGE plpgsql;'
             )
             .exec(function (err) {
                 if (err) {
@@ -132,40 +216,6 @@ module.exports = function (knex) {
                             'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
                         'END IF; ' +
                     'END; ' +
-                '$$ ' +
-                'LANGUAGE plpgsql;'
-            )
-            .exec(function (err) {
-                if (err) {
-                    console.log('!!!!!!!!!');
-                    console.log(err);
-                    console.log('!!!!!!!!!');
-                } else {
-                    console.log('##########');
-                    console.log('Create function');
-                    console.log('###########');
-                }
-                cb()
-            })
-    }
-
-    function openSmash(cb) {
-        knex.raw(
-                'CREATE OR REPLACE FUNCTION open_smash(guid INT, sid INT) RETURNS VOID AS ' +
-                '$$ ' +
-                'BEGIN ' +
-                'LOOP ' +
-                'UPDATE  ' + TABLES.USERS_SMASHES + ' SET is_open = true   WHERE game_profile_id = guid  AND smash_id = sid ; ' +
-                'IF found THEN ' +
-                'RETURN; ' +
-                'END IF; ' +
-                'BEGIN ' +
-                'INSERT INTO  ' + TABLES.USERS_SMASHES + ' (game_profile_id, smash_id, is_open, quantity) VALUES (guid, sid, true, 0); ' +
-                'RETURN; ' +
-                'EXCEPTION WHEN unique_violation THEN ' +
-                'END; ' +
-                'END LOOP; ' +
-                'END; ' +
                 '$$ ' +
                 'LANGUAGE plpgsql;'
             )
@@ -306,7 +356,7 @@ module.exports = function (knex) {
             'EXIT; ' +
             'END IF; ' +
             'BEGIN ' +
-            'INSERT INTO users_smashes(is_open, game_profile_id, smash_id, quantity) VALUES (false, gid, smash.id, 1); ' +
+            'INSERT INTO users_smashes(game_profile_id, smash_id, quantity) VALUES (gid, smash.id, 1); ' +
             'EXIT; ' +
             'EXCEPTION WHEN unique_violation THEN ' +
             'END; ' +
@@ -603,7 +653,6 @@ module.exports = function (knex) {
     function usersSmashestable(cb) {
         createTable(TABLES.USERS_SMASHES, function (row) {
             row.increments('id').primary();
-            row.boolean('is_open').defaultTo('false');
             row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('smash_id').references('id').inTable(TABLES.SMASHES).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('quantity').defaultTo(0);
@@ -664,6 +713,7 @@ module.exports = function (knex) {
             row.increments('id').primary();
             row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
             row.integer('achievements_id').references('id').inTable(TABLES.ACHIEVEMENTS).onDelete('CASCADE').onUpdate('CASCADE');
+            row.integer('item_id');
             row.integer('count');
 
             row.timestamp('updated_at', true).defaultTo(knex.raw('now()'));
@@ -790,8 +840,8 @@ module.exports = function (knex) {
 
         async.series([
             singleGame,
+            achievementFunc,
             activateBooster,
-            openSmash,
             buyBooster,
             addFlips,
             removeSmashes,
@@ -1047,14 +1097,14 @@ module.exports = function (knex) {
             " (1, \'" + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.POINTS + "), " +
             " (2, \'" + CONSTANTS.ACHIEVEMENTS.PURCHASE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.PURCHASE.POINTS + "), " +
             " (3, \'" + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.FB_CONNECT.POINTS + "), " +
-            " (4, \'" + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.POINTS + "), " +
+            " (4, \'" + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.POINTS + "), " +
             " (5, \'" + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.FRIEND_CHALLENGE.POINTS + "), " +
             " (6, \'" + CONSTANTS.ACHIEVEMENTS.WIN.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WIN.POINTS + "), " +
             " (7, \'" + CONSTANTS.ACHIEVEMENTS.WINS_3.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.WINS_3.POINTS + "), " +
             " (8, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_DAY.POINTS + "), " +
             " (9, \'" + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.COME_BACK_1_WEEK.POINTS + "), " +
             " (10, \'" + CONSTANTS.ACHIEVEMENTS.INVITE.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.INVITE.POINTS + "), " +
-            " (11, \'" + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.MULTIPLE + ", " + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.POINTS + "); " +
+            " (11, \'" + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + "\', " + CONSTANTS.ACHIEVEMENTS_TYPES.ONE_TIME + ", " + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.POINTS + "); " +
             " END; " +
             " $$ LANGUAGE plpgsql; ";
 
