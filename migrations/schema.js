@@ -7,14 +7,14 @@ module.exports = function (knex) {
 
     function triggerUpdateDate(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION update_updated_at_column() ' +
-                'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                        'NEW.updated_at = now(); ' +
-                        'RETURN NEW; ' +
-                    'END; ' +
-                '$$ language plpgsql;'
-            )
+            'CREATE OR REPLACE FUNCTION update_updated_at_column() ' +
+            'RETURNS TRIGGER AS $$ ' +
+            'BEGIN ' +
+            'NEW.updated_at = now(); ' +
+            'RETURN NEW; ' +
+            'END; ' +
+            '$$ language plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -31,14 +31,14 @@ module.exports = function (knex) {
 
     function triggerDeleteExpBooster(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION del_expire_booster() ' +
-                'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                        'DELETE FROM ' + TABLES.USERS_BOOSTERS + ' WHERE flips_left = 0 AND quantity = 0; ' +
-                        'RETURN NULL; ' +
-                    'END; ' +
-                '$$ language plpgsql;'
-            )
+            'CREATE OR REPLACE FUNCTION del_expire_booster() ' +
+            'RETURNS TRIGGER AS $$ ' +
+            'BEGIN ' +
+            'DELETE FROM ' + TABLES.USERS_BOOSTERS + ' WHERE flips_left = 0 AND quantity = 0; ' +
+            'RETURN NULL; ' +
+            'END; ' +
+            '$$ language plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -55,14 +55,14 @@ module.exports = function (knex) {
 
     function triggerDesactivateBooster(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION desactivate_booster() ' +
-                'RETURNS TRIGGER AS $$ ' +
-                    'BEGIN ' +
-                        'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = false WHERE flips_left = 0 AND is_active = true; ' +
-                        'RETURN NULL; ' +
-                    'END; ' +
-                '$$ language plpgsql;'
-            )
+            'CREATE OR REPLACE FUNCTION desactivate_booster() ' +
+            'RETURNS TRIGGER AS $$ ' +
+            'BEGIN ' +
+            'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = false WHERE flips_left = 0 AND is_active = true; ' +
+            'RETURN NULL; ' +
+            'END; ' +
+            '$$ language plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -79,26 +79,26 @@ module.exports = function (knex) {
 
     function singleGame(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
-                '$$ ' +
-                    'BEGIN ' +
-                        'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
-                            'IF found THEN ' +
-                                'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
-                                'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
-                                ' AND is_active = true; ' +
-                                'RETURN QUERY ' +
-                                'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                                'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
-                                'WHERE gp.uuid = guid; ' +
-                            'END IF; ' +
-                        'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.uuid = guid) < 0 THEN ' +
-                            'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
-                        'END IF; ' +
-                    'END; ' +
-                '$$ ' +
-                'LANGUAGE plpgsql;'
-            )
+            'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
+            '$$ ' +
+            'BEGIN ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
+            'IF found THEN ' +
+            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
+            'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
+            ' AND is_active = true; ' +
+            'RETURN QUERY ' +
+            'SELECT gp.id, gp.stars_number, gp.flips_number, gp.points_number, ub.booster_id, ub.flips_left FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+            'LEFT JOIN ' + TABLES.USERS_BOOSTERS + ' ub ON gp.id = ub.game_profile_id AND ub.is_active = true ' +
+            'WHERE gp.uuid = guid; ' +
+            'END IF; ' +
+            'IF (SELECT flips_number FROM ' + TABLES.GAME_PROFILE + ' gp WHERE gp.uuid = guid) < 0 THEN ' +
+            'RAISE EXCEPTION \'FLIPS ENDED\'; ' +
+            'END IF; ' +
+            'END; ' +
+            '$$ ' +
+            'LANGUAGE plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -115,30 +115,35 @@ module.exports = function (knex) {
 
     function achievementFunc(cb) {
         knex.raw(
-            'CREATE OR REPLACE FUNCTION achievement(guid UUID, ach_name TEXT, set INT, item INT) RETURNS VOID AS ' +
+            'CREATE OR REPLACE FUNCTION achievement( ' +
+            'guid uuid, ' +
+            'ach_name text, ' +
+            'set integer, ' +
+            'item integer) ' +
+            'RETURNS void AS ' +
             '$$ ' +
-            'DECLARE gid INT := (SELECT id FROM game_profile WHERE uuid = guid); ' +
-            'DECLARE aid INT  := (SELECT id FROM achievements WHERE name = ach_name); ' +
-            'DECLARE type INT  := (SELECT type FROM achievements WHERE name = ach_name); ' +
+            'DECLARE gid INT; aid INT; type INT; prize INT; ' +
             'BEGIN ' +
-            'IF NOT EXISTS (SELECT id FROM achievements WHERE name = ach_name) ' +
+            'SELECT id,type,prize  INTO aid,type,prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name; ' +
+            'SELECT id into gid FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid; ' +
+            'IF aid IS NULL ' +
             'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
             'END IF; ' +
-            'IF NOT EXISTS (SELECT id FROM game_profile WHERE uuid = guid) ' +
+            'IF gid IS NULL ' +
             'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
             'END IF; ' +
             'IF type <> 0 ' +
             'THEN ' +
             'LOOP ' +
-            'UPDATE users_achievements SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
+            'UPDATE ' + TABLES.USERS_ACHIEVEMENTS + ' SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
             'IF found THEN ' +
-            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
             'WHERE id = gid; ' +
             'RETURN; ' +
             'END IF; ' +
             'BEGIN ' +
-            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
-            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
             'WHERE id = gid; ' +
             'RETURN; ' +
             'EXCEPTION WHEN unique_violation THEN ' +
@@ -146,31 +151,31 @@ module.exports = function (knex) {
             'END LOOP; ' +
             'ELSIF ach_name = \'Set unlocked\' ' +
             'THEN ' +
-            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, item_id, count) ' +
             'SELECT gid, aid, item, 1 ' +
             'WHERE ' +
-            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
             'IF found THEN ' +
-            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid) ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
             'WHERE id = gid; ' +
             'END IF; ' +
             'ELSIF ach_name = \'Smash unlocked\' ' +
             'THEN ' +
-            'INSERT INTO users_achievements(game_profile_id, achievements_id, item_id, count) ' +
+            'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, item_id, count) ' +
             'SELECT gid, aid, item, 1 ' +
             'WHERE ' +
-            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
+            'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
             'IF found THEN ' +
-            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize*set ' +
             'WHERE id = gid; ' +
             'END IF; ' +
             'ELSE ' +
-            'INSERT INTO users_achievements(game_profile_id, achievements_id, count) ' +
+            'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) ' +
             'SELECT gid, aid, 1 ' +
             'WHERE ' +
-            'NOT EXISTS (SELECT id FROM users_achievements WHERE game_profile_id = gid AND  achievements_id = aid); ' +
+            'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND  achievements_id = aid); ' +
             'IF found THEN ' +
-            'UPDATE game_profile SET points_number = points_number + (SELECT prize FROM achievements WHERE id = aid)*set, ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize*set, ' +
             'stars_number = ( ' +
             'CASE WHEN ach_name = \'Connection to Facebook\' ' +
             'THEN stars_number + 500 ' +
@@ -181,8 +186,8 @@ module.exports = function (knex) {
             'END IF; ' +
             'END; ' +
             '$$ ' +
-            'LANGUAGE plpgsql;'
-            )
+            'LANGUAGE plpgsql'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -199,26 +204,26 @@ module.exports = function (knex) {
 
     function activateBooster(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION activate_booster(guid uuid, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
-                '$$ ' +
-                    'DECLARE quan INT;' +
-                    'BEGIN ' +
-                    'quan := (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster);' +
+            'CREATE OR REPLACE FUNCTION activate_booster(guid uuid, booster INT) RETURNS TABLE (id int, left_flips int) AS ' +
+            '$$ ' +
+            'DECLARE quan INT;' +
+            'BEGIN ' +
+            'quan := (SELECT quantity FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = guid AND booster_id = booster);' +
 
-                        'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true, quantity = quantity -1, flips_left = flips_left + 100 ' +
-                        'WHERE game_profile_id = ( ' +
-                            'SELECT g.id FROM game_profile g WHERE g.uuid = guid ' +
-                            ') AND booster_id = booster; ' +
-                            'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = ( ' +
-                            'SELECT g.id FROM game_profile g WHERE g.uuid = guid' +
-                            ' ) AND booster_id = booster;' +
-                        'IF  quan < 0 OR quan ISNULL THEN ' +
-                            'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
-                        'END IF; ' +
-                    'END; ' +
-                '$$ ' +
-                'LANGUAGE plpgsql;'
-            )
+            'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET is_active = true, quantity = quantity -1, flips_left = flips_left + 100 ' +
+            'WHERE game_profile_id = ( ' +
+            'SELECT g.id FROM game_profile g WHERE g.uuid = guid ' +
+            ') AND booster_id = booster; ' +
+            'RETURN QUERY SELECT booster_id, flips_left FROM ' + TABLES.USERS_BOOSTERS + ' WHERE game_profile_id = ( ' +
+            'SELECT g.id FROM game_profile g WHERE g.uuid = guid' +
+            ' ) AND booster_id = booster;' +
+            'IF  quan < 0 OR quan ISNULL THEN ' +
+            'RAISE EXCEPTION \'YOU CAN NOT ACTIVATE THIS BOOSTER\'; ' +
+            'END IF; ' +
+            'END; ' +
+            '$$ ' +
+            'LANGUAGE plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -235,24 +240,24 @@ module.exports = function (knex) {
 
     function buyBooster(cb) {
         knex.raw(
-                'CREATE OR REPLACE FUNCTION buy_booster(guid INT, bid INT) RETURNS VOID AS ' +
-                '$$ ' +
-                'BEGIN ' +
-                'LOOP ' +
-                'UPDATE  ' + TABLES.USERS_BOOSTERS + ' SET quantity = quantity + 1   WHERE game_profile_id = guid  AND booster_id = bid ; ' +
-                'IF found THEN ' +
-                'RETURN; ' +
-                'END IF; ' +
-                'BEGIN ' +
-                'INSERT INTO  ' + TABLES.USERS_BOOSTERS + ' (game_profile_id, booster_id, is_active, flips_left, quantity) VALUES (guid, bid, false, 100, 0); ' +
-                'RETURN; ' +
-                'EXCEPTION WHEN unique_violation THEN ' +
-                'END; ' +
-                'END LOOP; ' +
-                'END; ' +
-                '$$ ' +
-                'LANGUAGE plpgsql;'
-            )
+            'CREATE OR REPLACE FUNCTION buy_booster(guid INT, bid INT) RETURNS VOID AS ' +
+            '$$ ' +
+            'BEGIN ' +
+            'LOOP ' +
+            'UPDATE  ' + TABLES.USERS_BOOSTERS + ' SET quantity = quantity + 1   WHERE game_profile_id = guid  AND booster_id = bid ; ' +
+            'IF found THEN ' +
+            'RETURN; ' +
+            'END IF; ' +
+            'BEGIN ' +
+            'INSERT INTO  ' + TABLES.USERS_BOOSTERS + ' (game_profile_id, booster_id, is_active, flips_left, quantity) VALUES (guid, bid, false, 100, 0); ' +
+            'RETURN; ' +
+            'EXCEPTION WHEN unique_violation THEN ' +
+            'END; ' +
+            'END LOOP; ' +
+            'END; ' +
+            '$$ ' +
+            'LANGUAGE plpgsql;'
+        )
             .exec(function (err) {
                 if (err) {
                     console.log('!!!!!!!!!');
@@ -269,7 +274,7 @@ module.exports = function (knex) {
 
     function addFlips(cb) {
         knex.raw(
-            'CREATE OR REPLACE FUNCTION add_flips(guid uuid,  quan INT, action_type INT) RETURNS VOID AS '  +
+            'CREATE OR REPLACE FUNCTION add_flips(guid uuid,  quan INT, action_type INT) RETURNS VOID AS ' +
             '$$ ' +
             'BEGIN ' +
             'IF action_type <> 0 ' +
@@ -836,7 +841,7 @@ module.exports = function (knex) {
         }, cb)
     }
 
-    function createFunctions () {
+    function createFunctions() {
 
         async.series([
             singleGame,
@@ -887,7 +892,7 @@ module.exports = function (knex) {
             notifQueueTable,
             notifHistoryTable
 
-        ], function(errors) {
+        ], function (errors) {
             if (errors) {
                 console.log('===============================');
                 console.log(errors);
@@ -1001,38 +1006,38 @@ module.exports = function (knex) {
         })
     }
 
-    function fillPurchasePack (cb){
+    function fillPurchasePack(cb) {
 
         var sqlString = " CREATE OR REPLACE FUNCTION fillPacks(os VARCHAR) RETURNS VOID AS $$ " +
-                            " BEGIN " +
-                            " INSERT INTO purchases (type, name, store, value, store_item_id) VALUES " +
-                                " ('packs', '1_packs', os, 1, os || '_p1'), " +
-                                " ('packs', '5_packs', os, 5, os || '_p2'), " +
-                                " ('packs', '12_packs', os, 12, os || '_p3'), " +
-                                " ('packs', '40_packs', os, 40, os || '_p4'), " +
-                                " ('packs', '60_packs', os, 60, os || '_p5'), " +
-                                " ('flips', '15_flips', os, 15, os || '_f1'), " +
-                                " ('flips', '40_flips', os, 40, os || '_f2'), " +
-                                " ('flips', '100_flips', os, 100, os || '_f3'), " +
-                                " ('flips', '350_flips', os, 350, os || '_f4'), " +
-                                " ('flips', '600_flips', os, 600, os || '_f5'), " +
-                                " ('stars', '200000_stars', os, 200000, os || '_s1'), " +
-                                " ('stars', '1000000_stars', os, 1000000, os || '_s2'), " +
-                                " ('stars', '2500000_stars', os, 2500000, os || '_s3'), " +
-                                " ('stars', '10000000_stars', os, 10000000, os || '_s4'), " +
-                                " ('stars', '15000000_stars', os, 15000000, os || '_s5'), " +
-                                " ('boosters', 'slow_strength_bar', os, 0, os || '_b1'), " +
-                                " ('boosters', 'slow_aiming_bar', os, 0, os || '_b2'), " +
-                                " ('boosters', 'double_gold_rewards', os, 0, os || '_b3'); " +
+            " BEGIN " +
+            " INSERT INTO purchases (type, name, store, value, store_item_id) VALUES " +
+            " ('packs', '1_packs', os, 1, os || '_p1'), " +
+            " ('packs', '5_packs', os, 5, os || '_p2'), " +
+            " ('packs', '12_packs', os, 12, os || '_p3'), " +
+            " ('packs', '40_packs', os, 40, os || '_p4'), " +
+            " ('packs', '60_packs', os, 60, os || '_p5'), " +
+            " ('flips', '15_flips', os, 15, os || '_f1'), " +
+            " ('flips', '40_flips', os, 40, os || '_f2'), " +
+            " ('flips', '100_flips', os, 100, os || '_f3'), " +
+            " ('flips', '350_flips', os, 350, os || '_f4'), " +
+            " ('flips', '600_flips', os, 600, os || '_f5'), " +
+            " ('stars', '200000_stars', os, 200000, os || '_s1'), " +
+            " ('stars', '1000000_stars', os, 1000000, os || '_s2'), " +
+            " ('stars', '2500000_stars', os, 2500000, os || '_s3'), " +
+            " ('stars', '10000000_stars', os, 10000000, os || '_s4'), " +
+            " ('stars', '15000000_stars', os, 15000000, os || '_s5'), " +
+            " ('boosters', 'slow_strength_bar', os, 0, os || '_b1'), " +
+            " ('boosters', 'slow_aiming_bar', os, 0, os || '_b2'), " +
+            " ('boosters', 'double_gold_rewards', os, 0, os || '_b3'); " +
 
-                            " END; " +
-                        " $$ LANGUAGE plpgsql; ";
+            " END; " +
+            " $$ LANGUAGE plpgsql; ";
 
 
         knex
             .raw(sqlString)
-            .exec(function(err){
-                if(err){
+            .exec(function (err) {
+                if (err) {
                     return cb(err);
                 }
 
@@ -1040,22 +1045,22 @@ module.exports = function (knex) {
             });
     }
 
-    function fillSmashes (cb){
+    function fillSmashes(cb) {
         var sqlString = "CREATE OR REPLACE FUNCTION fillSmashes() RETURNS VOID AS $$ " +
-                            " DECLARE counter INT := 1;" +
-                            " BEGIN " +
-                            " DELETE FROM " + TABLES.SMASHES + ";" +
-                                " WHILE (counter <= " + CONSTANTS.SMASHES_LIMIT + ") LOOP " +
-                                    " INSERT INTO " + TABLES.SMASHES + " (id, name, set) VALUES (counter, 'SMASH ' || counter, (((counter - 1) / " + CONSTANTS.SMASHES_PER_SET + " ) | 0) + 1); " +
-                                        " counter := counter + 1; " +
-                                " END LOOP; " +
-                            " END; " +
-                        " $$ LANGUAGE plpgsql; ";
+            " DECLARE counter INT := 1;" +
+            " BEGIN " +
+            " DELETE FROM " + TABLES.SMASHES + ";" +
+            " WHILE (counter <= " + CONSTANTS.SMASHES_LIMIT + ") LOOP " +
+            " INSERT INTO " + TABLES.SMASHES + " (id, name, set) VALUES (counter, 'SMASH ' || counter, (((counter - 1) / " + CONSTANTS.SMASHES_PER_SET + " ) | 0) + 1); " +
+            " counter := counter + 1; " +
+            " END LOOP; " +
+            " END; " +
+            " $$ LANGUAGE plpgsql; ";
 
         knex
             .raw(sqlString)
-            .exec(function(err){
-                if(err){
+            .exec(function (err) {
+                if (err) {
 
                     return cb(err);
 
@@ -1067,21 +1072,21 @@ module.exports = function (knex) {
 
     }
 
-    function fillBoosters (cb) {
+    function fillBoosters(cb) {
         var sqlString = " CREATE OR REPLACE FUNCTION fillBoosters() RETURNS VOID AS $$ " +
-                            " BEGIN " +
-                                " DELETE FROM " + TABLES.BOOSTERS + ";" +
-                                " INSERT INTO " + TABLES.BOOSTERS + " (id, name) VALUES " +
-                                " (1, 'slow_strength_bar'), " +
-                                " (2, 'slow_aiming_bar'), " +
-                                " (3, 'double_gold_rewards'); " +
-                            " END; " +
-                        " $$ LANGUAGE plpgsql; ";
+            " BEGIN " +
+            " DELETE FROM " + TABLES.BOOSTERS + ";" +
+            " INSERT INTO " + TABLES.BOOSTERS + " (id, name) VALUES " +
+            " (1, 'slow_strength_bar'), " +
+            " (2, 'slow_aiming_bar'), " +
+            " (3, 'double_gold_rewards'); " +
+            " END; " +
+            " $$ LANGUAGE plpgsql; ";
 
         knex
             .raw(sqlString)
-            .exec(function(err){
-                if (err){
+            .exec(function (err) {
+                if (err) {
                     return cb(err);
                 }
 
@@ -1089,7 +1094,7 @@ module.exports = function (knex) {
             })
     }
 
-    function fillAchievements (cb) {
+    function fillAchievements(cb) {
         var sqlString = " CREATE OR REPLACE FUNCTION fillAchievements() RETURNS VOID AS $$ " +
             " BEGIN " +
             " DELETE FROM " + TABLES.ACHIEVEMENTS + ";" +
@@ -1110,8 +1115,8 @@ module.exports = function (knex) {
 
         knex
             .raw(sqlString)
-            .exec(function(err){
-                if (err){
+            .exec(function (err) {
+                if (err) {
                     return cb(err);
                 }
 
@@ -1120,7 +1125,7 @@ module.exports = function (knex) {
     }
 
 
-    function setDefaultOptions () {
+    function setDefaultOptions() {
 
         async.parallel([
             fillPurchasePack,
@@ -1128,7 +1133,7 @@ module.exports = function (knex) {
             fillBoosters,
             fillAchievements
 
-        ],function(err){
+        ], function (err) {
             if (err) {
                 console.log('===============================');
                 console.log(err);
@@ -1136,44 +1141,44 @@ module.exports = function (knex) {
             } else {
 
                 async.series([
-                    function(cb){
+                    function (cb) {
                         knex
                             .raw(" SELECT fillSmashes(); ")
                             .exec(cb);
                     },
 
-                    function(cb){
+                    function (cb) {
                         knex
                             .raw(
-                                " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'APPLE'; " +
-                                " SELECT fillPacks('APPLE'); "
-                            )
+                            " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'APPLE'; " +
+                            " SELECT fillPacks('APPLE'); "
+                        )
                             .exec(cb);
                     },
 
-                    function(cb){
+                    function (cb) {
                         knex
                             .raw(
-                                " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'GOOGLE'; " +
-                                " SELECT fillPacks('GOOGLE'); "
-                            )
+                            " DELETE FROM " + TABLES.KIOSK + " WHERE store = 'GOOGLE'; " +
+                            " SELECT fillPacks('GOOGLE'); "
+                        )
                             .exec(cb);
                     },
 
-                    function(cb){
+                    function (cb) {
                         knex
                             .raw(" SELECT fillBoosters(); ")
                             .exec(cb)
                     },
 
-                    function(cb){
+                    function (cb) {
                         knex
                             .raw(" SELECT fillAchievements(); ")
                             .exec(cb)
                     }
 
-                ], function(err){
-                    if (err){
+                ], function (err) {
+                    if (err) {
 
                         console.log('===============================');
                         console.log(err);

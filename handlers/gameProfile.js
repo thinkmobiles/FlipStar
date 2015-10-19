@@ -112,13 +112,11 @@ GameProfile = function (PostGre) {
          * [
          *    {
          *        "smash_id": 12,
-         *        "quantity": 8,
-         *        "is_open": true
+         *        "quantity": 8
          *    },
          *    {
          *        "smash_id": 5,
-         *        "quantity": 5,
-         *        "is_open": true
+         *        "quantity": 5
          *    }
          * ]
          *
