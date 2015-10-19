@@ -7,7 +7,7 @@ module.exports = function(PostGre) {
 
         if (!req.session.loggedIn) {
             err = new Error(RESPONSES.UNATHORIZED);
-            err.status = 400;
+            err.status = 401;
             return next(err);
         }
 

@@ -360,6 +360,7 @@ UserProfile = function (PostGre) {
 
                                     err ? cb(err) :  cb(null, user);
                                 });
+                                /*cb(null, user);*/
                             })
                             .catch(function (err) {
                                 cb(err)

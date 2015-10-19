@@ -172,7 +172,22 @@ GameProfile = function (PostGre) {
         var uid = options.uId;
         var buy = options.buy;
         var gameDate = new Date(options.date);
+        var clientCurrentDate = new Date(options.nowDate);
+        var serverCurrentDate = new Date();
+        var delatDate = serverCurrentDate - clientCurrentDate;
         var err;
+
+        gameDate = new Date(gameDate.getTime() + delatDate);
+
+        if (process.env.NODE_ENV === 'development') {
+            console.log(
+                'Game Sync\n',
+                'deltaDate: ', delatDate, '\n',
+                'gameDate: ', gameDate, '\n',
+                'cDate: ', clientCurrentDate, '\n',
+                'sDate: ', serverCurrentDate, '\n'
+            );
+        }
 
         PostGre.knex
             .raw(
