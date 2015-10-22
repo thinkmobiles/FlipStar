@@ -221,31 +221,12 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                    'SELECT id, name, ' +
-                    'COALESCE(COALESCE(SUM(total_quantity)*SUM(total_sets_value),  total_quantity)*MIN(stars_number/2), MIN(stars_number/2)) AS rating ' +
-                    'FROM (SELECT  gp.id,  gp.stars_number, up.first_name AS name,  (SELECT SUM(quantity) ' +
-                    'FROM ' + TABLES.USERS_SMASHES + ' WHERE game_profile_id = gp.id) AS total_quantity, ( ' +
-                    'SELECT SUM(sets_value) FROM (SELECT (CASE ' +
-                    'WHEN COUNT(set)/20 = 0 ' +
-                    'THEN NULL ' +
-                    'WHEN COUNT(set)/20 = 1 ' +
-                    'THEN set ' +
-                    'END ' +
-                    ') AS sets_value FROM ' + TABLES.USERS_SMASHES + ' us ' +
-                    'LEFT JOIN ' + TABLES.SMASHES + ' s ON us.smash_id = s.id ' +
-                    'WHERE game_profile_id = gp.id ' +
-                    'GROUP BY s.set) t ' +
-                    ') AS total_sets_value ' +
-                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON gp.id = us.game_profile_id ' +
-                    'LEFT JOIN ' + TABLES.SMASHES + ' s ON us.smash_id = s.id ' +
-                    'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gp.user_id = up.id ' +
-                    'WHERE gp.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ( ' +
-                    'SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) ' +
-                    'GROUP BY  gp.id, gp.points_number, up.first_name) sq ' +
-                    'GROUP BY  id, name, total_quantity, total_sets_value ' +
-                    'ORDER BY rating DESC ' +
-                    'LIMIT 25'
+                'SELECT gp.id, gp.game_rate_point, up.first_name FROM game_profile gp ' +
+                'LEFT JOIN users_profile up ON up.id = gp.user_id ' +
+                'WHERE gp.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ( ' +
+                'SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) ' +
+                'ORDER BY gp.game_rate_point DESC ' +
+                'LIMIT 25'
                 )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
@@ -258,29 +239,10 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                    'SELECT id, name, ' +
-                    'COALESCE(COALESCE(SUM(total_quantity)*SUM(total_sets_value),  total_quantity)*MIN(stars_number/2), MIN(stars_number/2)) AS rating ' +
-                    'FROM (SELECT  gp.id,  gp.stars_number, up.first_name AS name,  (SELECT SUM(quantity) ' +
-                    'FROM ' + TABLES.USERS_SMASHES + ' WHERE game_profile_id = gp.id) AS total_quantity, ( ' +
-                    'SELECT SUM(sets_value) FROM (SELECT (CASE ' +
-                    'WHEN COUNT(set)/20 = 0 ' +
-                    'THEN NULL ' +
-                    'WHEN COUNT(set)/20 = 1 ' +
-                    'THEN set ' +
-                    'END ' +
-                    ') AS sets_value FROM ' + TABLES.USERS_SMASHES + ' us ' +
-                    'LEFT JOIN ' + TABLES.SMASHES + ' s ON us.smash_id = s.id ' +
-                    'WHERE game_profile_id = gp.id ' +
-                    'GROUP BY s.set) t ' +
-                    ') AS total_sets_value ' +
-                    'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                    'LEFT JOIN ' + TABLES.USERS_SMASHES + ' us ON gp.id = us.game_profile_id ' +
-                    'LEFT JOIN ' + TABLES.SMASHES + ' s ON us.smash_id = s.id ' +
-                    'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gp.user_id = up.id ' +
-                    'GROUP BY  gp.id, gp.points_number, up.first_name) sq ' +
-                    'GROUP BY  id, name, total_quantity, total_sets_value ' +
-                    'ORDER BY rating DESC ' +
-                    'LIMIT 25'
+                'SELECT gp.id, gp.game_rate_point, up.first_name FROM game_profile gp ' +
+                'LEFT JOIN users_profile up ON up.id = gp.user_id ' +
+                'ORDER BY gp.game_rate_point DESC ' +
+                'LIMIT 25'
                 )
                 .then(function (profiles) {
                     res.status(200).send(profiles.rows)

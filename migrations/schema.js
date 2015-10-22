@@ -3,7 +3,6 @@ module.exports = function (knex) {
     var CONSTANTS = require('../constants/constants');
     var when = require('when');
     var async = require('../node_modules/async');
-    var _ = require('lodash');
 
     function triggerUpdateDate(cb) {
         knex.raw(
@@ -77,12 +76,58 @@ module.exports = function (knex) {
             })
     }
 
+    function calcRate(cb) {
+        knex.raw(
+                'CREATE OR REPLACE FUNCTION calc_game_rate(usid uuid) ' +
+                'RETURNS integer AS ' +
+                '$$ ' +
+                'declare rate integer; ' +
+                'declare game_pr integer; ' +
+                'begin ' +
+                'select ' +
+                'coalesce( ' +
+                '(max(gp.stars_number)/2) + coalesce( sum(aa.sum_) *(1+ sum(CASE WHEN aa.COUNT_=20 THEN aa.set ELSE 0 END ) ) ,0) ' +
+                ',0) , gp.id into rate ,game_pr ' +
+                'from ' + TABLES.GAME_PROFILE + '  gp ' +
+                'left join ' +
+                '(select ' +
+                'us.game_profile_id, sum(coalesce(us.quantity, 0)) as sum_,count(*) as count_ , set ' +
+                'from ' + TABLES.USERS_SMASHES + ' us ' +
+                'left join ' + TABLES.SMASHES + ' s on s.id=us.smash_id ' +
+                'where us.quantity >0 ' +
+                'group by  set,us.game_profile_id ' +
+                ') aa  on aa.game_profile_id=gp.id ' +
+                'where gp.uuid=usid ' +
+                'group by gp.id; ' +
+                'update ' + TABLES.GAME_PROFILE + ' set game_rate_point=rate where id =game_pr ; ' +
+                'RETURN rate; ' +
+                'end ' +
+                '$BODY$ ' +
+                'LANGUAGE plpgsql'
+            )
+            .exec(function (err) {
+                if (err) {
+                    console.log('!!!!!!!!!');
+                    console.log(err);
+                    console.log('!!!!!!!!!');
+                } else {
+                    console.log('##########');
+                    console.log('Create function');
+                    console.log('###########');
+                }
+                cb()
+            })
+    }
+
     function singleGame(cb) {
         knex.raw(
             'CREATE OR REPLACE FUNCTION game(guid uuid, stars INT) RETURNS TABLE (id int, stars_quantity int,flips int, point int, boosters int, left_flips int) AS ' +
             '$$ ' +
             'BEGIN ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' gp SET stars_number = stars_number + stars, flips_number = flips_number - 1, flips_spent = flips_spent + 1   WHERE gp.uuid = guid; ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' gp ' +
+            'SET stars_number = stars_number + stars, game_rate_point = game_rate_point + stars/2, ' +
+            'flips_number = flips_number - 1, flips_spent = flips_spent + 1   ' +
+            'WHERE gp.uuid = guid; ' +
             'IF found THEN ' +
             'UPDATE ' + TABLES.USERS_BOOSTERS + '  SET flips_left = flips_left - 1   WHERE game_profile_id = ( ' +
             'SELECT g.id FROM game_profile g WHERE g.uuid = guid ) ' +
@@ -122,9 +167,9 @@ module.exports = function (knex) {
             'item integer) ' +
             'RETURNS void AS ' +
             '$$ ' +
-            'DECLARE gid INT; aid INT; type INT; prize INT; ' +
+            'DECLARE gid INT; aid INT; a_type INT; a_prize INT; ' +
             'BEGIN ' +
-            'SELECT id,type,prize  INTO aid,type,prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name; ' +
+            'SELECT id,type,prize  INTO aid,a_type,a_prize FROM ' + TABLES.ACHIEVEMENTS + ' WHERE name = ach_name; ' +
             'SELECT id into gid FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = guid; ' +
             'IF aid IS NULL ' +
             'THEN RAISE EXCEPTION \'NO SUCH ACHIEVEMENTS\'; ' +
@@ -132,18 +177,18 @@ module.exports = function (knex) {
             'IF gid IS NULL ' +
             'THEN RAISE EXCEPTION \'NO SUCH USER\'; ' +
             'END IF; ' +
-            'IF type <> 0 ' +
+            'IF a_type <> 0 ' +
             'THEN ' +
             'LOOP ' +
             'UPDATE ' + TABLES.USERS_ACHIEVEMENTS + ' SET count = count + 1   WHERE game_profile_id = gid AND  achievements_id = aid ; ' +
             'IF found THEN ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + a_prize ' +
             'WHERE id = gid; ' +
             'RETURN; ' +
             'END IF; ' +
             'BEGIN ' +
             'INSERT INTO ' + TABLES.USERS_ACHIEVEMENTS + '(game_profile_id, achievements_id, count) VALUES (gid, aid, 1); ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + a_prize ' +
             'WHERE id = gid; ' +
             'RETURN; ' +
             'EXCEPTION WHEN unique_violation THEN ' +
@@ -156,7 +201,7 @@ module.exports = function (knex) {
             'WHERE ' +
             'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
             'IF found THEN ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + a_prize ' +
             'WHERE id = gid; ' +
             'END IF; ' +
             'ELSIF ach_name = \'Smash unlocked\' ' +
@@ -166,7 +211,7 @@ module.exports = function (knex) {
             'WHERE ' +
             'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND achievements_id = aid AND item_id = item); ' +
             'IF found THEN ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize*set ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + a_prize*set ' +
             'WHERE id = gid; ' +
             'END IF; ' +
             'ELSE ' +
@@ -175,7 +220,7 @@ module.exports = function (knex) {
             'WHERE ' +
             'NOT EXISTS (SELECT id FROM ' + TABLES.USERS_ACHIEVEMENTS + ' WHERE game_profile_id = gid AND  achievements_id = aid); ' +
             'IF found THEN ' +
-            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + prize*set, ' +
+            'UPDATE ' + TABLES.GAME_PROFILE + ' SET points_number = points_number + a_prize*set, ' +
             'stars_number = ( ' +
             'CASE WHEN ach_name = \'Connection to Facebook\' ' +
             'THEN stars_number + 500 ' +
@@ -535,6 +580,7 @@ module.exports = function (knex) {
             row.integer('stars_number').defaultTo(0);
             row.integer('points_number').defaultTo(0);
             row.integer('pogs_number').defaultTo(0);
+            row.integer('game_rate_point').defaultTo(0);
             row.integer('coins_number').defaultTo(0);
             row.integer('flips_number').defaultTo(0);
             row.string('app_flyer_source');
@@ -844,6 +890,7 @@ module.exports = function (knex) {
     function createFunctions() {
 
         async.series([
+            calcRate,
             singleGame,
             achievementFunc,
             activateBooster,

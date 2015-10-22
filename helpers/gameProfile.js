@@ -279,13 +279,34 @@ GameProfile = function (PostGre) {
         var uid = options.uid;
         var smashesIds = options.smashes;
 
-        PostGre.knex
-            .raw('SELECT remove_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
-            .then(function () {
-                callback()
-            })
-            .catch(callback)
+        async.series([
 
+            function (cb) {
+                PostGre.knex
+                    .raw('SELECT remove_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
+                    .then(function () {
+                        cb();
+                    })
+                    .catch(cb)
+            },
+
+            function (cb) {
+                PostGre.knex
+                    .raw('SELECT calc_game_rate(\'' + uid + '\');')
+                    .then(function () {
+                        cb();
+                    })
+                    .catch(cb)
+            }
+
+        ], function (err) {
+
+            if (err) {
+                return callback(err);
+            }
+
+            callback();
+        })
     };
 
     this.buySmashes = function (data, callback) {
@@ -335,7 +356,7 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT add_smashes(\'' + uid + '\', \'{' + sid + '}\');')
                     .then(function () {
-                        cb()
+                       cb();
                     })
                     .catch(cb)
             },
@@ -389,8 +410,13 @@ GameProfile = function (PostGre) {
             if (err) {
                 return callback(err);
             }
+            PostGre.knex
+                .raw('SELECT calc_game_rate(\'' + uid + '\');')
+                .then(function () {
+                    callback(null, result[result.length - 1]);
+                })
+                .catch(callback)
 
-            callback(null, result[result.length - 1]);
         })
 
     };
