@@ -221,11 +221,15 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                'SELECT gp.id, gp.game_rate_point, up.first_name FROM game_profile gp ' +
-                'LEFT JOIN users_profile up ON up.id = gp.user_id ' +
-                'WHERE gp.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ( ' +
-                'SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) ' +
-                'ORDER BY gp.game_rate_point DESC ' +
+                'SELECT ' +
+                'up.first_name  , up.facebook_id, gpf.game_rate_point ' +
+                'FROM game_profile gp ' +
+                'LEFT JOIN ' + TABLES.FRIENDS + ' fr ON fr.game_profile_id =  gp.id ' +
+                'LEFT JOIN ' + TABLES.GAME_PROFILE + ' gpf ON gpf.id = fr.friend_game_profile_id  OR gp.uuid = gpf.uuid ' +
+                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gpf.user_id = up.id ' +
+                'WHERE gp.uuid= \'' + uid + '\' ' +
+                'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id ' +
+                'ORDER BY game_rate_point DESC' +
                 'LIMIT 25'
                 )
                 .then(function (friends) {
@@ -239,8 +243,9 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                'SELECT gp.id, gp.game_rate_point, up.first_name FROM game_profile gp ' +
-                'LEFT JOIN users_profile up ON up.id = gp.user_id ' +
+                'SELECT up.facebook_id, gp.game_rate_point, up.first_name ' +
+                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
+                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON up.id = gp.user_id ' +
                 'ORDER BY gp.game_rate_point DESC ' +
                 'LIMIT 25'
                 )

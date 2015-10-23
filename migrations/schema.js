@@ -80,7 +80,7 @@ module.exports = function (knex) {
         knex.raw(
                 'CREATE OR REPLACE FUNCTION calc_game_rate(usid uuid) ' +
                 'RETURNS integer AS ' +
-                '$$ ' +
+                '$BODY$ ' +
                 'declare rate integer; ' +
                 'declare game_pr integer; ' +
                 'begin ' +
