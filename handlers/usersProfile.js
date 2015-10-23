@@ -229,7 +229,7 @@ Users = function (PostGre) {
                 'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gpf.user_id = up.id ' +
                 'WHERE gp.uuid= \'' + uid + '\' ' +
                 'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id ' +
-                'ORDER BY game_rate_point DESC' +
+                'ORDER BY game_rate_point DESC ' +
                 'LIMIT 25'
                 )
                 .then(function (friends) {
