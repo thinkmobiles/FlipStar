@@ -216,21 +216,22 @@ Users = function (PostGre) {
     this.getTopRankList = function (req, res, next) {
         var type = req.query.type;
         var uid = req.session.uId;
+        var emptyFBId = 'none';
 
         if (type === CONSTANTS.FRIENDS) {
 
             PostGre.knex
                 .raw(
                 'SELECT ' +
-                'up.first_name  , up.facebook_id, gpf.game_rate_point ' +
-                'FROM game_profile gp ' +
+                'up.first_name  , COALESCE(up.facebook_id, ?) AS facebook_id, gpf.game_rate_point ' +
+                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                 'LEFT JOIN ' + TABLES.FRIENDS + ' fr ON fr.game_profile_id =  gp.id ' +
                 'LEFT JOIN ' + TABLES.GAME_PROFILE + ' gpf ON gpf.id = fr.friend_game_profile_id  OR gp.uuid = gpf.uuid ' +
                 'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gpf.user_id = up.id ' +
-                'WHERE gp.uuid= \'' + uid + '\' ' +
+                'WHERE gp.uuid= ? ' +
                 'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id ' +
                 'ORDER BY game_rate_point DESC ' +
-                'LIMIT 25'
+                'LIMIT 25', [emptyFBId, uid]
                 )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
@@ -243,11 +244,11 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                'SELECT up.facebook_id, gp.game_rate_point, up.first_name ' +
+                'SELECT COALESCE(up.facebook_id, $1) AS facebook_id, gp.game_rate_point, up.first_name ' +
                 'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
                 'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON up.id = gp.user_id ' +
                 'ORDER BY gp.game_rate_point DESC ' +
-                'LIMIT 25'
+                'LIMIT 25', [emptyFBId]
                 )
                 .then(function (profiles) {
                     res.status(200).send(profiles.rows)
@@ -266,8 +267,8 @@ Users = function (PostGre) {
             .raw(
                 'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
                 'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
-                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = (' +
-                '   SELECT id FROM game_profile WHERE uuid = \'' + uid + '\')) '
+                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ( ' +
+                'SELECT id FROM game_profile WHERE uuid = ?))', [uid]
             )
             .then(function (friends) {
                 res.status(200).send(friends.rows)
@@ -290,7 +291,7 @@ Users = function (PostGre) {
         PostGre.knex
             .raw(
                 'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM ' + TABLES.GAME_PROFILE + ' ' +
-                'WHERE uuid = \'' + uuid + '\''
+                'WHERE uuid = ?', [uuid]
             )
             .then(function (queryResult) {
 

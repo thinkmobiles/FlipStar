@@ -187,7 +187,9 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT add_smashes(\'' + uid + '\', \'{' + smashes + '}\');')
+                    .raw('SELECT add_smashes(?, ?);',
+                    [uid, smashes]
+                    )
                     .then(function () {
                         cb();
                     })
@@ -255,7 +257,9 @@ GameProfile = function (PostGre) {
         var setId;
 
         PostGre.knex
-            .raw('SELECT add_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
+            .raw('SELECT add_smashes(?, ?);',
+            [uid, smashesIds]
+            )
             .then(function () {
 
                 async.eachSeries(smashesIds, function (smashId, cb) {
@@ -283,7 +287,9 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT remove_smashes(\'' + uid + '\', \'{' + smashesIds + '}\');')
+                    .raw('SELECT remove_smashes(?, ?);',
+                    [uid, smashesIds]
+                    )
                     .then(function () {
                         cb();
                     })
@@ -292,7 +298,9 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT calc_game_rate(\'' + uid + '\');')
+                    .raw('SELECT calc_game_rate(?);',
+                    [uid]
+                    )
                     .then(function () {
                         cb();
                     })
@@ -354,7 +362,9 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT add_smashes(\'' + uid + '\', \'{' + sid + '}\');')
+                    .raw('SELECT add_smashes(?, ?);', /*\'{' + sid + '}\'*/
+                    [uid, sid]
+                    )
                     .then(function () {
                        cb();
                     })
@@ -378,10 +388,11 @@ GameProfile = function (PostGre) {
                     PostGre.knex
                         .raw(
                         'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                        'SET  stars_number = stars_number - ' + price + ' ' +
-                        'WHERE id = ' + gid + ' ' +
-                        'RETURNING stars_number, points_number'
-                    )
+                        'SET  stars_number = stars_number - ? ' +
+                        'WHERE id = ? ' +
+                        'RETURNING stars_number, points_number',
+                        [price, gid]
+                        )
                         .then(function (profile) {
                             cb(null, profile.rows[0])
                         })
@@ -411,7 +422,9 @@ GameProfile = function (PostGre) {
                 return callback(err);
             }
             PostGre.knex
-                .raw('SELECT calc_game_rate(\'' + uid + '\');')
+                .raw('SELECT calc_game_rate(?);',
+                [uid]
+                )
                 .then(function () {
                     callback(null, result[result.length - 1]);
                 })
@@ -433,7 +446,9 @@ GameProfile = function (PostGre) {
         }
 
         PostGre.knex
-            .raw('SELECT add_flips(\'' + uid + '\' , ' + quantity + ', ' + actionType + ');')
+            .raw('SELECT add_flips(?, ?, ?);',
+            [uid, quantity, actionType]
+            )
             .then(function () {
                 callback()
             })
@@ -447,7 +462,9 @@ GameProfile = function (PostGre) {
         options.item = options.item || 1;
 
         PostGre.knex
-            .raw('SELECT achievement(\'' + options.uuid + '\', \'' + options.name + '\', ' + options.set + ', ' + options.item + ');')
+            .raw('SELECT achievement(?, ?, ?, ?);',
+            [options.uuid, options.name, options.set, options.item]
+            )
             .then(function () {
                 callback();
             })

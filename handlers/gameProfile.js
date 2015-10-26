@@ -191,10 +191,11 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate.toISOString() + '\' AND  ' +
-                'TIMESTAMP \'' + gameDate.toISOString() + '\' < now() AS sync ' +
+                'SELECT   gp.last_seen_date < TIMESTAMP ? AND  ' +
+                'TIMESTAMP ? < now() AS sync ' +
                 'FROM ' + TABLES.GAME_PROFILE + '  gp ' +
-                'WHERE gp.uuid = \'' + uid + '\'; '
+                'WHERE gp.uuid = ?; ',
+            [gameDate.toISOString(), gameDate.toISOString(), uid]
             )
             .then(function (queryResult) {
 
@@ -309,7 +310,8 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-            'SELECT * FROM game(\'' + uid + '\', ' + options.stars + ');'
+            'SELECT * FROM game(?, ?);',
+            [uid, options.stars]
         )
             .then(function (profile) {
                 responseObj = {
@@ -360,7 +362,8 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-            'SELECT * FROM activate_booster(' + uid + ', ' + boosterId + ');'
+            'SELECT * FROM activate_booster(?, ?);',
+            [uid, boosterId]
         )
             .then(function (booster) {
                 res.status(200).send({
@@ -507,12 +510,12 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw(
             'SELECT a.name, ua.count, ( ' +
-            'CASE WHEN a.name = \'' + CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME + '\' ' +
+            'CASE WHEN a.name = ? ' +
             'THEN item_id ' +
             'ELSE 0 ' +
             'END ' +
             ') AS smash_id, ' +
-            '(CASE WHEN a.name = \'' + CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME + '\' ' +
+            '(CASE WHEN a.name = ? ' +
             'THEN item_id ' +
             'ELSE 0 ' +
             'END ' +
@@ -520,7 +523,7 @@ GameProfile = function (PostGre) {
             'FROM users_achievements ua ' +
             'LEFT JOIN game_profile gp ON gp.id = ua.game_profile_id ' +
             'LEFT JOIN achievements a ON a.id = ua.achievements_id ' +
-            'WHERE gp.uuid = \'' + uid + '\' '
+            'WHERE gp.uuid = ?', [CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME, CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME, uid]
             )
             .then(function (queryResult) {
                 res.status(200).send(queryResult.rows)
