@@ -117,36 +117,41 @@ GameProfile = function (PostGre) {
 
                     PostGre.knex
                         .raw(
-                        'UPDATE ' + TABLES.USERS_BOOSTERS + ' SET is_active = true, flips_left = flips_left - 1 ' +
-                        'WHERE game_profile_id = ' + updProf.id + ' AND booster_id = ' + booster
+                        'UPDATE :users_boosters: SET is_active = true, flips_left = flips_left - 1 ' +
+                        'WHERE game_profile_id = :gid AND booster_id = :booster',
+                        {
+                            booster: booster,
+                            users_boosters: TABLES.USERS_BOOSTERS,
+                            gid: updProf.id
+                        }
                     )
                         .then(function () {
-                            cb()
+                            cb();
                         })
                         .catch(function (err) {
-                            cb(err)
+                            cb(err);
                         })
 
                 }, function (err) {
 
                     if (err) {
-                        return callback(err)
+                        return callback(err);
                     }
 
                     PostGre.knex(TABLES.GAME_PROFILE)
                         .where('uuid', uid)
                         .update(updProf)
                         .then(function () {
-                            callback()
+                            callback();
                         })
                         .catch(function (err) {
-                            callback(err)
+                            callback(err);
                         })
                 })
 
             })
             .catch(function (err) {
-                callback(err)
+                callback(err);
             })
     };
 
@@ -353,10 +358,10 @@ GameProfile = function (PostGre) {
                             (result[0].stars_number - price) < 0 ? cb(err) : cb();
                         })
                         .catch(function (err) {
-                            cb(err)
+                            cb(err);
                         })
                 } else {
-                    cb()
+                    cb();
                 }
             },
 
@@ -387,11 +392,13 @@ GameProfile = function (PostGre) {
 
                     PostGre.knex
                         .raw(
-                        'UPDATE ' + TABLES.GAME_PROFILE + ' ' +
-                        'SET  stars_number = stars_number - ? ' +
-                        'WHERE id = ? ' +
-                        'RETURNING stars_number, points_number',
-                        [price, gid]
+                        'UPDATE :game_profile: SET  stars_number = stars_number - :price ' +
+                        'WHERE id = gid RETURNING stars_number, points_number',
+                        {
+                            game_profile: TABLES.GAME_PROFILE,
+                            price: price,
+                            gid: gid
+                        }
                         )
                         .then(function (profile) {
                             cb(null, profile.rows[0])
@@ -404,14 +411,17 @@ GameProfile = function (PostGre) {
 
                     PostGre.knex
                         .raw(
-                        'SELECT stars_number, points_number FROM ' + TABLES.GAME_PROFILE + ' ' +
-                        'WHERE id = ' + gid
+                        'SELECT stars_number, points_number FROM :game_profile: WHERE id = :gid',
+                        {
+                            game_profile: TABLES.GAME_PROFILE,
+                            gid: gid
+                        }
                     )
                         .then(function (profile) {
-                            cb(null, profile.rows[0])
+                            cb(null, profile.rows[0]);
                         })
                         .catch(function (err) {
-                            cb(err)
+                            cb(err);
                         })
                 }
             }

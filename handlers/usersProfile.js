@@ -223,15 +223,22 @@ Users = function (PostGre) {
             PostGre.knex
                 .raw(
                 'SELECT ' +
-                'up.first_name  , COALESCE(up.facebook_id, ?) AS facebook_id, gpf.game_rate_point ' +
-                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                'LEFT JOIN ' + TABLES.FRIENDS + ' fr ON fr.game_profile_id =  gp.id ' +
-                'LEFT JOIN ' + TABLES.GAME_PROFILE + ' gpf ON gpf.id = fr.friend_game_profile_id  OR gp.uuid = gpf.uuid ' +
-                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON gpf.user_id = up.id ' +
-                'WHERE gp.uuid= ? ' +
+                'up.first_name  , COALESCE(up.facebook_id, :none) AS facebook_id, gpf.game_rate_point ' +
+                'FROM :game_p: gp ' +
+                'LEFT JOIN :friends: fr ON fr.game_profile_id =  gp.id ' +
+                'LEFT JOIN :game_p: gpf ON gpf.id = fr.friend_game_profile_id  OR gp.uuid = gpf.uuid ' +
+                'LEFT JOIN :users_p: up ON gpf.user_id = up.id ' +
+                'WHERE gp.uuid= :uid ' +
                 'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id ' +
                 'ORDER BY game_rate_point DESC ' +
-                'LIMIT 25', [emptyFBId, uid]
+                'LIMIT 25',
+                {
+                    game_p: TABLES.GAME_PROFILE,
+                    users_p: TABLES.USERS_PROFILE,
+                    friends: TABLES.FRIENDS,
+                    none: emptyFBId,
+                    uid: uid
+                }
                 )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
@@ -244,11 +251,16 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                'SELECT COALESCE(up.facebook_id, $1) AS facebook_id, gp.game_rate_point, up.first_name ' +
-                'FROM ' + TABLES.GAME_PROFILE + ' gp ' +
-                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON up.id = gp.user_id ' +
+                'SELECT COALESCE(up.facebook_id, :none) AS facebook_id, gp.game_rate_point, up.first_name ' +
+                'FROM :game_p: gp ' +
+                'LEFT JOIN :users_p: up ON up.id = gp.user_id ' +
                 'ORDER BY gp.game_rate_point DESC ' +
-                'LIMIT 25', [emptyFBId]
+                'LIMIT 25',
+                {
+                    game_p: TABLES.GAME_PROFILE,
+                    users_p: TABLES.USERS_PROFILE,
+                    none: emptyFBId
+                }
                 )
                 .then(function (profiles) {
                     res.status(200).send(profiles.rows)
@@ -265,10 +277,16 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM ' + TABLES.GAME_PROFILE + ' g ' +
-                'LEFT JOIN ' + TABLES.USERS_PROFILE + ' u ON g.user_id = u.id ' +
-                'WHERE g.id IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + ' WHERE game_profile_id = ( ' +
-                'SELECT id FROM game_profile WHERE uuid = ?))', [uid]
+                'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM :game_p: g ' +
+                'LEFT JOIN :users_p: u ON g.user_id = u.id ' +
+                'WHERE g.id IN (SELECT friend_game_profile_id FROM :friends: WHERE game_profile_id = ( ' +
+                'SELECT id FROM :game_p: WHERE uuid = :uid))',
+                {
+                    game_p: TABLES.GAME_PROFILE,
+                    users_p: TABLES.USERS_PROFILE,
+                    friends: TABLES.FRIENDS,
+                    uid: uid
+                }
             )
             .then(function (friends) {
                 res.status(200).send(friends.rows)
@@ -290,8 +308,11 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM ' + TABLES.GAME_PROFILE + ' ' +
-                'WHERE uuid = ?', [uuid]
+                'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM :game_p: WHERE uuid = :uid',
+                {
+                    game_p: TABLES.GAME_PROFILE,
+                    uid: uuid
+                }
             )
             .then(function (queryResult) {
 

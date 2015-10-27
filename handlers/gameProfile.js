@@ -191,11 +191,15 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT   gp.last_seen_date < TIMESTAMP ? AND  ' +
-                'TIMESTAMP ? < now() AS sync ' +
-                'FROM ' + TABLES.GAME_PROFILE + '  gp ' +
-                'WHERE gp.uuid = ?; ',
-            [gameDate.toISOString(), gameDate.toISOString(), uid]
+                'SELECT   gp.last_seen_date < TIMESTAMP :gameDate AND  ' +
+                'TIMESTAMP :gameDate < now() AS sync ' +
+                'FROM :game_p:  gp ' +
+                'WHERE gp.uuid = :uid; ',
+            {
+                game_p: TABLES.GAME_PROFILE,
+                gameDate: gameDate.toISOString(),
+                uid: uid
+            }
             )
             .then(function (queryResult) {
 
@@ -510,20 +514,28 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw(
             'SELECT a.name, ua.count, ( ' +
-            'CASE WHEN a.name = ? ' +
+            'CASE WHEN a.name = :smash_unlock ' +
             'THEN item_id ' +
             'ELSE 0 ' +
             'END ' +
             ') AS smash_id, ' +
-            '(CASE WHEN a.name = ? ' +
+            '(CASE WHEN a.name = :set_unlock ' +
             'THEN item_id ' +
             'ELSE 0 ' +
             'END ' +
             ') AS set_id ' +
-            'FROM users_achievements ua ' +
-            'LEFT JOIN game_profile gp ON gp.id = ua.game_profile_id ' +
-            'LEFT JOIN achievements a ON a.id = ua.achievements_id ' +
-            'WHERE gp.uuid = ?', [CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME, CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME, uid]
+            'FROM :users_achievements: ua ' +
+            'LEFT JOIN :game_profile: gp ON gp.id = ua.game_profile_id ' +
+            'LEFT JOIN :achievements: a ON a.id = ua.achievements_id ' +
+            'WHERE gp.uuid = :uid',
+            {
+                smash_unlock: CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME,
+                set_unlock: CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME,
+                users_achievements: TABLES.USERS_ACHIEVEMENTS,
+                game_profile: TABLES.GAME_PROFILE,
+                achievements: TABLES.ACHIEVEMENTS,
+                uid: uid
+            }
             )
             .then(function (queryResult) {
                 res.status(200).send(queryResult.rows)
