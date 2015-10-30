@@ -87,7 +87,7 @@ module.exports = function(app, PostGre){
                     .from(TABLES.GAME_PROFILE)
                     .where({'user_id': userId})
                     .limit(1)
-                    .exec(function (err, resultRow) {
+                    .asCallback(function (err, resultRow) {
                         if (err) {
                             return console.log(err)
                         }

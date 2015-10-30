@@ -39,7 +39,9 @@ GameProfile = function (PostGre) {
 
         for (var i = value.length; i--;) {
 
-            gameProfile[value[i]] = options[value[i]] ? options[value[i]] : null;
+            if (options[value[i]]) {
+                gameProfile[value[i]] = options[value[i]];
+            }
         }
 
         gameProfile.last_seen_date = new Date();
@@ -76,7 +78,7 @@ GameProfile = function (PostGre) {
             }
         )
             .then(function () {
-                callback()
+                callback();
             })
             .catch(function (err) {
                 callback(err)
@@ -194,7 +196,7 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT add_smashes(?, ?);',
                     [uid, smashes]
-                    )
+                )
                     .then(function () {
                         cb();
                     })
@@ -238,10 +240,13 @@ GameProfile = function (PostGre) {
 
     this.syncAchievements = function (options, callback) {
         var achievementList = options.achievement;
-        var achName = CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME;
+        var achNames = [
+            CONSTANTS.ACHIEVEMENTS.SET_UNLOCK.NAME,
+            CONSTANTS.ACHIEVEMENTS.SUPER_FLIP.NAME
+        ];
 
         async.eachSeries(achievementList, function (achievement, cb) {
-            achievement.name !== achName
+            achNames.indexOf(achievement.name) === -1
                 ? cb()
                 : self.achievementsTrigger({
                 uuid: options.uId,
@@ -264,7 +269,7 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw('SELECT add_smashes(?, ?);',
             [uid, smashesIds]
-            )
+        )
             .then(function () {
 
                 async.eachSeries(smashesIds, function (smashId, cb) {
@@ -294,7 +299,7 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT remove_smashes(?, ?);',
                     [uid, smashesIds]
-                    )
+                )
                     .then(function () {
                         cb();
                     })
@@ -305,7 +310,7 @@ GameProfile = function (PostGre) {
                 PostGre.knex
                     .raw('SELECT calc_game_rate(?);',
                     [uid]
-                    )
+                )
                     .then(function () {
                         cb();
                     })
@@ -327,13 +332,16 @@ GameProfile = function (PostGre) {
         var sid = data.smash_id;
         var achievement = CONSTANTS.ACHIEVEMENTS.SMASH_UNLOCK.NAME;
         var setId;
-        var price;
+        var price = 0;
         var err;
         var setSize = CONSTANTS.SMASHES_PER_SET;
         var gid;
 
-        setId = (sid % setSize) ? 1 + (sid / setSize) | 0 : (sid / setSize) | 0;
-        price = setId * CONSTANTS.SMASH_DEFAULT_PRICE;
+        for (var i = sid.length; i--;) {
+            setId = (sid[i] % setSize) ? 1 + (sid[i] / setSize) | 0 : (sid[i] / setSize) | 0;
+            price += setId * CONSTANTS.SMASH_DEFAULT_PRICE;
+        }
+
 
         if (typeof callback !== 'function') {
             err = new Error(typeof callback + ' is not a function');
@@ -367,22 +375,24 @@ GameProfile = function (PostGre) {
 
             function (cb) {
                 PostGre.knex
-                    .raw('SELECT add_smashes(?, ?);', /*\'{' + sid + '}\'*/
-                    [uid, sid]
-                    )
+                    .raw('SELECT add_smashes( \'' + uid + '\', \'{' + sid + '}\');')
                     .then(function () {
-                       cb();
+                        cb();
                     })
                     .catch(cb)
             },
 
             function (cb) {
-                self.achievementsTrigger({
-                    uuid: uid,
-                    name: achievement,
-                    set: setId,
-                    item: sid
 
+                async.eachSeries(sid, function (smash, Cb) {
+                    setId = (smash % setSize) ? 1 + (smash / setSize) | 0 : (smash / setSize) | 0;
+                    self.achievementsTrigger({
+                        uuid: uid,
+                        name: achievement,
+                        set: setId,
+                        item: smash
+
+                    }, Cb)
                 }, cb)
             },
 
@@ -393,13 +403,13 @@ GameProfile = function (PostGre) {
                     PostGre.knex
                         .raw(
                         'UPDATE :game_profile: SET  stars_number = stars_number - :price ' +
-                        'WHERE id = gid RETURNING stars_number, points_number',
+                        'WHERE id = :gid RETURNING stars_number, points_number',
                         {
                             game_profile: TABLES.GAME_PROFILE,
                             price: price,
                             gid: gid
                         }
-                        )
+                    )
                         .then(function (profile) {
                             cb(null, profile.rows[0])
                         })
@@ -434,7 +444,7 @@ GameProfile = function (PostGre) {
             PostGre.knex
                 .raw('SELECT calc_game_rate(?);',
                 [uid]
-                )
+            )
                 .then(function () {
                     callback(null, result[result.length - 1]);
                 })
@@ -458,7 +468,7 @@ GameProfile = function (PostGre) {
         PostGre.knex
             .raw('SELECT add_flips(?, ?, ?);',
             [uid, quantity, actionType]
-            )
+        )
             .then(function () {
                 callback()
             })
@@ -468,19 +478,62 @@ GameProfile = function (PostGre) {
     };
 
     this.achievementsTrigger = function (options, callback) {
+        var quantity = options.quantity;
+        var flips = quantity >= CONSTANTS.INVITES.FLIPS.LIMIT ? CONSTANTS.INVITES.FLIPS.REWARD : 0;
+        var stars = quantity >= CONSTANTS.INVITES.STARS.LIMIT ? CONSTANTS.INVITES.STARS.REWARD : 0;
         options.set = options.set || 1;
         options.item = options.item || 1;
 
-        PostGre.knex
-            .raw('SELECT achievement(?, ?, ?, ?);',
-            [options.uuid, options.name, options.set, options.item]
-            )
-            .then(function () {
-                callback();
-            })
-            .catch(function (err) {
-                callback(err);
-            })
+
+        async.series([
+
+            function (cb) {
+                PostGre.knex
+                    .raw('SELECT achievement(?, ?, ?, ?);',
+                    [options.uuid, options.name, options.set, options.item]
+                )
+                    .then(function () {
+                        cb();
+                    })
+                    .catch(cb)
+            },
+
+            function (cb) {
+
+                if(!quantity || quantity < CONSTANTS.INVITES.FLIPS.LIMIT) {
+                    cb();
+
+                } else {
+                    PostGre.knex
+                        .raw(
+                        'UPDATE :game_p: SET stars_number = stars_number + :stars, flips_number = flips_number + :flips ' +
+                        'WHERE uuid = :uid',
+                        {
+                            game_p: TABLES.GAME_PROFILE,
+                            stars: stars,
+                            flips: flips,
+                            uid: options.uuid
+                        }
+                        )
+                        .then(function () {
+                            cb();
+                        })
+                        .catch(cb)
+                }
+            },
+
+            function (cb) {
+                self.getProfileById(options.uuid, cb)
+            }
+
+        ], function (err, result) {
+
+            if (err) {
+                return callback(err);
+            }
+
+            callback(null, result[result.length - 1]);
+        })
     };
 };
 

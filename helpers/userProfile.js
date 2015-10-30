@@ -14,7 +14,7 @@ UserProfile = function (PostGre) {
     var GameProfileModel = PostGre.Models[MODELS.GAME_PROFILE];
     var gameProfHelper = new GameProfHelper(PostGre);
 
-    function getWeekNumber () {
+    function getWeekNumber() {
         var curDate = new Date();
         var curTime = curDate.getTime();
         var curYearStart = (new Date(curDate.getFullYear(), 0, 1)).getTime();
@@ -23,7 +23,7 @@ UserProfile = function (PostGre) {
         var hoursInOneWeek = 168;
         var weekNumber;
 
-        weekNumber = parseInt((curTime - curYearStart)/hourInMillisecs/hoursInOneWeek);
+        weekNumber = parseInt((curTime - curYearStart) / hourInMillisecs / hoursInOneWeek);
 
         if (curYearStartDay >= 4) {
             weekNumber += 2;
@@ -37,7 +37,7 @@ UserProfile = function (PostGre) {
         return ((new Date().getTime() - new Date(date)) / (24 * 3600 * 365.25 * 1000)) | 0;
     }
 
-    function prepareSaveInfo (type, options) {
+    function prepareSaveInfo(type, options) {
         var newInfo;
         var err;
 
@@ -66,12 +66,15 @@ UserProfile = function (PostGre) {
             'device_manufacturer'
         ];
 
-        for (var i = value.length; i--;){
+        for (var i = value.length; i--;) {
 
             if (options['push_operator']) {
                 device['device_firmware'] = options['push_operator']
             }
-            device[value[i]] = options[value[i]]? options[value[i]] : null
+
+            if (options[value[i]]) {
+                device[value[i]] = options[value[i]];
+            }
         }
 
         return device;
@@ -92,12 +95,15 @@ UserProfile = function (PostGre) {
             'phone_number'
         ];
 
-        for (var i = value.length; i--;){
+        for (var i = value.length; i--;) {
 
             if (options['birthday']) {
                 user['age_range'] = getCurrentAge(value)
             }
-            user[value[i]] = options[value[i]]? options[value[i]] : null
+
+            if (options[value[i]]) {
+                user[value[i]] = options[value[i]];
+            }
         }
 
         return user;
@@ -107,12 +113,12 @@ UserProfile = function (PostGre) {
         var curDate = new Date();
 
         return {
-                flips_number: 50,
-                sessions_number: 1,
-                registration_date: curDate,
-                last_seen_date: curDate,
-                registration_week: getWeekNumber()
-            }
+            flips_number: 50,
+            sessions_number: 1,
+            registration_date: curDate,
+            last_seen_date: curDate,
+            registration_week: getWeekNumber()
+        }
     };
 
     this.createNewProfile = function (options, callback) {
@@ -155,6 +161,7 @@ UserProfile = function (PostGre) {
                     cb(null, user);
                 }
             },
+
             function (user, cb) {
                 deviceObj = prepareSaveInfo(CONSTANTS.INFO_TYPES.DEVICE, options);
                 deviceObj.user_id = user.id;
@@ -172,7 +179,7 @@ UserProfile = function (PostGre) {
                                     patch: true
                                 })
                                 .then(function (device) {
-                                        cb(null, device)
+                                    cb(null, device)
 
                                 })
                                 .catch(function (err) {
@@ -217,21 +224,34 @@ UserProfile = function (PostGre) {
         ], function (err, profile) {
 
             if (err) {
-                return callback(err)
-            } else {
-
-                PostGre.knex(TABLES.USERS_PROFILE)
-                    .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id as id', TABLES.GAME_PROFILE + '.uuid')
-                    .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
-                    .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
-                    .where(TABLES.GAME_PROFILE + '.id', profile.id)
-                    .then(function (profile) {
-                        callback(null, profile)
-                    })
-                    .catch(function (err) {
-                        callback(err)
-                    })
+                return callback(err);
             }
+
+            PostGre.knex(TABLES.USERS_PROFILE)
+                .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id as id', TABLES.GAME_PROFILE + '.uuid')
+                .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
+                .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
+                .where(TABLES.GAME_PROFILE + '.id', profile.id)
+                .then(function (profile) {
+
+                    if (options.facebook_id) {
+                        gameProfHelper.achievementsTrigger({
+                            uuid: profile[0].uuid,
+                            name: CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME
+
+                        }, function (err) {
+
+                            err ? callback(err) : callback(null, profile);
+                        });
+
+                    } else {
+                        callback(null, profile);
+                    }
+                })
+                .catch(function (err) {
+                    callback(err)
+                })
+
         })
     };
 
@@ -271,10 +291,10 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE  :device: d SET user_id = u.id ' +
-                        'FROM :game_p: g, :users_p: u ' +
-                        'WHERE   u.id = g.user_id and g.uuid = :uid  AND d.device_id = :did ' +
-                        'RETURNING d.id',
+                    'UPDATE  :device: d SET user_id = u.id ' +
+                    'FROM :game_p: g, :users_p: u ' +
+                    'WHERE   u.id = g.user_id and g.uuid = :uid  AND d.device_id = :did ' +
+                    'RETURNING d.id',
                     {
                         device: TABLES.DEVICE,
                         game_p: TABLES.GAME_PROFILE,
@@ -282,8 +302,8 @@ UserProfile = function (PostGre) {
                         uid: uId,
                         did: deviceId
                     }
-                    )
-                    .then(function (result){
+                )
+                    .then(function (result) {
 
                         PostGre.knex(TABLES.DEVICE)
                             .where('id', result.rows[0].id)
@@ -302,15 +322,15 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE :game_p: g SET sessions_number = sessions_number + 1 , last_seen_date = :now , ' +
-                            'session_max_length = ( ' +
-                            'CASE WHEN session_max_length < :time ' +
-                            'THEN :time ' +
-                            'ELSE session_max_length ' +
-                            'END ) ' +
-                        'FROM :device: d, :users_p: u ' +
-                        'WHERE   u.id = g.user_id and d.id = g.device_id and g.uuid = :uid AND d.device_id = :did ' +
-                        'RETURNING  g.updated_at, g.id as id, g.uuid',
+                    'UPDATE :game_p: g SET sessions_number = sessions_number + 1 , last_seen_date = :now , ' +
+                    'session_max_length = ( ' +
+                    'CASE WHEN session_max_length < :time ' +
+                    'THEN :time ' +
+                    'ELSE session_max_length ' +
+                    'END ) ' +
+                    'FROM :device: d, :users_p: u ' +
+                    'WHERE   u.id = g.user_id and d.id = g.device_id and g.uuid = :uid AND d.device_id = :did ' +
+                    'RETURNING  g.updated_at, g.id as id, g.uuid',
                     {
                         device: TABLES.DEVICE,
                         game_p: TABLES.GAME_PROFILE,
@@ -320,7 +340,7 @@ UserProfile = function (PostGre) {
                         uid: uId,
                         did: deviceId
                     }
-                    )
+                )
                     .then(function (profile) {
 
                         if (profile && profile.rows && profile.rows.length) {
@@ -375,7 +395,7 @@ UserProfile = function (PostGre) {
 
                                 }, function (err) {
 
-                                    err ? cb(err) :  cb(null, user);
+                                    err ? cb(err) : cb(null, user);
                                 });
                             })
                             .catch(function (err) {
@@ -390,9 +410,9 @@ UserProfile = function (PostGre) {
             function (user, cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE  :device: d SET user_id = u.id FROM :game_p: g, :users_p: u ' +
-                        'WHERE   u.id = g.user_id AND  u.facebook_id =  :fb_id  AND ' + 'd.device_id =  :did ' +
-                        'RETURNING d.id',
+                    'UPDATE  :device: d SET user_id = u.id FROM :game_p: g, :users_p: u ' +
+                    'WHERE   u.id = g.user_id AND  u.facebook_id =  :fb_id  AND ' + 'd.device_id =  :did ' +
+                    'RETURNING d.id',
                     {
                         device: TABLES.DEVICE,
                         game_p: TABLES.GAME_PROFILE,
@@ -400,7 +420,7 @@ UserProfile = function (PostGre) {
                         fb_id: fbId,
                         did: deviceId
                     }
-                    )
+                )
                     .then(function (result) {
 
                         if (result.rows.length && result.rows[0]) {
@@ -422,20 +442,20 @@ UserProfile = function (PostGre) {
                                 .then(function () {
                                     PostGre.knex
                                         .raw(
-                                            'UPDATE  :device: d SET user_id = u.id ' +
-                                            'FROM :game_p: g, :users_p: u ' +
-                                            'WHERE   u.id = g.user_id and  u.facebook_id = :fb_id  AND ' + 'd.device_id =  :did ' +
-                                            'RETURNING d.id',
-                                            {
-                                                device: TABLES.DEVICE,
-                                                game_p: TABLES.GAME_PROFILE,
-                                                users_p: TABLES.USERS_PROFILE,
-                                                fb_id: fbId,
-                                                did: deviceId
-                                            }
-                                        )
+                                        'UPDATE  :device: d SET user_id = u.id ' +
+                                        'FROM :game_p: g, :users_p: u ' +
+                                        'WHERE   u.id = g.user_id and  u.facebook_id = :fb_id  AND ' + 'd.device_id =  :did ' +
+                                        'RETURNING d.id',
+                                        {
+                                            device: TABLES.DEVICE,
+                                            game_p: TABLES.GAME_PROFILE,
+                                            users_p: TABLES.USERS_PROFILE,
+                                            fb_id: fbId,
+                                            did: deviceId
+                                        }
+                                    )
                                         .then(function (result) {
-                                                cb(null, result.rows[0].id)
+                                            cb(null, result.rows[0].id)
                                         })
                                         .catch(function (err) {
                                             cb(err)
@@ -456,22 +476,22 @@ UserProfile = function (PostGre) {
             function (dId, cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE :fb_notif: fb SET ' +
-                        'is_newbie = ( ' +
-                            'CASE WHEN EXTRACT(days from (current_timestamp - gp.last_seen_date)) >= 28 ' +
-                            'THEN true ' +
-                            'ELSE is_newbie ' +
-                            'END) ' +
-                        'FROM :users_p: up, :game_p: gp ' +
-                        'WHERE fb.facebook_id = :fb_id  AND up.facebook_id = :fb_id  AND up.id = gp.user_id ',
-                        {
-                            fb_notif: TABLES.FB_NOTIFICATIONS,
-                            users_p: TABLES.USERS_PROFILE,
-                            game_p: TABLES.GAME_PROFILE,
-                            fb_id: fbId
-                        }
-                    )
-                    .exec(function (err) {
+                    'UPDATE :fb_notif: fb SET ' +
+                    'is_newbie = ( ' +
+                    'CASE WHEN EXTRACT(days from (current_timestamp - gp.last_seen_date)) >= 28 ' +
+                    'THEN true ' +
+                    'ELSE is_newbie ' +
+                    'END) ' +
+                    'FROM :users_p: up, :game_p: gp ' +
+                    'WHERE fb.facebook_id = :fb_id  AND up.facebook_id = :fb_id  AND up.id = gp.user_id ',
+                    {
+                        fb_notif: TABLES.FB_NOTIFICATIONS,
+                        users_p: TABLES.USERS_PROFILE,
+                        game_p: TABLES.GAME_PROFILE,
+                        fb_id: fbId
+                    }
+                )
+                    .asCallback(function (err) {
                         if (err) {
                             cb(err)
                         } else {
@@ -483,15 +503,15 @@ UserProfile = function (PostGre) {
             function (id, cb) {
                 PostGre.knex
                     .raw(
-                        'UPDATE  :game_p: g SET sessions_number = sessions_number + 1 , device_id = :did , last_seen_date = :date , ' +
-                            'session_max_length = ( ' +
-                            'CASE WHEN session_max_length < :time ' +
-                            'THEN :time ' +
-                            'ELSE session_max_length ' +
-                            'END ) ' +
-                        'FROM :device: d, :users_p: u ' +
-                        'WHERE   u.id = g.user_id AND d.id = g.device_id AND u.facebook_id =  :fb_id ' +
-                        'RETURNING g.updated_at , g.id as id, g.user_id, g.uuid',
+                    'UPDATE  :game_p: g SET sessions_number = sessions_number + 1 , device_id = :did , last_seen_date = :date , ' +
+                    'session_max_length = ( ' +
+                    'CASE WHEN session_max_length < :time ' +
+                    'THEN :time ' +
+                    'ELSE session_max_length ' +
+                    'END ) ' +
+                    'FROM :device: d, :users_p: u ' +
+                    'WHERE   u.id = g.user_id AND d.id = g.device_id AND u.facebook_id =  :fb_id ' +
+                    'RETURNING g.updated_at , g.id as id, g.user_id, g.uuid',
                     {
                         game_p: TABLES.GAME_PROFILE,
                         device: TABLES.DEVICE,
@@ -499,22 +519,23 @@ UserProfile = function (PostGre) {
                         did: id,
                         date: curDate,
                         time: sessionLength || '00:00:00',
-                        fb_id: fbId}
-                    )
-                    .exec(function (err, result) {
+                        fb_id: fbId
+                    }
+                )
+                    .asCallback(function (err, result) {
                         if (err) {
                             return cb(err);
                         }
-                            cb(null, result);
+                        cb(null, result);
 
                     });
             }
 
-        ], function (err, result){
+        ], function (err, result) {
             if (err) {
-                return callback(err)
+                return callback(err);
             }
-            callback(null, result.rows[0])
+            callback(null, result.rows[0]);
         })
     };
 
@@ -541,7 +562,7 @@ UserProfile = function (PostGre) {
     this.getExistingUser = function (options, callback) {
 
         PostGre.knex(TABLES.GAME_PROFILE)
-            .select(TABLES.GAME_PROFILE + '.updated_at',TABLES.GAME_PROFILE + '.id' + ' as id', TABLES.GAME_PROFILE + '.uuid')
+            .select(TABLES.GAME_PROFILE + '.updated_at', TABLES.GAME_PROFILE + '.id' + ' as id', TABLES.GAME_PROFILE + '.uuid')
             .leftJoin(TABLES.USERS_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
             .leftJoin(TABLES.DEVICE, TABLES.GAME_PROFILE + '.device_id', TABLES.DEVICE + '.id')
             .where(function () {
@@ -590,8 +611,8 @@ UserProfile = function (PostGre) {
                         fbGid = (profiles[0].uuid === fbProfUid) ? profiles[0].id : profiles[1].id;
                         ids = [mergeGid, fbGid];
 
-                        maxPointProf =  (profiles[0].points_number > profiles[1].points_number) ? profiles[0].id : profiles[1].id;
-                        minPointProf =  (profiles[0].points_number < profiles[1].points_number) ? profiles[0].id : profiles[1].id;
+                        maxPointProf = (profiles[0].points_number > profiles[1].points_number) ? profiles[0].id : profiles[1].id;
+                        minPointProf = (profiles[0].points_number < profiles[1].points_number) ? profiles[0].id : profiles[1].id;
 
                         mergedProfile = {
                             registration_date: (profiles[0].registration_date > profiles[1].registration_date) ? profiles[1].registration_date : profiles[0].registration_date,
@@ -625,15 +646,15 @@ UserProfile = function (PostGre) {
             function (cb) {
                 PostGre.knex
                     .raw(
-                        'SELECT booster_id, sum(quantity) AS quantity, SUM(flips_left) AS flips_left, ' +
-                        'bool_or(is_active) AS is_active, :fb_id AS game_profile_id ' +
-                        'FROM :boosters: WHERE game_profile_id in ( :merge_id, :fb_id) GROUP BY booster_id',
+                    'SELECT booster_id, sum(quantity) AS quantity, SUM(flips_left) AS flips_left, ' +
+                    'bool_or(is_active) AS is_active, :fb_id AS game_profile_id ' +
+                    'FROM :boosters: WHERE game_profile_id in ( :merge_id, :fb_id) GROUP BY booster_id',
                     {
                         boosters: TABLES.USERS_BOOSTERS,
                         fb_id: fbGid,
                         merge_id: mergeGid
                     }
-                    )
+                )
                     .then(function (boosters) {
                         mergedBoosters = boosters.rows;
                         cb();
@@ -791,16 +812,16 @@ UserProfile = function (PostGre) {
                 },
 
                 function (cb) {
-                        PostGre.knex(TABLES.GAME_PROFILE)
-                            .where('id', fbGid)
-                            .update(mergedProfile)
-                            .returning('*')
-                            .then(function (profile) {
-                                cb(null, profile)
-                            })
-                            .catch(function (err) {
-                                cb(err)
-                            })
+                    PostGre.knex(TABLES.GAME_PROFILE)
+                        .where('id', fbGid)
+                        .update(mergedProfile)
+                        .returning('*')
+                        .then(function (profile) {
+                            cb(null, profile)
+                        })
+                        .catch(function (err) {
+                            cb(err)
+                        })
                 }
 
             ], function (err, result) {

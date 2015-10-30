@@ -41,11 +41,11 @@ FBnotif = function (PostGre) {
                     'WHERE fb.is_newbie = true AND extract(days from (current_timestamp - g.last_seen_date)) <= 28) ' +
             ')'
         )
-            .exec(function (err) {
+            .asCallback(function (err) {
                 if (err) {
-                    return callback(err)
+                    return callback(err);
                 }
-                callback()
+                callback();
             })
     };
 
@@ -58,7 +58,7 @@ FBnotif = function (PostGre) {
         PostGre.knex(TABLES.FB_NOTIFICATIONS_VIEW)
             .count()
             .where('group_name', GROUPS.GROUP_B)
-            .exec(function (err, result) {
+            .asCallback(function (err, result) {
                 if (err) {
                     return callback(err)
                 }
@@ -112,7 +112,7 @@ FBnotif = function (PostGre) {
                     .select()
                     .orderBy('group_name')
                     .limit(limit)
-                    .exec(function (err, result) {
+                    .asCallback(function (err, result) {
                         if(err) {
                             return callback(err)
                         }
@@ -143,7 +143,7 @@ FBnotif = function (PostGre) {
                     'is_newbie = false, notification_date = current_timestamp ' +
                     'WHERE facebook_id = \'' + fuid + '\''
                 )
-                    .exec(function (err) {
+                    .asCallback(function (err) {
                         if (err) {
                             cb(err)
                         } else {

@@ -191,16 +191,16 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT   gp.last_seen_date < TIMESTAMP :gameDate AND  ' +
-                'TIMESTAMP :gameDate < now() AS sync ' +
-                'FROM :game_p:  gp ' +
-                'WHERE gp.uuid = :uid; ',
+            'SELECT   gp.last_seen_date < TIMESTAMP :gameDate AND  ' +
+            'TIMESTAMP :gameDate < now() AS sync ' +
+            'FROM :game_p:  gp ' +
+            'WHERE gp.uuid = :uid; ',
             {
                 game_p: TABLES.GAME_PROFILE,
                 gameDate: gameDate.toISOString(),
                 uid: uid
             }
-            )
+        )
             .then(function (queryResult) {
 
                 if (!queryResult && !queryResult.rows[0]) {
@@ -332,12 +332,33 @@ GameProfile = function (PostGre) {
                     });
                 }
 
-                res.status(200).send(responseObj)
-            })
-            .catch(function (err) {
-                next(err)
+                PostGre.knex
+                    .raw('SELECT calc_game_rate(?);',
+                    [uid]
+                )
+                    .then(function () {
+
+                        if (!options.achievement) {
+                            return res.status(200).send(responseObj);
+
+                        }
+
+                        gameProfHelper.achievementsTrigger({
+                            uuid: uid,
+                            name: options.achievement
+                        }, function (err) {
+
+                            if (err) {
+                                return next(err);
+                            }
+
+                            res.status(200).send(responseObj);
+                        })
+                    })
+                    .catch(next)
 
             })
+            .catch(next)
     };
 
     this.activateBooster = function (req, res, next) {
@@ -483,6 +504,13 @@ GameProfile = function (PostGre) {
     this.addAchievement = function (req, res, next) {
         var options = req.body;
         var error;
+        var data = {
+            uuid: req.session.uId,
+            name: options.name,
+            set: options.set,
+            item: options.item,
+            quantity: options.quantity
+        };
 
         if (!options && !options.name) {
             error = new Error(RESPONSES.INVALID_PARAMETERS);
@@ -491,19 +519,15 @@ GameProfile = function (PostGre) {
             return next(error);
         }
 
-        gameProfHelper.achievementsTrigger({
-            uuid: req.session.uId,
-            name: options.name,
-            set: options.set,
-            item: options.item
-        }, function (err) {
-
+        gameProfHelper.achievementsTrigger(data, function (err, profile) {
             if (err) {
                 return next(err);
             }
 
             res.status(200).send({
-                success: RESPONSES.CREATED
+                stars_number: profile[0].stars_number,
+                points_number: profile[0].points_number,
+                flips_number: profile[0].flips_number
             });
         })
     };
@@ -536,7 +560,7 @@ GameProfile = function (PostGre) {
                 achievements: TABLES.ACHIEVEMENTS,
                 uid: uid
             }
-            )
+        )
             .then(function (queryResult) {
                 res.status(200).send(queryResult.rows)
             })

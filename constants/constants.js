@@ -118,5 +118,16 @@ module.exports = {
             NAME: 'Set unlocked',
             POINTS: 150
         }
+    },
+
+    INVITES: {
+        FLIPS: {
+            REWARD: 5, //flips
+            LIMIT: 20
+        },
+        STARS: {
+            LIMIT: 50,
+            REWARD: 200000 //stars
+        }
     }
 };

@@ -29,7 +29,7 @@ Notifications = function(PostGre){
             .select('push_token', 'push_operator')
             .from(TABLES.DEVICE)
             .where({'user_id': userId})
-            .exec(function(err, resultPushTokens){
+            .asCallback(function(err, resultPushTokens){
 
                 if (err){
                     return callback(err);

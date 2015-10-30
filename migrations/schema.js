@@ -356,6 +356,40 @@ module.exports = function (knex) {
             })
     }
 
+    function addFriends(cb) {
+        knex.raw(
+          'CREATE OR REPLACE FUNCTION add_friends(uid UUID, friends TEXT[]) ' +
+          'RETURNS void AS ' +
+          '$$ ' +
+          'DECLARE gid INT := (SELECT id FROM ' + TABLES.GAME_PROFILE + ' WHERE uuid = uid); ' +
+          'DECLARE friend RECORD; ' +
+          'BEGIN ' +
+          'DELETE FROM friends WHERE game_profile_id = gid; ' +
+          'FOR friend IN (SELECT gp.id, up.facebook_id ' +
+          'FROM ' + TABLES.GAME_PROFILE + ' gp LEFT JOIN ' + TABLES.USERS_PROFILE + ' up ON up.id = gp.user_id ' +
+          'WHERE up.facebook_id = ANY (friends)) LOOP ' +
+          'BEGIN ' +
+          'INSERT INTO ' + TABLES.FRIENDS + '(game_profile_id, friend_game_profile_id) VALUES (gid, friend.id); ' +
+          'END; ' +
+          'END LOOP; ' +
+          'END; ' +
+          '$$ ' +
+          'LANGUAGE plpgsql '
+        )
+            .exec(function (err) {
+                if (err) {
+                    console.log('!!!!!!!!!');
+                    console.log(err);
+                    console.log('!!!!!!!!!');
+                } else {
+                    console.log('##########');
+                    console.log('Create function');
+                    console.log('###########');
+                }
+                cb()
+            })
+    }
+
     function removeSmashes(cb) {
         knex.raw(
             'CREATE OR REPLACE FUNCTION remove_smashes(guid UUID, sids INT[] ) RETURNS VOID AS ' +
@@ -892,6 +926,7 @@ module.exports = function (knex) {
         async.series([
             calcRate,
             singleGame,
+            addFriends,
             achievementFunc,
             activateBooster,
             buyBooster,

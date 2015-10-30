@@ -36,7 +36,7 @@ var pushQueue = function(app, PostGre){
     function insertToDB(insertObj, cb){
         PostGre.knex(Tables.NOTIFICATIONS_QUEUE)
             .insert(insertObj)
-            .exec(function(err){
+            .asCallback(function(err){
                 if (err){
                     return cb(err);
                 }
@@ -50,7 +50,7 @@ var pushQueue = function(app, PostGre){
         PostGre.knex(Tables.NOTIFICATIONS_QUEUE)
             .update(updateOjb)
             .where({id: id})
-            .exec(function(err){
+            .asCallback(function(err){
 
                 if (err){
                     return cb(err);
@@ -69,7 +69,7 @@ var pushQueue = function(app, PostGre){
             .select('id')
             .from(Tables.USERS_PROFILE)
             .where(criterionObj)   // TODO: check criterion
-            .exec(function(err, resultUsersId){
+            .asCallback(function(err, resultUsersId){
 
                 if (err){
                     return callback(err);
@@ -149,7 +149,7 @@ var pushQueue = function(app, PostGre){
             .from(Tables.USERS_PROFILE)
             .where({id: userId})
             .limit(1)
-            .exec(function(err, result){
+            .asCallback(function(err, result){
 
                 if(err){
                     return callback(err);
@@ -174,7 +174,7 @@ var pushQueue = function(app, PostGre){
                     .from(Tables.GAME_PROFILE)
                     .where({user_id: userId})
                     .limit(1)
-                    .exec(function(err, resultGame){
+                    .asCallback(function(err, resultGame){
                         if (err){
                             return callback(err);
                         }
@@ -191,7 +191,7 @@ var pushQueue = function(app, PostGre){
                             .select()
                             .from(Tables.NOTIFICATIONS_QUEUE)
                             .where({game_profile_id: gameProfile})
-                            .exec(function(err, resultPushes){
+                            .asCallback(function(err, resultPushes){
 
                                 if (err){
                                     return callback(err);

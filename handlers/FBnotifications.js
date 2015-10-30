@@ -27,7 +27,7 @@ FBnotif = function (app) {
                 'UPDATE ' + TABLES.FB_NOTIFICATIONS + ' SET unresponsive_notification = 0, is_newbie = false ' +
                 'WHERE facebook_id = \'' + fuid + '\''
             )
-            .exec(function (err) {
+            .asCallback(function (err) {
                 if (err) {
                     return next(err)
                 }

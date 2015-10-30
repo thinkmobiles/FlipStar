@@ -59,7 +59,7 @@ Purchase = function(PostGre){
             .select('created_at')
             .where({game_profile_id: gameProfId})
             .orderBy('created_at', 'desc')
-            .exec(function(err, resultRows){
+            .asCallback(function(err, resultRows){
 
                 if (err){
                     return callback(err);
@@ -125,7 +125,7 @@ Purchase = function(PostGre){
 
         purchase
             .fetch()
-            .exec(function(err, resultPackage){
+            .asCallback(function(err, resultPackage){
 
                 if (err){
                     return cb(err);
@@ -143,7 +143,7 @@ Purchase = function(PostGre){
 
                 gameProfileModel
                     .save(saveObj, {patch: true})
-                    .exec(function(err){
+                    .asCallback(function(err){
 
                         if (err){
                             return cb(err);
@@ -164,7 +164,7 @@ Purchase = function(PostGre){
 
         currentGameProfileModel
             .fetch()
-            .exec(function (err, resultProfileModel) {
+            .asCallback(function (err, resultProfileModel) {
 
                 if (err){
                     return callback(err);
@@ -210,7 +210,7 @@ Purchase = function(PostGre){
 
         currentGameProfileModel
             .fetch()
-            .exec(function (err, resultProfileModel) {
+            .asCallback(function (err, resultProfileModel) {
 
                 if (err){
                     return callback(err);
@@ -257,7 +257,7 @@ Purchase = function(PostGre){
 
         currentProfileModel
             .fetch()
-            .exec(function (err, resultProfileModel) {
+            .asCallback(function (err, resultProfileModel) {
 
                 if(err){
                     return callback(err);
@@ -345,7 +345,7 @@ Purchase = function(PostGre){
 
             PostGre.knex
                 .raw('SELECT buy_booster ( ' + gameProfId + ', ' +  boosterId + ' )')
-                .exec(function(err){
+                .asCallback(function(err){
 
                     if (err) {
                         cb(err);
@@ -479,7 +479,7 @@ Purchase = function(PostGre){
             .select('smash_id')
             .from(TABLES.USERS_SMASHES)
             .where({game_profile_id: gameProfileId})
-            .exec(function(err, resultRows){
+            .asCallback(function(err, resultRows){
                 if (err){
                     return cb(err);
                 }
@@ -499,7 +499,7 @@ Purchase = function(PostGre){
         PostGre.knex
             .select('id')
             .from(TABLES.SMASHES)
-            .exec(function(err, resultRows){
+            .asCallback(function(err, resultRows){
                 if (err){
                     return cb(err);
                 }
@@ -604,7 +604,7 @@ Purchase = function(PostGre){
             .from(TABLES.USERS_PURCHASES)
             .orderBy('created_at', 'desc')
             .where({'game_profile_id': gameProfileId})
-            .exec(function(err, resultRows){
+            .asCallback(function(err, resultRows){
                 if (err){
                     return cb(err);
                 }
@@ -616,7 +616,7 @@ Purchase = function(PostGre){
                     .from(TABLES.USERS_PROFILE)
                     .leftJoin(TABLES.GAME_PROFILE, TABLES.USERS_PROFILE + '.id', TABLES.GAME_PROFILE + '.user_id')
                     .where(TABLES.GAME_PROFILE + '.id', gameProfileId)
-                    .exec(function(err, resDate){
+                    .asCallback(function(err, resDate){
 
                         if (err){
                             return cb(err);
@@ -779,7 +779,7 @@ Purchase = function(PostGre){
                 .select('isOpen')
                 .from(TABLES.USERS_SMASHES)
                 .where({'smash_id': smashId, 'game_profile_id': gameProfId})
-                .exec(function(err, result){
+                .asCallback(function(err, result){
 
                     if (err){
                         return cb(err);
@@ -836,7 +836,7 @@ Purchase = function(PostGre){
                                 .from(TABLES.SMASHES)
                                 .where({'id': smashId, 'set': setId})
                                 .limit(1)
-                                .exec(function(err, resultRow){
+                                .asCallback(function(err, resultRow){
 
                                     if (err){
                                         return cb(err);
@@ -1001,7 +1001,7 @@ Purchase = function(PostGre){
 
         purchase
             .fetch()
-            .exec(function(err, model){
+            .asCallback(function(err, model){
                 if (err){
                     return next(err);
                 }
@@ -1010,7 +1010,7 @@ Purchase = function(PostGre){
                     PurchaseModel
                         .forge(insertObj)
                         .save()
-                        .exec(function(err){
+                        .asCallback(function(err){
 
                             if (err){
                                 return next(err);
@@ -1022,7 +1022,7 @@ Purchase = function(PostGre){
                 } else {
                     purchase
                         .save(insertObj, {patch: true})
-                        .exec(function(err){
+                        .asCallback(function(err){
 
                             if (err){
                                 return next(err);
@@ -1046,7 +1046,7 @@ Purchase = function(PostGre){
         PurchaseModel
             .forge(deleteObj)
             .destroy()
-            .exec(function(err){
+            .asCallback(function(err){
                 if (err){
                     return next(err);
                 }

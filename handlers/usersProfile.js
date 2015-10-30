@@ -46,13 +46,13 @@ Users = function (PostGre) {
                     });
                 })
 
-            }  else if (FB_USER) {
+            } else if (FB_USER) {
                 userProfHelper.isExistingFBUser(fbId, function (err, exist) {
                     if (err) {
                         return next(err)
                     }
 
-                    if(exist && exist !== uid && uid !== '-1') {
+                    if (exist && exist !== uid && uid !== '-1') {
 
                         userProfHelper.mergeProfiles(exist, options, function (err, profile) {
                             if (err) {
@@ -109,16 +109,25 @@ Users = function (PostGre) {
                         userProfHelper.createNewProfile(options, function (err, profile) {
 
                             if (err) {
-                                return next(err)
+                                return next(err);
                             }
                             req.session.loggedIn = true;
                             req.session.uId = profile[0].uuid;
 
-                            res.status(201).send({
-                                uId: profile[0].uuid,
-                                date: profile[0].updated_at.toLocaleString(),
-                                achievement: req.achievement || 'none'
-                            });
+                            if (options.facebook_id) {
+                                res.status(201).send({
+                                    uId: profile[0].uuid,
+                                    date: profile[0].updated_at.toLocaleString(),
+                                    achievement: CONSTANTS.ACHIEVEMENTS.FB_CONNECT.NAME
+                                });
+
+                            } else {
+                                res.status(201).send({
+                                    uId: profile[0].uuid,
+                                    date: profile[0].updated_at.toLocaleString(),
+                                    achievement: req.achievement || 'none'
+                                });
+                            }
                         })
                     }
                 })
@@ -159,16 +168,16 @@ Users = function (PostGre) {
                         }
 
                         queryStr = queryStr.slice(0, -1);
-                        queryStr ='('  + queryStr + ')';
+                        queryStr = '(' + queryStr + ')';
 
                         PostGre.knex
                             .raw(
-                                'INSERT into ' + TABLES.FRIENDS + ' (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
-                                'SELECT ' + uid + ' AS g_id, g.id, ' + '\'' + curDate + '\'' + ' AS updated_at, ' + '\'' + curDate + '\'' + ' AS created_at FROM ' + TABLES.USERS_PROFILE + ' u ' +
-                                'LEFT JOIN ' + TABLES.GAME_PROFILE + ' g ON g.user_id = u.id ' +
-                                'WHERE facebook_id IN ' + queryStr +
-                                'AND g.id NOT IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + '  WHERE game_profile_id = ' + uid + ')'
-                            )
+                            'INSERT into ' + TABLES.FRIENDS + ' (game_profile_id, friend_game_profile_id, updated_at, created_at) ' +
+                            'SELECT ' + uid + ' AS g_id, g.id, ' + '\'' + curDate + '\'' + ' AS updated_at, ' + '\'' + curDate + '\'' + ' AS created_at FROM ' + TABLES.USERS_PROFILE + ' u ' +
+                            'LEFT JOIN ' + TABLES.GAME_PROFILE + ' g ON g.user_id = u.id ' +
+                            'WHERE facebook_id IN ' + queryStr +
+                            'AND g.id NOT IN (SELECT friend_game_profile_id FROM ' + TABLES.FRIENDS + '  WHERE game_profile_id = ' + uid + ')'
+                        )
                             .then(function () {
                                 cb()
                             })
@@ -183,7 +192,7 @@ Users = function (PostGre) {
             ], function (err, result) {
 
                 if (err) {
-                  return next(err)
+                    return next(err)
 
                 } else {
                     res.status(200).send(result[0])
@@ -239,7 +248,7 @@ Users = function (PostGre) {
                     none: emptyFBId,
                     uid: uid
                 }
-                )
+            )
                 .then(function (friends) {
                     res.status(200).send(friends.rows)
                 })
@@ -261,7 +270,7 @@ Users = function (PostGre) {
                     users_p: TABLES.USERS_PROFILE,
                     none: emptyFBId
                 }
-                )
+            )
                 .then(function (profiles) {
                     res.status(200).send(profiles.rows)
                 })
@@ -277,17 +286,17 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM :game_p: g ' +
-                'LEFT JOIN :users_p: u ON g.user_id = u.id ' +
-                'WHERE g.id IN (SELECT friend_game_profile_id FROM :friends: WHERE game_profile_id = ( ' +
-                'SELECT id FROM :game_p: WHERE uuid = :uid))',
-                {
-                    game_p: TABLES.GAME_PROFILE,
-                    users_p: TABLES.USERS_PROFILE,
-                    friends: TABLES.FRIENDS,
-                    uid: uid
-                }
-            )
+            'SELECT g.id, g.points_number, g.stars_number, u.first_name, u.last_name FROM :game_p: g ' +
+            'LEFT JOIN :users_p: u ON g.user_id = u.id ' +
+            'WHERE g.id IN (SELECT friend_game_profile_id FROM :friends: WHERE game_profile_id = ( ' +
+            'SELECT id FROM :game_p: WHERE uuid = :uid))',
+            {
+                game_p: TABLES.GAME_PROFILE,
+                users_p: TABLES.USERS_PROFILE,
+                friends: TABLES.FRIENDS,
+                uid: uid
+            }
+        )
             .then(function (friends) {
                 res.status(200).send(friends.rows)
             })
@@ -308,11 +317,11 @@ Users = function (PostGre) {
 
         PostGre.knex
             .raw(
-                'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM :game_p: WHERE uuid = :uid',
-                {
-                    game_p: TABLES.GAME_PROFILE,
-                    uid: uuid
-                }
+            'SELECT EXTRACT(days FROM current_timestamp - last_seen_date) as missed_days FROM :game_p: WHERE uuid = :uid',
+            {
+                game_p: TABLES.GAME_PROFILE,
+                uid: uuid
+            }
             )
             .then(function (queryResult) {
 
@@ -341,6 +350,28 @@ Users = function (PostGre) {
             })
             .catch(next)
 
+
+    };
+
+    this.addFBFriends = function (req, res, next) {
+        var options = req.body;
+        var uid = req.session.uId;
+        var error;
+
+        if (!options.friends || !options.friends.length) {
+            error = new Error(RESPONSES.BAD_INCOMING_PARAMS);
+            error.status = 400;
+            next(error);
+        }
+
+        PostGre.knex
+            .raw('SELECT add_friends( ?, \'{ ' + options.friends+ ' }\')', [uid])
+            .then(function () {
+                res.status(200).send({
+                    success: RESPONSES.SAVED
+                })
+            })
+            .catch(next)
     };
 
 };
