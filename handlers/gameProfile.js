@@ -154,7 +154,6 @@ GameProfile = function (PostGre) {
          *     "first_name": "John",
          *     "date": "Tue Sep 01 2015 15:30:35 GMT+0300 (EEST)",
          *     "games": [{"stars": 100, "boosters_id": [1,2,3]}, {"stars": 100, "boosters_id": [1,2,3]}],
-         *     "open": [10,5,4],
          *     "buy": [10,5,4,1,12]
          * }
          * @param {number} uId - id of Game Profile
@@ -177,7 +176,7 @@ GameProfile = function (PostGre) {
         var delatDate = serverCurrentDate - clientCurrentDate;
         var err;
 
-        gameDate = new Date(gameDate.getTime() + delatDate);
+        gameDate = new Date(gameDate.getTime() + delatDate).toISOString();
 
         if (process.env.NODE_ENV === 'development') {
             console.log(
@@ -191,13 +190,13 @@ GameProfile = function (PostGre) {
 
         PostGre.knex
             .raw(
-            'SELECT   gp.last_seen_date < TIMESTAMP :gameDate AND  ' +
-            'TIMESTAMP :gameDate < now() AS sync ' +
+            'SELECT   gp.last_seen_date < TIMESTAMP \'' + gameDate + '\' AND  ' +
+            'TIMESTAMP \'' + gameDate + '\' < now() AS sync ' +
             'FROM :game_p:  gp ' +
             'WHERE gp.uuid = :uid; ',
             {
+                //gameDate: gameDate,
                 game_p: TABLES.GAME_PROFILE,
-                gameDate: gameDate.toISOString(),
                 uid: uid
             }
         )
@@ -525,9 +524,9 @@ GameProfile = function (PostGre) {
             }
 
             res.status(200).send({
-                stars_number: profile[0].stars_number,
-                points_number: profile[0].points_number,
-                flips_number: profile[0].flips_number
+                stars: profile[0].stars_number,
+                points: profile[0].points_number,
+                flips: profile[0].flips_number
             });
         })
     };
@@ -563,6 +562,111 @@ GameProfile = function (PostGre) {
         )
             .then(function (queryResult) {
                 res.status(200).send(queryResult.rows)
+            })
+            .catch(next)
+    };
+
+    this.getInvites = function (req, res, next) {
+        var uid = req.session.uId;
+
+        async.series([
+            function (cb) {
+                PostGre.knex(TABLES.INVITES)
+                    .where(PostGre.knex.raw('now() - created_at > \'1 day\' '))
+                    .delete()
+                    .then(function () {
+                        cb();
+                    })
+                    .catch(cb)
+            },
+
+            function (cb) {
+                PostGre.knex(TABLES.INVITES)
+                    .select(
+                    PostGre.knex.raw('array_agg(invite_id) AS invites')
+                )
+                    .leftJoin(TABLES.GAME_PROFILE, TABLES.GAME_PROFILE + '.id', TABLES.INVITES + '.game_profile_id' )
+                    .where('uuid', uid)
+                    .then(function (queryResult) {
+                        cb(null, queryResult[0].invites)
+                    })
+                    .catch(cb)
+            }
+
+        ], function (err, result) {
+
+            if (err) {
+                return next(err);
+            }
+
+            res.status(200).send(result[1]);
+        })
+
+    };
+
+    this.setInvetes = function (req, res, next) {
+        var uid = req.session.uId;
+        var friends = req.body.friends;
+        var error;
+
+        if (!friends || Object.prototype.toString.call(friends).slice(8,-1) !== 'Array' || !friends.length) {
+            error = new Error(RESPONSES.INVALID_PARAMETERS);
+            error.status = !friends.length ? 411 : 400;
+
+            return next(error);
+        }
+
+        PostGre.knex
+            .raw(
+                'INSERT INTO invites (game_profile_id,invite_id) ' +
+                'VALUES ( (SELECT id FROM game_profile WHERE uuid = :uid ), UNNEST(STRING_TO_ARRAY( :friends, \',\')) )',
+            {
+                uid: uid,
+                friends: friends.toString()
+            }
+            )
+            .then(function () {
+                res.status(201).send({
+                    success: RESPONSES.CREATED
+                })
+            })
+            .catch(next)
+
+    };
+
+    this.getOpponent = function (req, res, next) {
+        var uid = req.params.id;
+        var error;
+        var response;
+
+        PostGre.knex
+            .raw(
+                'SELECT up.gender, up.first_name, up.facebook_id, gp.points_number FROM :gameP: gp ' +
+                'LEFT JOIN :userP: up ON gp.user_id = up.id ' +
+                'WHERE uuid = :uid',
+                {
+                    uid: uid,
+                    gameP: TABLES.GAME_PROFILE,
+                    userP: TABLES.USERS_PROFILE
+                }
+            )
+            .then(function (queryResult) {
+
+                if(!queryResult || !queryResult.rows || !queryResult.rows[0]) {
+                    error = new Error(RESPONSES.INVALID_PARAMETERS);
+                    error = 400;
+
+                    return next(error);
+                }
+
+                response = {
+                    gender: queryResult.rows[0].gender,
+                    name: queryResult.rows[0].first_name,
+                    facebook_id: queryResult.rows[0].facebook_id,
+                    points: queryResult.rows[0].points_number,
+                };
+
+                res.status(200).send(response);
             })
             .catch(next)
     };

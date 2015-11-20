@@ -3,7 +3,7 @@
  */
 
 /* Database Settings */
-process.env.DB_HOST = process.env.DB_HOST || '192.168.88.250';
+process.env.DB_HOST = process.env.DB_HOST || 'localhost';//'192.168.88.250';
 process.env.DB_NAME = process.env.DB_NAME || 'FlipStar';
 process.env.DB_PORT = process.env.DB_PORT || 5432;
 process.env.DB_USER = process.env.DB_USER || 'postgres';
@@ -24,7 +24,6 @@ process.env.SESSION_SECRET = 'change this secret';
 process.env.SESSION_HOST = process.env.SESSION_HOST || 'localhost';
 process.env.SESSION_DB = parseInt( process.env.SESSION_DB ) || 3;
 process.env.SESSION_PORT = parseInt ( process.env.SESSION_PORT ) || 6379;
-
 /* Socket Redis */
 process.env.SOCKET_DB_HOST = process.env.SOCKET_DB_HOST || 'localhost';
 process.env.SOCKET_DB_PORT = parseInt( process.env.SOCKET_DB_PORT ) || 6379;

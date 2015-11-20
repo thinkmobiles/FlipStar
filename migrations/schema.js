@@ -822,6 +822,16 @@ module.exports = function (knex) {
         })
     }
 
+    function invitesTable(cb) {
+        createTable(TABLES.INVITES, function (row) {
+            row.increments('id').primary();
+            row.integer('game_profile_id').references('id').inTable(TABLES.GAME_PROFILE).onDelete('CASCADE').onUpdate('CASCADE');
+            row.string('invite_id');
+
+            row.timestamp('created_at', true).defaultTo(knex.raw('now()'));
+        }, cb)
+    }
+
     function kioskTable(cb) {
         createTable(TABLES.KIOSK, function (row) {
             row.increments('id').primary();
@@ -964,6 +974,7 @@ module.exports = function (knex) {
             gameProfileTable,
             boosterTable,
             usersBoosterTable,
+            invitesTable,
             friendsTable,
             smashesTable,
             usersSmashestable,
@@ -1009,6 +1020,10 @@ module.exports = function (knex) {
         async.series([
             function (cb) {
                 dropTable(TABLES.USERS_SMASHES, cb)
+            },
+
+            function (cb) {
+                dropTable(TABLES.INVITES, cb)
             },
 
             function (cb) {

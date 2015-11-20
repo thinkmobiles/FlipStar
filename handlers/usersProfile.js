@@ -232,13 +232,13 @@ Users = function (PostGre) {
             PostGre.knex
                 .raw(
                 'SELECT ' +
-                'up.first_name  , COALESCE(up.facebook_id, :none) AS facebook_id, gpf.game_rate_point ' +
+                'up.first_name, up.gender , up.facebook_id, gpf.game_rate_point ' +
                 'FROM :game_p: gp ' +
                 'LEFT JOIN :friends: fr ON fr.game_profile_id =  gp.id ' +
                 'LEFT JOIN :game_p: gpf ON gpf.id = fr.friend_game_profile_id  OR gp.uuid = gpf.uuid ' +
                 'LEFT JOIN :users_p: up ON gpf.user_id = up.id ' +
                 'WHERE gp.uuid= :uid ' +
-                'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id ' +
+                'GROUP BY gpf.game_rate_point, up.first_name, up.facebook_id, up.gender ' +
                 'ORDER BY game_rate_point DESC ' +
                 'LIMIT 25',
                 {
@@ -260,7 +260,7 @@ Users = function (PostGre) {
 
             PostGre.knex
                 .raw(
-                'SELECT COALESCE(up.facebook_id, :none) AS facebook_id, gp.game_rate_point, up.first_name ' +
+                'SELECT up.facebook_id, gp.game_rate_point, up.first_name, up.gender ' +
                 'FROM :game_p: gp ' +
                 'LEFT JOIN :users_p: up ON up.id = gp.user_id ' +
                 'ORDER BY gp.game_rate_point DESC ' +
